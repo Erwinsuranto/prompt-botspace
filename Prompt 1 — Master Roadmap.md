@@ -1,23 +1,17 @@
 
-
-
-
 # Prompt 1 — Master Roadmap
 ```
-
 # ROLE
 
-You are a Senior Software Architect and Technical Product Manager.
+You are the Lead Software Architect for this project.
 
-Do NOT write application code yet.
+Do NOT write application code.
 
-Your job is to design the complete project before implementation.
+Your first responsibility is to create a complete project blueprint, documentation structure, and folder hierarchy.
 
-Treat this as a real production SaaS platform.
+This documentation will be stored in GitHub and synchronized with Notion.
 
-Everything must be modular, scalable, maintainable, and enterprise-ready.
-
-Never skip planning.
+Everything must be organized professionally.
 
 ----------------------------------------
 
@@ -25,148 +19,143 @@ PROJECT
 
 Telegram Productivity Platform
 
-This is NOT a single Telegram bot.
-
-It is a web platform where users can create and manage multiple Telegram Workspaces.
+This is a modular SaaS platform for managing Telegram Workspaces and Telegram Bots.
 
 Each Workspace represents one Telegram account.
 
-Inside each Workspace, users can install and manage multiple Telegram Bots.
+Each Workspace can contain multiple bots.
 
-Future bots will continue to be added without changing the core architecture.
-
-The platform must be designed as a modular system.
+The platform must support future expansion without changing the core architecture.
 
 ----------------------------------------
 
-GOALS
+YOUR TASK
 
-Create complete project documentation before coding.
+Before writing any code, create the complete project documentation.
 
-Think like a software architect.
+Also create the documentation folder structure.
 
-The documentation must be detailed enough that multiple AI agents can develop the project without confusion.
+Every document should have its own Markdown file.
 
 ----------------------------------------
 
 OUTPUT
 
-Generate a complete roadmap containing:
+Create the following folder tree:
 
-1. Project Vision
-
-2. Business Goals
-
-3. User Roles
-
-4. Core Features
-
-5. Functional Requirements
-
-6. Non Functional Requirements
-
-7. Technology Stack Recommendation
-
-8. System Architecture
-
-9. Folder Structure
-
-10. Database Planning
-
-11. API Planning
-
-12. Authentication Flow
-
-13. Telegram Workspace Concept
-
-14. Bot Platform Concept
-
-15. Subscription System
-
-16. Future Expansion
-
-17. Development Roadmap
-
-18. Release Plan
-
-19. Documentation Structure
-
-20. Git Repository Structure
+docs/
+├── README.md
+├── roadmap/
+├── architecture/
+├── requirements/
+├── database/
+├── api/
+├── ui-ux/
+├── features/
+├── modules/
+├── security/
+├── deployment/
+├── testing/
+├── changelog/
+└── assets/
 
 ----------------------------------------
 
-ROADMAP
-
-Create detailed phases.
+Generate the documentation files.
 
 Example:
 
-Phase 0
-Planning
+docs/
+README.md
 
-Phase 1
-Website Core
+docs/roadmap/
+overview.md
+phase-0.md
+phase-1.md
+phase-2.md
+phase-3.md
+phase-4.md
+phase-5.md
+future.md
 
-Phase 2
-Telegram Workspace
+docs/architecture/
+system-overview.md
+workspace.md
+bot-platform.md
+component-diagram.md
+sequence-flow.md
 
-Phase 3
-Bot Platform
+docs/database/
+erd.md
+tables.md
+indexes.md
 
-Phase 4
-Share Link Bot
+docs/api/
+authentication.md
+workspace-api.md
+bot-api.md
+file-api.md
 
-Phase 5
-Share Link Group Bot
+docs/ui-ux/
+design-system.md
+dashboard.md
+landing-page.md
 
-Phase 6
-Multi Upload Bot
+docs/features/
+authentication.md
+subscription.md
+workspace.md
+share-link.md
+multi-upload.md
 
-Phase 7
-AI Modules
+docs/modules/
+core.md
+telegram.md
+storage.md
+queue.md
+scheduler.md
 
-Phase 8
-File Platform
+docs/security/
+authentication.md
+authorization.md
+rate-limit.md
+backup.md
 
-Phase 9
-Marketplace
+docs/deployment/
+docker.md
+vps.md
+cloud.md
 
-Phase 10
-Monitoring
+docs/testing/
+testing-plan.md
+manual-test.md
+automation.md
 
-Phase 11
-Production Release
+docs/changelog/
+CHANGELOG.md
 
-Each phase must include:
+----------------------------------------
 
-Objectives
+Each Markdown file must include:
 
-Features
-
-Deliverables
-
-Dependencies
-
-Estimated Complexity
-
-Recommended Folder
+- Purpose
+- Scope
+- Detailed explanation
+- Future improvements
+- Related documents
 
 ----------------------------------------
 
 IMPORTANT
 
-Do not generate code.
+Do not generate application code.
 
-Only generate professional project documentation.
+Only generate the documentation and folder hierarchy.
 
 Use Markdown.
 
-Use headings.
+Think like an enterprise software architect.
 
-Use tables where appropriate.
+The result should be ready to upload to GitHub as the project's documentation repository.
 
-Be extremely detailed.
-
-Imagine this documentation will become the official project blueprint stored in GitHub and used by multiple AI coding agents.
 ```
-
