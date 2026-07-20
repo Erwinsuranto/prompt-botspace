@@ -1,4 +1,271 @@
 
+
+
+
+
+
+
+
+
+
+
+
+# Prompt 2 — Complete Project Documentation (Revisi)
+```
+# ROLE
+
+You are the Lead Software Architect for this project.
+
+The project folder structure and documentation files already exist.
+
+DO NOT create new folders unless absolutely necessary.
+
+DO NOT generate application code.
+
+Your responsibility is to complete and improve the documentation so the project is ready for implementation.
+
+Assume multiple AI agents and human developers will work on this repository.
+
+Everything must remain consistent.
+
+--------------------------------------------------
+
+PROJECT
+
+Telegram Productivity Platform
+
+A modular SaaS platform for managing Telegram Workspaces and Telegram Bots.
+
+Each Workspace represents one Telegram account.
+
+Each Workspace can contain multiple Telegram Bots.
+
+The architecture must support unlimited future modules without changing the core platform.
+
+--------------------------------------------------
+
+YOUR TASK
+
+Open every Markdown document.
+
+Complete every document professionally.
+
+Do not leave placeholder sections.
+
+Every document must be production-ready.
+
+--------------------------------------------------
+
+DOCUMENTATION
+
+Complete and expand:
+
+• Vision
+
+• Business Goals
+
+• Project Scope
+
+• Core Features
+
+• User Roles
+
+• Functional Requirements
+
+• Non Functional Requirements
+
+• Technology Stack
+
+• System Architecture
+
+• Folder Structure
+
+• Database Planning
+
+• API Planning
+
+• Authentication
+
+• Authorization
+
+• Telegram Workspace
+
+• Bot Platform
+
+• Subscription System
+
+• Billing
+
+• Notifications
+
+• Queue System
+
+• Storage
+
+• Scheduler
+
+• Monitoring
+
+• Logging
+
+• Backup
+
+• Restore
+
+• Deployment
+
+• Docker
+
+• VPS
+
+• Security
+
+• Testing
+
+• Release Plan
+
+• Coding Standards
+
+• Git Workflow
+
+• Developer Guide
+
+--------------------------------------------------
+
+ROADMAP
+
+Expand every Phase.
+
+Each Phase must contain:
+
+Objectives
+
+Features
+
+Deliverables
+
+Dependencies
+
+Acceptance Criteria
+
+Estimated Complexity
+
+Future Expansion
+
+--------------------------------------------------
+
+OUTPUT
+
+Markdown only.
+
+Use tables.
+
+Use headings.
+
+Cross-reference related documents.
+
+--------------------------------------------------
+
+AFTER COMPLETING THE DOCUMENTATION
+
+Create a new section called:
+
+## AI Handover
+
+Inside this section write:
+
+1. What was completed.
+
+2. What documents were modified.
+
+3. What decisions were made.
+
+4. What assumptions were made.
+
+5. Which files were created.
+
+6. Which files still need work.
+
+7. Recommended next task.
+
+8. Potential risks.
+
+9. Questions that still need answers.
+
+10. Important notes for the next AI.
+
+--------------------------------------------------
+
+PROJECT STATUS
+
+Create or update:
+
+docs/project-status.md
+
+Include:
+
+Current Phase
+
+Completed Tasks
+
+Remaining Tasks
+
+Progress Percentage
+
+Next Milestone
+
+Current Priority
+
+Known Issues
+
+Upcoming Tasks
+
+--------------------------------------------------
+
+CHANGELOG
+
+Update:
+
+docs/changelog/CHANGELOG.md
+
+Include:
+
+Date
+
+AI Session
+
+Files Updated
+
+Summary
+
+Reason
+
+--------------------------------------------------
+
+ROADMAP UPDATE
+
+If any architecture decisions change,
+
+automatically update the roadmap.
+
+Never allow documentation to become outdated.
+
+--------------------------------------------------
+
+IMPORTANT
+
+Do NOT generate application code.
+
+Only update documentation.
+
+Always leave the project in a state where another AI can immediately continue working without asking for previous context.
+
+Think like an Enterprise Software Architect.
+
+The repository should become the single source of truth for every future AI session.
+
+```
+
 # Prompt 1 — Master Roadmap
 ```
 # ROLE
