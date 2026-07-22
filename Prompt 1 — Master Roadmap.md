@@ -11,6 +11,58 @@
 
 
 
+
+# 
+```
+Lanjutkan implementasi sampai selesai.
+
+Mulai saat ini jangan meminta persetujuan atau konfirmasi untuk setiap langkah yang masih berada dalam ruang lingkup tugas ini. Ambil keputusan teknis yang wajar dan lanjutkan otomatis sampai target tercapai.
+
+Aturan kerja:
+
+- Jangan berhenti karena menunggu approval.
+- Jangan berhenti setelah membuat draft PR.
+- Jangan berhenti setelah membuat commit.
+- Jangan berhenti setelah menemukan error.
+- Jika ada error, analisis, perbaiki, lalu ulangi validasi secara otomatis sampai berhasil.
+- Jika ada konflik build, dependency, lint, typecheck, test, migration, atau CI, selesaikan sendiri lalu lanjutkan.
+- Lakukan commit secara logis per fitur bila memungkinkan. Jika perubahan saling bergantung sehingga tidak realistis dipisah, jelaskan alasannya di laporan akhir.
+- Jalankan validasi ulang setiap selesai memperbaiki masalah.
+
+Target akhir yang wajib dicapai:
+
+- Semua implementasi fase ini selesai.
+- pnpm lint berhasil.
+- pnpm typecheck berhasil.
+- pnpm test berhasil.
+- pnpm build berhasil.
+- GitHub Actions / CI hijau.
+- Tidak ada TODO/FIXME baru yang ditambahkan.
+- Tidak ada error runtime yang diketahui.
+- git status bersih.
+- Branch dalam kondisi siap merge.
+
+Jangan berhenti sampai seluruh target di atas tercapai.
+
+Laporan akhir harus berisi:
+
+1. Ringkasan implementasi.
+2. Daftar commit yang dibuat.
+3. Daftar file utama yang diubah.
+4. Endpoint/API yang ditambahkan atau diubah.
+5. Perubahan database/migration (jika ada).
+6. Hasil lint.
+7. Hasil typecheck.
+8. Hasil test.
+9. Hasil build.
+10. Hasil GitHub Actions.
+11. Status git.
+12. Risiko atau pekerjaan lanjutan (jika memang masih ada).
+
+Selama target di atas belum tercapai, jangan meminta persetujuan dan jangan berhenti. Terus lakukan implementasi, debugging, validasi, dan perbaikan secara otomatis sampai fase ini benar-benar selesai dan siap digunakan.
+
+```
+
 # Prompt: P2.002 - Telegram Dispatcher Engine
 ```
 Lanjutkan implementasi BotSpace.
