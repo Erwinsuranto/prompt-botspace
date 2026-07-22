@@ -10,6 +10,205 @@
 
 
 
+
+# Prompt: P2.002 - Telegram Dispatcher Engine
+```
+Lanjutkan implementasi BotSpace.
+
+Semua fitur sebelumnya harus tetap lolos.
+
+Jangan mengubah API yang sudah ada.
+
+Target fase ini adalah Telegram Dispatcher Engine.
+
+Implementasikan:
+
+1. Webhook Receiver
+
+POST
+
+/webhook/:workspaceId/:botId/:secret
+
+Validasi:
+
+- workspace
+- bot
+- secret
+- bot aktif
+
+2. Dispatcher
+
+Dispatcher menerima Update Telegram.
+
+Route berdasarkan:
+
+workspaceId
+botId
+
+Tidak boleh ada switch besar.
+
+Gunakan registry/provider.
+
+3. Update Types
+
+Support:
+
+message
+
+edited_message
+
+callback_query
+
+inline_query
+
+chosen_inline_result
+
+my_chat_member
+
+chat_member
+
+chat_join_request
+
+poll
+
+poll_answer
+
+4. Context
+
+Bangun TelegramContext.
+
+Berisi:
+
+workspace
+
+bot
+
+update
+
+user
+
+chat
+
+logger
+
+correlation id
+
+reply helper
+
+answerCallback helper
+
+editMessage helper
+
+deleteMessage helper
+
+5. Middleware Pipeline
+
+before()
+
+after()
+
+error()
+
+logger()
+
+auth()
+
+metrics()
+
+6. Plugin Loader
+
+Setiap bot memiliki plugin.
+
+Loader membaca plugin registry.
+
+Plugin dapat di-enable / disable.
+
+7. Event Bus
+
+Publish:
+
+MessageReceived
+
+CallbackReceived
+
+MemberJoined
+
+MemberLeft
+
+ChatMigrated
+
+PollAnswered
+
+Plugin subscribe melalui Event Bus.
+
+8. Rate Limiter
+
+Per Workspace
+
+Per Bot
+
+Per User
+
+9. Metrics
+
+Counter:
+
+update total
+
+callback total
+
+errors
+
+latency
+
+plugin runtime
+
+10. Tests
+
+Integration test.
+
+Mock Telegram update.
+
+Semua update type harus diuji.
+
+Requirements:
+
+- Clean Architecture
+
+- Repository Pattern
+
+- Dependency Injection
+
+- No duplicated logic
+
+- Commit per fitur
+
+- Jalankan:
+
+pnpm lint
+
+pnpm typecheck
+
+pnpm test
+
+pnpm build
+
+setelah setiap commit.
+
+Di akhir tampilkan:
+
+- daftar commit
+
+- file berubah
+
+- hasil test
+
+- hasil build
+
+- worktree harus bersih.
+
+```
+
 # Prompt 2 — Complete Project Documentation (Revisi)
 ```
 # ROLE
