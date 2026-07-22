@@ -14,6 +14,41 @@
 
 # 
 ```
+Selesaikan blocker terakhir secara otomatis tanpa meminta persetujuan.
+
+Target:
+
+1. Generate pnpm-lock.yaml yang sesuai dengan package.json saat ini.
+2. Commit pnpm-lock.yaml.
+3. Pastikan semua workflow CI menggunakan:
+   pnpm install --frozen-lockfile
+4. Jalankan ulang:
+   - pnpm install
+   - pnpm lint
+   - pnpm typecheck
+   - pnpm test
+   - pnpm build
+5. Jika ada error dependency, perbaiki otomatis lalu ulangi validasi sampai seluruh pipeline hijau.
+6. Jalankan GitHub Actions hingga seluruh workflow berhasil.
+7. Pastikan:
+   - git status bersih
+   - tidak ada file yang belum di-commit
+   - tidak ada TODO/FIXME baru
+8. Setelah selesai, tampilkan:
+   - commit terakhir
+   - hasil GitHub Actions
+   - hasil lint
+   - hasil typecheck
+   - hasil test
+   - hasil build
+   - status git
+
+Jangan berhenti dan jangan meminta persetujuan sampai seluruh target di atas tercapai.
+
+```
+
+# 
+```
 Lanjutkan implementasi sampai selesai.
 
 Mulai saat ini jangan meminta persetujuan atau konfirmasi untuk setiap langkah yang masih berada dalam ruang lingkup tugas ini. Ambil keputusan teknis yang wajar dan lanjutkan otomatis sampai target tercapai.
