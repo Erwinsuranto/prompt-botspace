@@ -19,7 +19,77 @@
 # 
 ```
 
+# Prompt: Smart OpenRouter Coding Models
 
+Refactor provider OpenRouter agar tidak lagi menggunakan daftar model hardcoded.
+
+Tujuan:
+
+1. Saat startup (dan refresh berkala, misalnya setiap 1 jam), panggil:
+
+GET https://openrouter.ai/api/v1/models
+
+2. Simpan hasil ke cache.
+
+3. Hanya gunakan model yang:
+- tersedia
+- memiliki suffix :free
+
+4. Buat whitelist model coding terbaik.
+
+Prioritas:
+
+1. cohere/north-mini-code:free
+2. poolside/laguna-s-2.1:free
+3. poolside/laguna-xs-2.1:free
+4. nvidia/nemotron-3-ultra-550b-a55b:free
+5. nvidia/nemotron-3-super-120b-a12b:free
+6. google/gemma-4-31b-it:free
+7. google/gemma-4-26b-a4b-it:free
+8. openai/gpt-oss-20b:free
+
+Logika:
+
+- Ambil daftar model terbaru dari OpenRouter.
+- Bandingkan dengan whitelist di atas.
+- Jika model ada, masukkan ke daftar aktif sesuai urutan prioritas.
+- Jika model tidak ada atau sudah tidak free, lewati otomatis.
+- Jangan menghasilkan error hanya karena satu model hilang.
+
+Fallback:
+
+Jika model pertama gagal (429, 5xx, timeout), lanjut ke model berikutnya.
+
+Cooldown:
+
+Jika model mendapat 429, masukkan cooldown (misalnya 60 detik) agar request berikutnya langsung memakai model berikutnya.
+
+Logging:
+
+Saat startup tampilkan:
+
+OpenRouter Coding Models
+
+✓ cohere/north-mini-code:free
+✓ poolside/laguna-s-2.1:free
+✓ poolside/laguna-xs-2.1:free
+✓ nvidia/nemotron-3-ultra-550b-a55b:free
+✓ nvidia/nemotron-3-super-120b-a12b:free
+✓ google/gemma-4-31b-it:free
+✓ google/gemma-4-26b-a4b-it:free
+✓ openai/gpt-oss-20b:free
+
+Jika tidak tersedia:
+
+✗ poolside/laguna-s-2.1:free (not available)
+
+Jangan mengubah provider lain (StepFun, NVIDIA, Cloudflare).
+
+Tampilkan:
+- file yang diubah
+- before → after
+- hasil build
+- hasil test
 
 ```
 
