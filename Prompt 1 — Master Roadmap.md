@@ -9,6 +9,166 @@
 
 
 
+# 
+```
+
+
+
+```
+# 
+```
+
+
+
+```
+# 
+```
+
+Refactor the AI Gateway model routing architecture.
+
+## Goal
+
+The gateway must NEVER replace the model selected by the client.
+
+If the client requests:
+
+- nvidia/glm-5.2
+- nvidia/deepseek-v4-flash
+- nvidia/qwen3-coder
+- stepfun/step-3.7-flash
+- openrouter/cohere/north-mini-code:free
+
+the gateway MUST send exactly that model to the selected provider.
+
+Do NOT automatically switch to another model.
+
+## Required Behavior
+
+Example:
+
+Client:
+
+model = "nvidia/glm-5.2"
+
+Gateway:
+
+Provider = NVIDIA
+Model = glm-5.2
+
+If the provider returns an error (429, 500, unavailable, etc.), return the provider error.
+
+Do NOT change the model to DeepSeek, Qwen, Gemma, or any other model.
+
+Another example:
+
+Client:
+
+model = "nvidia/deepseek-v4-flash"
+
+Always send:
+
+deepseek-v4-flash
+
+Never replace it with GLM or Qwen.
+
+## Provider Selection
+
+The gateway may still choose:
+
+- API Key
+- Endpoint
+- Region
+- Server
+
+But it must NOT change the requested model.
+
+## Remove
+
+Remove all logic that:
+
+- selects the "best coding model"
+- replaces one model with another
+- automatic cross-model fallback
+- automatic alias resolution that changes the requested model
+
+## Models Endpoint
+
+GET /v1/models must return every supported model exactly as the client should use it.
+
+Example:
+
+nvidia/glm-5.2
+nvidia/deepseek-v4-flash
+nvidia/qwen3-coder
+
+stepfun/step-3.7-flash
+
+openrouter/cohere/north-mini-code:free
+openrouter/poolside/laguna-s-2.1:free
+openrouter/openai/gpt-oss-20b:free
+
+cloudflare/...
+
+## Internal Flow
+
+Request
+
+↓
+
+Parse provider prefix
+
+↓
+
+Select provider
+
+↓
+
+Select API key
+
+↓
+
+Forward EXACT requested model
+
+↓
+
+Return response
+
+No model replacement.
+
+## Logging
+
+Log:
+
+Incoming model
+
+Resolved provider
+
+Actual upstream model
+
+Selected API key
+
+Latency
+
+Never log that another model was chosen.
+
+## Compatibility
+
+Maintain full OpenAI API compatibility.
+
+Do not change request or response schema.
+
+## Deliverables
+
+- Remove model replacement logic
+- Keep provider routing
+- Keep API key rotation
+- Keep OpenAI compatibility
+- Build successfully
+- Run tests
+- Show all modified files
+- Explain the new architecture
+
+```
 
 # 
 ```
