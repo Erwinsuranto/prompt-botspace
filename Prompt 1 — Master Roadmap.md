@@ -9,10 +9,42 @@
 
 
 
+
+
+
 # 
 ```
 
 
+
+``
+# 
+```
+
+
+
+``
+# 
+```
+
+
+
+``
+# 
+```
+
+Audit why cohere/north-mini-code:free is missing.
+
+The model does not appear in the actual /v1/models response.
+
+Tasks:
+1. Search the entire codebase for "north-mini-code".
+2. Verify it is registered in the provider model registry.
+3. Verify it is returned by GET /v1/models.
+4. Verify it is not filtered by any whitelist, blacklist, or deduplication logic.
+5. Print the reason if it is intentionally omitted.
+6. If it should be exposed, fix the /v1/models endpoint so the model appears.
+Do not modify unrelated providers.
 
 ```
 # 
