@@ -12,7 +12,182 @@
 
 # 
 ```
+# Prompt: Refactor Provider Aliases
 
+Refactor gateway agar alias dipisahkan berdasarkan provider, bukan satu alias global yang dapat berpindah provider.
+
+Tujuan:
+
+Provider mengelola modelnya sendiri.
+
+Contoh:
+
+nvidia/coding
+stepfun/coding
+openrouter/coding
+cloudflare/coding
+
+Jangan gunakan alias global seperti:
+
+coding
+reasoning
+fast
+
+Karena membingungkan saat debugging.
+
+==================================================
+NVIDIA
+==================================================
+
+Alias:
+
+nvidia/coding
+
+Fallback hanya di dalam provider NVIDIA.
+
+==================================================
+STEPFUN
+==================================================
+
+Alias:
+
+stepfun/coding
+
+Saat ini:
+
+1. step-3.7-flash
+
+Di masa depan dapat ditambah model StepFun lain tanpa memengaruhi provider lain.
+
+==================================================
+OPENROUTER
+==================================================
+
+Alias:
+
+openrouter/coding
+
+Saat startup:
+
+GET https://openrouter.ai/api/v1/models
+
+Filter:
+
+- model tersedia
+- suffix :free
+
+Whitelist prioritas:
+
+1. cohere/north-mini-code:free
+2. poolside/laguna-s-2.1:free
+3. poolside/laguna-xs-2.1:free
+4. nvidia/nemotron-3-super-120b-a12b:free
+5. nvidia/nemotron-3-ultra-550b-a55b:free
+6. google/gemma-4-26b-a4b-it:free
+7. openai/gpt-oss-20b:free
+
+Jika model tidak tersedia:
+
+skip otomatis.
+
+Jika HTTP 429:
+
+cooldown model tersebut
+langsung lanjut model berikutnya.
+
+==================================================
+CLOUDFLARE
+==================================================
+
+Alias:
+
+cloudflare/coding
+
+Fallback hanya di provider Cloudflare.
+
+==================================================
+API
+==================================================
+
+GET /v1/models
+
+Tetap tampilkan seluruh model asli.
+
+Tambahkan alias:
+
+nvidia/coding
+stepfun/coding
+openrouter/coding
+cloudflare/coding
+
+==================================================
+Routing
+==================================================
+
+Jika request:
+
+model=nvidia/coding
+
+Gateway hanya boleh memakai provider NVIDIA.
+
+Jika request:
+
+model=openrouter/coding
+
+Gateway hanya boleh memakai provider OpenRouter.
+
+Tidak boleh berpindah ke StepFun, NVIDIA, atau Cloudflare.
+
+Jika request:
+
+model=stepfun/coding
+
+Hanya gunakan provider StepFun.
+
+==================================================
+Logging
+==================================================
+
+Contoh:
+
+Incoming model:
+openrouter/coding
+
+Resolved provider:
+openrouter
+
+Selected model:
+cohere/north-mini-code:free
+
+atau
+
+Selected model:
+poolside/laguna-xs-2.1:free
+
+Jika fallback:
+
+429 detected
+Fallback -> poolside/laguna-xs-2.1:free
+
+==================================================
+Compatibility
+==================================================
+
+Jangan mengubah API OpenAI-compatible.
+
+Jangan merusak provider yang sudah ada.
+
+Jangan mengubah endpoint.
+
+Semua perubahan harus backward compatible.
+
+Tampilkan:
+
+- file yang diubah
+- before → after
+- hasil build
+- hasil test
+- contoh request untuk setiap provider
 
 
 ```
