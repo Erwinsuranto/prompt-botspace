@@ -10,7 +10,111 @@
 
 
 
+# 
+```
 
+
+
+```
+# 
+```
+
+
+
+```
+
+# 
+```
+
+
+# Prompt: Refactor Model Alias System
+
+Refactor sistem konfigurasi model agar config menjadi sangat ringkas.
+
+Tujuan:
+Config tidak lagi menyimpan daftar model panjang. Config hanya menyimpan alias, sedangkan daftar model dan fallback berada di dalam source code.
+
+Contoh yang diinginkan:
+
+config/models.json
+
+{
+  "model": "coding"
+}
+
+atau
+
+{
+  "model": "reasoning"
+}
+
+atau
+
+{
+  "model": "step"
+}
+
+Jangan lagi menulis:
+
+poolside/laguna-s-2.1:free
+cohere/north-mini-code:free
+nvidia/nemotron-3-ultra-550b-a55b:free
+dst...
+
+Semua daftar model dipindahkan ke source code.
+
+Buat file baru misalnya:
+
+src/config/model-aliases.ts
+
+Contoh:
+
+coding
+→ step-3.7-flash
+→ poolside/laguna-s-2.1:free
+→ cohere/north-mini-code:free
+→ nvidia/nemotron-3-ultra-550b-a55b:free
+→ google/gemma-4-31b-it:free
+→ openai/gpt-oss-20b:free
+
+openrouter-coding
+→ poolside/laguna-s-2.1:free
+→ cohere/north-mini-code:free
+→ nvidia/nemotron-3-ultra-550b-a55b:free
+
+step
+→ step-3.7-flash
+
+Tambahkan resolver sehingga ketika request menggunakan alias:
+
+model = "coding"
+
+Gateway otomatis mengambil daftar model dari alias tersebut lalu menjalankan fallback sesuai urutan.
+
+Persyaratan:
+
+- Jangan mengubah API OpenAI Compatible.
+- Semua provider tetap bekerja.
+- Rotasi key tetap bekerja.
+- Cooldown tetap bekerja.
+- Fallback tetap bekerja.
+- Logging tetap bekerja.
+- Backward compatible:
+  Jika model bukan alias (misalnya "gpt-5.5" atau "step-3.7-flash"), gateway harus tetap memproses model tersebut seperti sebelumnya.
+
+Tambahkan validasi:
+
+- Alias tidak ditemukan → tampilkan error yang jelas.
+- Alias ditemukan → gunakan daftar model dari alias.
+
+Terakhir:
+
+- tampilkan file yang diubah
+- before → after
+- pastikan build sukses
+- pastikan lint sukses
+- pastikan test sukses
+```
 
 # 
 ```
