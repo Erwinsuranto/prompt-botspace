@@ -27,7 +27,22 @@
 # 
 ```
 
+StepFun model works in OpenCode.
 
+North Mini Code Free appears in the model list but cannot be used.
+
+Audit only the routing for model:
+
+cohere/north-mini-code:free
+
+Tasks:
+1. Log the exact model string received by POST /v1/chat/completions.
+2. Verify which provider is selected for this model.
+3. Verify the routing reaches OpenRouter.
+4. If no provider is selected, explain why.
+5. Compare the routing logic with the working StepFun model.
+6. Fix only the North model routing.
+Do not modify StepFun or other working models.
 
 ```
 # 
