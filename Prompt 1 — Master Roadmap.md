@@ -17,7 +17,63 @@
 ```
 # 
 ```
+Investigate why models returned by GET /v1/models are not fully usable by OpenCode.
 
+Current behavior:
+
+- GET /v1/models correctly returns:
+  openrouter/cohere/north-mini-code:free
+
+- But:
+  opencode models nvidia
+  does not include that model.
+
+- opencode models openrouter
+  returns "Not found" because OpenCode only has one provider configured.
+
+Architecture goal:
+
+The gateway is the ONLY provider configured in OpenCode.
+
+OpenCode should not need separate providers for:
+- nvidia
+- openrouter
+- stepfun
+- cloudflare
+
+The gateway itself is responsible for routing.
+
+Tasks:
+
+1. Audit the implementation of GET /v1/models.
+
+2. Audit how model IDs are generated.
+
+3. Check whether model IDs with prefixes like:
+
+   openrouter/
+   stepfun/
+   cloudflare/
+
+   are being filtered or ignored by OpenCode because only one provider exists.
+
+4. Design a solution so every model exposed by the gateway is selectable from OpenCode while keeping only ONE provider configuration.
+
+5. Do not require additional providers in OpenCode.
+
+6. Preserve OpenAI-compatible API behavior.
+
+7. Verify that these models are selectable:
+
+- nvidia/zai/glm-5.2
+- stepfun/step-3.7-flash
+- openrouter/cohere/north-mini-code:free
+
+8. Explain the root cause.
+
+9. Show every modified file.
+
+10. Build and run tests.
 
 
 ```
