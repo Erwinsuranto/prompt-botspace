@@ -1,5 +1,58 @@
 # prompt-botspace
 
+
+
+
+
+
+# 
+```
+
+```
+# 
+```
+Audit seluruh project nvidia-api.
+
+Saya ingin server API dapat diakses dari luar VPS.
+
+1. Audit terlebih dahulu apakah server saat ini bind ke:
+   - 127.0.0.1
+   - localhost
+   - 0.0.0.0
+
+2. Jika masih menggunakan 127.0.0.1 atau localhost sebagai bind address, ubah menjadi:
+
+0.0.0.0
+
+3. Jangan mengubah host yang digunakan untuk outbound request ke provider (NVIDIA, Cloudflare, OpenRouter, StepFun). Yang diubah hanya host server Express/Fastify yang menerima request.
+
+4. Cari seluruh hardcode berikut:
+- 127.0.0.1
+- localhost
+
+Ubah hanya jika digunakan sebagai listening address server.
+
+5. Tambahkan environment variable:
+
+HOST=0.0.0.0
+PORT=3000
+
+Server harus membaca dari env:
+
+host = process.env.HOST ?? "0.0.0.0"
+port = process.env.PORT ?? 3000
+
+6. Jangan merusak endpoint OpenAI-compatible.
+
+7. Setelah selesai tampilkan:
+- file yang diubah
+- before → after
+- hasil build
+- hasil lint
+- hasil test
+
+Jika server ternyata sudah bind ke 0.0.0.0, jangan ubah apa pun dan jelaskan alasannya.
+```
 # 
 ```
 Audit seluruh project nvidia-api.
