@@ -7,7 +7,49 @@
 
 # 
 ```
+API key StepFun sudah saya test langsung menggunakan curl ke endpoint resmi dan berhasil.
 
+Tetapi jika request melewati nvidia-api, StepFun mengembalikan:
+
+401
+Incorrect API key provided
+
+Artinya masalah ada di implementasi provider StepFun.
+
+Audit seluruh provider StepFun dan periksa:
+
+1. Cara membaca STEPFUN_API_KEY dari .env.
+2. Pastikan process.env.STEPFUN_API_KEY terbaca.
+3. Pastikan header Authorization dikirim persis seperti:
+
+Authorization: Bearer <STEPFUN_API_KEY>
+
+tanpa spasi tambahan, tanpa newline, tanpa trim yang salah.
+
+4. Pastikan tidak menggunakan NVIDIA_API_KEY atau OPENROUTER_API_KEY secara tidak sengaja.
+
+5. Tampilkan URL yang dipanggil.
+
+Harus:
+
+https://api.stepfun.ai/step_plan/v1/chat/completions
+
+6. Tampilkan header request (masking API key).
+
+Contoh:
+
+Authorization: Bearer sk-xxxx...abcd
+
+7. Audit apakah provider menggunakan axios/fetch yang benar.
+
+8. Bandingkan request yang dikirim provider dengan request curl yang berhasil.
+
+9. Jika ada perbedaan payload, header, atau endpoint, perbaiki.
+
+10. Setelah selesai tampilkan:
+- file yang diubah
+- before → after
+- hasil test menggunakan step-3.7-flash
 ```
 # 
 ```
