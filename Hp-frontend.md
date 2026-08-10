@@ -5,29 +5,266 @@
 
 
 
-#
+# 
 ```
 
 
 
 ```
 
-#
+# 
 ```
 
 
 
 ```
-#
+# 
 ```
 
 
 
 ```
-#
+# HP — Kimi utama — F-002
 ```
 
+PROMPT: BOTSPACE F-002 — FRONTEND FRAMEWORK ADR
 
+Kamu adalah Kimi utama untuk BotSpace FRONTEND.
+
+WORKTREE:
+ /root/botspace-frontend
+
+BRANCH:
+ frontend-dev
+
+TASK:
+F-002 — Dokumentasikan keputusan frontend framework.
+
+FILE:
+docs/architecture/ADR-009-frontend-framework.md
+
+==================================================
+KONDISI SAAT INI
+==================================================
+
+Frontend design implementation sudah selesai dan sudah di-commit:
+
+commit:
+07ff3f1
+
+Validation sebelumnya:
+
+- Lint PASS
+- Typecheck PASS
+- Test PASS
+- Build PASS
+- Mobile 390px PASS
+- Desktop 1440px PASS
+- No unused imports
+- Backend files changed: NONE
+- Shared files changed: NONE
+
+Jangan merusak hasil tersebut.
+
+==================================================
+ATURAN
+==================================================
+
+- Hanya bekerja di /root/botspace-frontend.
+- Branch harus frontend-dev.
+- Jangan menyentuh /root/botspace-backend.
+- Jangan menyentuh /root/botspace/main.
+- Jangan mengubah source code frontend kecuali diperlukan untuk ADR — seharusnya tidak perlu.
+- Jangan mengubah package.json.
+- Jangan mengubah pnpm-workspace.yaml.
+- Jangan mengubah pnpm-lock.yaml.
+- Jangan mengubah turbo.json.
+- Jangan mengubah packages/contracts.
+- Jangan mengubah ROADMAP.md.
+- Jangan melakukan dependency installation.
+- Jangan menambahkan dependency.
+- Jangan push.
+
+==================================================
+TUJUAN
+==================================================
+
+Buat ADR yang mendokumentasikan framework frontend yang BENAR-BENAR digunakan oleh repository.
+
+Sebelum menulis:
+
+- periksa apps/web
+- package.json yang relevan
+- tsconfig
+- vite config jika ada
+- router
+- existing frontend source
+- existing test setup
+- existing UI structure
+
+Jangan menebak framework.
+
+==================================================
+ADR CONTENT
+==================================================
+
+Buat:
+
+docs/architecture/ADR-009-frontend-framework.md
+
+Isi minimal:
+
+# ADR-009: Frontend Framework
+
+## Status
+Accepted
+
+## Date
+gunakan tanggal aktual
+
+## Context
+
+Jelaskan kebutuhan frontend BotSpace sebagai web application untuk:
+
+- Workspace
+- Telegram Accounts
+- Bots
+- Modules
+- Automation
+- AI
+- Storage
+- Settings
+
+## Decision
+
+Dokumentasikan framework yang benar-benar digunakan.
+
+## Why
+
+Jelaskan alasan berdasarkan repository dan kebutuhan BotSpace.
+
+## Alternatives Considered
+
+Bahas alternatif yang relevan tanpa mengubah project.
+
+## Consequences
+
+Positive:
+- ...
+
+Negative:
+- ...
+
+## Performance Considerations
+
+Jelaskan bagaimana framework digunakan agar:
+
+- cepat
+- ringan
+- responsive
+- tidak terlalu banyak client-side JavaScript
+- mobile friendly
+
+## Testing
+
+Dokumentasikan setup testing aktual.
+
+## Build
+
+Dokumentasikan build tooling aktual.
+
+## Backend Integration
+
+Jelaskan secara konseptual bagaimana frontend akan berkomunikasi dengan backend.
+
+Jangan membuat API baru.
+
+## Future Considerations
+
+Catat hal yang perlu dievaluasi nanti.
+
+==================================================
+IMPORTANT
+==================================================
+
+ADR harus berdasarkan kondisi repository AKTUAL.
+
+Jangan mengatakan React/Vite/atau framework tertentu digunakan kalau repository tidak membuktikannya.
+
+Jangan mengklaim API atau feature sudah production-ready jika belum ada.
+
+==================================================
+VALIDATION
+==================================================
+
+Setelah membuat ADR:
+
+git status
+git diff --stat
+git diff -- docs/architecture/ADR-009-frontend-framework.md
+
+Pastikan hanya file ADR yang berubah.
+
+Tidak boleh ada perubahan:
+
+- backend
+- package.json
+- pnpm-lock.yaml
+- workspace config
+- contracts
+- ROADMAP.md
+
+==================================================
+COMMIT
+==================================================
+
+Jika valid:
+
+git add docs/architecture/ADR-009-frontend-framework.md
+
+git commit -m "docs: add frontend framework ADR"
+
+JANGAN PUSH.
+
+==================================================
+FINAL OUTPUT
+==================================================
+
+BOTSPACE F-002 RESULT
+
+Branch:
+frontend-dev
+
+Framework:
+- ...
+
+ADR:
+docs/architecture/ADR-009-frontend-framework.md
+
+Validation:
+- ...
+
+Changed Files:
+- ...
+
+Commit:
+- ...
+
+Backend Files Changed:
+NONE
+
+Shared Files Changed:
+NONE
+
+ROADMAP.md:
+NOT MODIFIED
+
+Push:
+NO
+
+FINAL STATUS:
+F-002 COMPLETE
+WAIT FOR NEXT INSTRUCTION
 
 ```
 #
