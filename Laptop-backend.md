@@ -48,9 +48,333 @@
 
 ```
 
-# 
+# BOTSPACE B-013 
 ```
+PROMPT: BOTSPACE B-013 — DATABASE FOUNDATION / SCHEMA + MIGRATIONS
 
+ROLE:
+Kimi utama — BotSpace Backend Engineer.
+
+WORKTREE:
+ /root/botspace-backend
+
+BRANCH:
+ backend-dev
+
+CURRENT STATE:
+B-012 sudah COMPLETE dan GREEN.
+Working tree CLEAN.
+Jangan push.
+
+==================================================
+TASK
+==================================================
+
+Kerjakan B-013:
+Database schema + migrations baseline.
+
+Ini adalah FOUNDATION TASK.
+Jangan hanya membuat placeholder kosong.
+Audit repository terlebih dahulu lalu implementasikan baseline
+database yang benar-benar siap menjadi fondasi Phase berikutnya.
+
+==================================================
+1. AUDIT SEBELUM CODING
+==================================================
+
+Baca dan pahami:
+
+- ROADMAP_V2.md
+- AI_TASKS.md
+- AI_RULES.md
+- FINAL_ARCHITECTURE.md
+- FINAL_STRUCTURE.md
+- MODULES.md
+- PROJECT_STATUS.md
+- packages/contracts
+- packages/config
+- services
+- apps
+- package.json
+- pnpm-workspace.yaml
+
+Cari apakah repository sudah menentukan:
+- database engine
+- ORM/query builder
+- migration tool
+- schema convention
+- ID strategy
+- timestamp convention
+- naming convention
+- repository pattern
+
+JANGAN mengganti keputusan architecture yang sudah ada.
+
+Jika database technology belum ditentukan secara eksplisit,
+pilih solusi paling minimal dan konsisten dengan repository,
+bukan menambahkan stack database besar tanpa alasan.
+
+==================================================
+2. DATABASE SCHEMA
+==================================================
+
+Implementasikan schema baseline sesuai domain BotSpace.
+
+Minimal audit kebutuhan entity yang sudah didefinisikan
+di roadmap/contracts/architecture.
+
+Jangan mengarang domain baru.
+
+Jika entity belum cukup jelas:
+- gunakan entity yang memang sudah ditentukan repository
+- jangan membuat fitur bisnis baru
+- dokumentasikan asumsi
+
+Schema harus memiliki:
+- primary key yang konsisten
+- createdAt / updatedAt jika memang diperlukan
+- foreign key yang benar
+- unique constraint yang diperlukan
+- index untuk lookup penting
+- nullable/non-nullable yang masuk akal
+- referential integrity
+
+Hindari over-engineering.
+
+==================================================
+3. MIGRATION SYSTEM
+==================================================
+
+Buat baseline migration yang repeatable.
+
+Pastikan:
+- migration dapat dijalankan dari database kosong
+- migration tidak bergantung pada data manual
+- migration order deterministic
+- schema dapat direproduksi
+- migration test dapat dijalankan di CI/local
+- tidak ada migration yang merusak source existing
+
+Jika migration tool sudah ada, gunakan tool tersebut.
+
+Jangan mengganti migration framework hanya demi task ini.
+
+==================================================
+4. DATABASE ACCESS LAYER
+==================================================
+
+Buat boundary database yang bersih.
+
+Pisahkan:
+- schema
+- migration
+- database client/connection
+- repository interface/port
+- implementation
+
+Jangan membuat business logic masuk ke database layer.
+
+Ikuti architecture:
+domain/application tidak boleh bergantung langsung
+pada detail database jika architecture repository
+sudah menentukan dependency inversion.
+
+Jika repository port belum waktunya dibuat,
+buat hanya yang diperlukan untuk B-013.
+
+==================================================
+5. CONFIG INTEGRATION
+==================================================
+
+Gunakan config loader B-011.
+
+Database connection/config:
+- jangan membaca process.env langsung di banyak tempat
+- gunakan centralized config
+- validasi konfigurasi database
+- jangan pernah log password/credential
+
+Pastikan config database tetap aman.
+
+==================================================
+6. TEST
+==================================================
+
+Tambahkan test yang bermakna.
+
+Minimal verifikasi:
+
+1. schema dapat di-load
+2. migration dapat dijalankan dari database kosong
+3. migration menghasilkan schema yang diharapkan
+4. constraint penting bekerja
+5. repository/database boundary dapat diinisialisasi
+6. invalid configuration ditolak
+7. database secret tidak masuk log
+
+Jika integration database membutuhkan service eksternal
+dan repository belum memiliki test infrastructure,
+gunakan test strategy yang konsisten dengan architecture.
+
+JANGAN membuat fake test yang hanya PASS tanpa menguji behavior.
+
+==================================================
+7. PACKAGE / DEPENDENCY GOVERNANCE
+==================================================
+
+Sebelum menambah dependency:
+- cek package yang sudah tersedia
+- gunakan dependency existing jika memungkinkan
+- jangan install duplicate ORM/database library
+
+Jika dependency baru benar-benar diperlukan:
+jelaskan alasan dan dampaknya.
+
+Jangan mengedit pnpm-lock.yaml secara manual.
+
+Gunakan package manager repository.
+
+==================================================
+8. DOCUMENTATION
+==================================================
+
+Update dokumentasi hanya jika diperlukan oleh B-013.
+
+Dokumentasikan:
+- database technology
+- schema location
+- migration command
+- test command
+- environment/config requirement
+
+Jangan mengubah:
+- ROADMAP.md
+- ROADMAP_V2.md
+
+kecuali task secara eksplisit membutuhkan perubahan dokumentasi
+dan perubahan tersebut benar-benar diperlukan.
+
+==================================================
+9. SECURITY
+==================================================
+
+WAJIB audit:
+
+- SQL injection boundary
+- credential exposure
+- database URL/password leakage
+- logs
+- error messages
+- migration secrets
+- test fixtures
+
+Tidak boleh ada:
+- password nyata
+- API key
+- token
+- credential
+- secret
+di source code atau test fixture.
+
+==================================================
+10. VALIDATION
+==================================================
+
+Setelah implementasi jalankan validasi repository secara penuh:
+
+- git status
+- git diff --stat
+- format check
+- lint
+- typecheck
+- import-check
+- secret scan
+- ownership check
+- doc-link check
+- build
+- test
+- migration validation
+- frozen install jika tersedia
+
+Jika ada failure:
+DEBUG dan perbaiki sampai GREEN.
+
+Jangan berhenti hanya karena satu command gagal.
+
+==================================================
+11. SCOPE CONTROL
+==================================================
+
+JANGAN mengerjakan:
+- B-014
+- B-015
+- B-016
+- F-012
+- frontend
+- production deployment
+- Docker production setup
+- authentication feature
+- Telegram bot feature
+
+Tetap fokus B-013.
+
+Namun jika dependency B-013 memang membutuhkan
+perubahan kecil pada shared infrastructure,
+boleh dilakukan hanya jika benar-benar diperlukan.
+
+==================================================
+12. GIT
+==================================================
+
+Jika semua validation GREEN:
+
+git status harus CLEAN.
+
+Commit:
+
+feat: add database schema and migrations baseline
+
+JANGAN PUSH.
+
+==================================================
+FINAL REPORT
+==================================================
+
+B-013 RESULT
+
+Status:
+Database Technology:
+Schema:
+Migration:
+Database Boundary:
+Repositories/Ports:
+Config Integration:
+Tests:
+Migration Validation:
+Lint:
+Typecheck:
+Import Check:
+Build:
+Security:
+Changed Files:
+Working Tree:
+Commit:
+Push: NO
+
+Architecture Decisions:
+- ...
+
+Assumptions:
+- ...
+
+Problems Found:
+- ...
+
+Next Task:
+- ...
+
+DO NOT PUSH.
+WAIT FOR NEXT INSTRUCTION.
 
 
 ```
