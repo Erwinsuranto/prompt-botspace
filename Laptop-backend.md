@@ -33,9 +33,199 @@
 
 
 ```
-#
+# LAPTOP — Kimi utama — B-002
 ```
+PROMPT: BOTSPACE B-002 — FULL FOUNDATION VALIDATION
 
+Kamu adalah Kimi utama untuk BotSpace BACKEND.
+
+WORKTREE:
+ /root/botspace-backend
+
+BRANCH:
+ backend-dev
+
+TASK:
+B-002 — Full local validation suite untuk menutup gate P1.003.
+
+Baca ROADMAP_V2.md dan PROJECT_STATUS.md terlebih dahulu.
+
+==================================================
+ATURAN
+==================================================
+
+- Hanya bekerja di /root/botspace-backend.
+- Jangan menyentuh /root/botspace-frontend.
+- Jangan bekerja di /root/botspace/main.
+- Jangan mengerjakan business feature.
+- Jangan melakukan refactor source code.
+- Jangan mengubah frontend.
+- Jangan mengubah ROADMAP.md lama.
+- Jangan mengubah pnpm-lock.yaml secara manual.
+- Jangan mengubah dependency kecuali validation membuktikan ada masalah dependency yang memang menjadi blocker.
+- Jangan melakukan push.
+- Jangan melakukan perubahan di luar scope B-002.
+
+B-001 sudah selesai dan pnpm-lock.yaml sudah di-commit.
+
+==================================================
+TUJUAN
+==================================================
+
+Menjalankan validation lengkap untuk memastikan foundation repository benar-benar siap menuju P2 Core Backend.
+
+Jalankan validation berdasarkan script dan konfigurasi repository AKTUAL.
+
+Jangan mengarang command yang tidak tersedia.
+
+==================================================
+VALIDATION ORDER
+==================================================
+
+Mulai dari:
+
+1. git status
+2. git branch --show-current
+3. pastikan branch = backend-dev
+4. pastikan working tree bersih
+
+Kemudian periksa scripts package.json/workspace.
+
+Jalankan validation yang memang tersedia:
+
+- pnpm install --frozen-lockfile
+- pnpm format:check / equivalent jika tersedia
+- pnpm lint
+- pnpm typecheck
+- import-check jika tersedia
+- pnpm build
+- pnpm test
+
+Jika repository memiliki command berbeda, gunakan command aktual repository.
+
+Jalankan secara berurutan agar root cause mudah diketahui.
+
+==================================================
+ERROR HANDLING
+==================================================
+
+Jika suatu validation gagal:
+
+1. Catat command.
+2. Catat error.
+3. Tentukan apakah:
+   - environment issue
+   - dependency issue
+   - configuration issue
+   - existing code issue
+   - test issue
+   - unrelated issue
+
+JANGAN langsung memperbaiki source code.
+
+B-002 adalah validation task.
+
+Jika error merupakan blocker nyata yang memang termasuk scope B-002 dan dapat diperbaiki tanpa menyentuh business logic, jelaskan terlebih dahulu dalam hasil.
+
+Jangan melakukan perubahan besar hanya agar test menjadi hijau.
+
+==================================================
+P1.003 GATE
+==================================================
+
+Periksa apakah hasil validation cukup untuk menyatakan:
+
+P1.003 = COMPLETE
+
+Jangan menyatakan COMPLETE jika masih ada gate yang gagal.
+
+Khusus:
+
+- frozen lockfile
+- lint
+- typecheck
+- import-check
+- build
+- test
+
+harus dibandingkan dengan requirement repository aktual.
+
+==================================================
+GIT SAFETY
+==================================================
+
+Setelah validation:
+
+git status
+git diff --stat
+
+Jika validation tidak mengubah file:
+working tree harus tetap clean.
+
+Jika command menghasilkan generated files:
+identifikasi dan jangan commit file sementara tanpa alasan.
+
+Jangan membuat commit jika tidak ada perubahan yang diperlukan.
+
+Jika ada perubahan yang memang diperlukan dalam scope B-002, tampilkan dulu detailnya sebelum commit.
+
+JANGAN PUSH.
+
+==================================================
+FINAL REPORT
+==================================================
+
+Tampilkan:
+
+BOTSPACE B-002 RESULT
+
+Branch:
+backend-dev
+
+B-001:
+PASS
+
+Frozen Install:
+PASS/FAIL
+
+Format Check:
+PASS/FAIL/N/A
+
+Lint:
+PASS/FAIL/N/A
+
+Typecheck:
+PASS/FAIL/N/A
+
+Import Check:
+PASS/FAIL/N/A
+
+Build:
+PASS/FAIL/N/A
+
+Test:
+PASS/FAIL/N/A
+
+P1.003 Gate:
+PASS/FAIL
+
+Working Tree:
+CLEAN/DIRTY
+
+Changed Files:
+- ...
+
+Errors:
+- ...
+
+Root Causes:
+- ...
+
+Recommended Next Task:
+- ...
+
+JANGAN PUSH.
+WAIT FOR NEXT INSTRUCTION.
 
 
 ```
