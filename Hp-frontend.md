@@ -5,6 +5,42 @@
 
 
 
+
+
+# 
+```
+
+
+
+```
+
+# 
+```
+
+
+
+```
+
+# 
+```
+
+
+
+```
+
+# 
+```
+
+
+
+```
+
+# 
+```
+
+
+
+```
 # 
 ```
 
@@ -20,7 +56,294 @@
 ```
 # 
 ```
+PROMPT: BOTSPACE F-010 — EXECUTE FRONTEND ROADMAP TASK
 
+Kamu adalah Kimi utama untuk BotSpace FRONTEND.
+
+WORKTREE:
+ /root/botspace-frontend
+
+BRANCH:
+ frontend-dev
+
+==================================================
+CURRENT STATUS
+==================================================
+
+Frontend design foundation:
+COMPLETE
+
+Commit design:
+07ff3f1
+
+Frontend Framework ADR F-002:
+COMPLETE
+
+Commit F-002:
+167d9a2
+
+Validation sebelumnya:
+- Lint PASS
+- Typecheck PASS
+- Test PASS
+- Build PASS
+- Mobile 390px PASS
+- Desktop 1440px PASS
+- No horizontal overflow
+- Backend files changed: NONE
+- Shared files changed: NONE
+- ROADMAP.md NOT MODIFIED
+
+Backend B-001:
+COMPLETE
+
+Backend B-004 sedang dikerjakan di worktree terpisah.
+
+==================================================
+TASK
+==================================================
+
+Sekarang kerjakan:
+
+F-010
+
+Baca ROADMAP_V2.md dan AI_TASKS.md terlebih dahulu.
+
+PENTING:
+Jangan menebak isi F-010.
+Gunakan definisi task F-010 yang tertulis di ROADMAP_V2.md sebagai source of truth.
+
+Sebelum coding, tampilkan secara singkat:
+
+- F-010 title
+- objective
+- dependencies
+- expected files
+- acceptance criteria
+- apakah F-010 benar-benar READY
+
+Jika F-010 ternyata masih BLOCKED oleh dependency yang belum selesai:
+JANGAN CODING.
+Laporkan dependency yang belum selesai dan tunggu instruksi.
+
+Jika F-010 READY:
+lanjutkan implementasi.
+
+==================================================
+WORKTREE SAFETY
+==================================================
+
+Hanya bekerja di:
+
+/root/botspace-frontend
+
+Branch harus:
+
+frontend-dev
+
+Jangan menyentuh:
+
+/root/botspace
+/root/botspace-backend
+
+Jangan mengubah:
+
+- ROADMAP.md
+- ROADMAP_V2.md
+- pnpm-lock.yaml
+- root package.json
+- pnpm-workspace.yaml
+- turbo.json
+- packages/contracts/
+
+kecuali F-010 secara eksplisit menyatakan salah satu file tersebut sebagai bagian task.
+
+Jika task membutuhkan shared-file change yang tidak disebutkan F-010:
+STOP dan laporkan.
+
+==================================================
+FRONTEND QUALITY
+==================================================
+
+Pertahankan design foundation yang sudah dibuat.
+
+UI harus:
+
+- cepat
+- ringan
+- jelas
+- responsive
+- mobile-friendly
+- desktop-friendly
+- mudah dibaca
+- konsisten dengan BotSpace
+- tidak terlalu padat
+
+Jangan membuat UI kecil atau sulit dibaca.
+
+Hindari:
+
+- animasi berat
+- library besar yang tidak diperlukan
+- dependency baru tanpa alasan
+- glassmorphism berlebihan
+- background animation
+- efek visual berat
+- client-side JavaScript yang tidak diperlukan
+
+Gunakan komponen reusable yang sudah tersedia.
+
+Jangan membuat design system kedua.
+
+==================================================
+CODE QUALITY
+==================================================
+
+Ikuti architecture frontend yang sudah ada.
+
+Sebelum membuat component baru:
+
+periksa apakah component reusable yang diperlukan sudah tersedia.
+
+Hindari:
+
+- duplicate component
+- duplicate logic
+- any tanpa alasan
+- unused imports
+- dead code
+- file halaman yang terlalu besar
+- state global jika local state cukup
+
+Jika F-010 membutuhkan API tetapi backend endpoint belum tersedia:
+
+gunakan abstraction/mock yang sesuai dengan architecture repository.
+
+Jangan membuat backend endpoint baru.
+
+Jangan memasukkan API key, token, password, atau secret.
+
+==================================================
+RESPONSIVE
+==================================================
+
+Pastikan F-010 bekerja minimal pada:
+
+390px mobile
+
+768px tablet
+
+1440px desktop
+
+Tidak boleh ada horizontal overflow.
+
+Button harus mudah disentuh di mobile.
+
+Text harus readable.
+
+Table/list harus memiliki strategi responsive yang benar.
+
+==================================================
+VALIDATION
+==================================================
+
+Setelah implementasi:
+
+1. git status
+2. git diff --stat
+3. git diff
+
+Kemudian jalankan validation frontend yang tersedia:
+
+- lint
+- typecheck
+- test
+- build
+
+Jika ada command khusus frontend di repository, gunakan command tersebut.
+
+Jangan memperbaiki unrelated error.
+
+Jika validation gagal karena masalah yang sudah ada sebelum F-010:
+identifikasi dan laporkan.
+
+==================================================
+GIT
+==================================================
+
+Setelah semua valid:
+
+Pastikan hanya perubahan F-010 yang ada.
+
+Commit:
+
+git add <F-010 frontend files>
+
+git commit -m "feat: implement F-010 frontend"
+
+JANGAN PUSH.
+
+==================================================
+FINAL OUTPUT
+==================================================
+
+BOTSPACE F-010 RESULT
+
+Task:
+F-010
+
+Title:
+...
+
+Status:
+COMPLETE / BLOCKED
+
+Branch:
+frontend-dev
+
+Implementation:
+- ...
+
+Files Changed:
+- ...
+
+Dependencies:
+- ...
+
+Validation:
+- Lint:
+- Typecheck:
+- Test:
+- Build:
+- Mobile 390px:
+- Desktop 1440px:
+
+Backend Files Changed:
+NONE
+
+Shared Files Changed:
+NONE
+
+ROADMAP.md:
+NOT MODIFIED
+
+ROADMAP_V2.md:
+NOT MODIFIED
+
+Commit:
+...
+
+Working Tree:
+CLEAN / DIRTY
+
+Push:
+NO
+
+Next Recommended Task:
+...
+
+DO NOT PUSH.
+WAIT FOR NEXT INSTRUCTION.
 
 
 ```
