@@ -48,9 +48,284 @@
 
 ```
 
-#
+# Prompt B-010
 ```
+PROMPT: BOTSPACE B-010 — BACKEND CONTRACTS FOUNDATION
 
+Kamu adalah Kimi utama untuk BotSpace BACKEND.
+
+WORKTREE:
+/root/botspace-backend
+
+BRANCH:
+backend-dev
+
+==================================================
+CURRENT STATUS
+==================================================
+
+Phase 0 foundation:
+B-001 ✅
+B-002 ✅
+B-003 ✅ locally verified
+B-004 ✅
+B-005 ✅
+
+Latest commit:
+11953bf — chore: resolve modules path governance
+
+B-005 validation:
+- Typecheck PASS
+- Import-check PASS
+- Secret scan PASS
+- Ownership check PASS
+- Doc-link check PASS
+- Build PASS
+- Test PASS — 28 tests
+- Workspace resolution PASS
+
+Working Tree:
+CLEAN
+
+Push:
+NO
+
+==================================================
+TASK
+==================================================
+
+B-010 — Backend Contracts.
+
+Baca terlebih dahulu:
+
+- ROADMAP_V2.md
+- AI_TASKS.md
+- AI_RULES.md
+- packages/contracts/
+- MODULES.md
+- FINAL_ARCHITECTURE.md
+- FINAL_STRUCTURE.md
+- IMPLEMENTATION_SEQUENCE.md
+
+Jangan langsung coding.
+
+Pertama audit kondisi packages/contracts/ saat ini.
+
+Tentukan:
+- contract apa yang sudah ada
+- contract apa yang belum ada
+- consumer yang sudah menggunakan contract
+- dependency B-010 yang sebenarnya
+- acceptance criteria B-010 dari ROADMAP_V2.md
+
+Gunakan ROADMAP_V2.md sebagai source of truth.
+
+==================================================
+TUJUAN B-010
+==================================================
+
+Implementasikan B-010 sesuai definisi repository.
+
+Contract harus menjadi boundary resmi antara backend dan frontend.
+
+Jangan membuat contract berdasarkan tebakan fitur.
+
+Jika roadmap menyebut contract tertentu, implementasikan contract tersebut.
+
+Jika ada contract yang sudah tersedia dan valid:
+JANGAN membuat duplicate.
+
+==================================================
+ATURAN ARSITEKTUR
+==================================================
+
+packages/contracts/ adalah shared contract boundary.
+
+Contract harus:
+- typed
+- reusable
+- jelas
+- stabil
+- tidak bergantung pada implementation detail backend
+- tidak bergantung pada UI frontend
+- tidak mengandung secret
+- tidak mengandung database implementation detail
+
+Jangan menaruh business logic backend di packages/contracts/.
+
+Jangan membuat API client production di contracts.
+
+Jangan membuat mock production sebagai pengganti backend.
+
+==================================================
+SHARED FILE SAFETY
+==================================================
+
+Boleh menyentuh:
+
+packages/contracts/
+
+dan file lain hanya jika B-010 memang membutuhkannya.
+
+Jangan mengubah:
+
+- ROADMAP.md
+- ROADMAP_V2.md
+- pnpm-lock.yaml secara manual
+- frontend worktree
+- apps/web UI
+- business logic backend yang bukan dependency B-010
+
+Jika membutuhkan perubahan shared file di luar scope:
+STOP dan laporkan.
+
+==================================================
+QUALITY
+==================================================
+
+Gunakan TypeScript yang paling jelas dan maintainable.
+
+Hindari:
+- any
+- duplicate types
+- string literal yang tersebar
+- circular dependency
+- backend-specific imports di contracts
+- frontend-specific imports di contracts
+
+Periksa apakah repository sudah mempunyai convention untuk:
+- request types
+- response types
+- error types
+- pagination
+- IDs
+- enums/status
+- API envelope
+
+Ikuti convention yang sudah ada.
+
+Jangan menciptakan convention baru jika repository sudah memiliki satu.
+
+==================================================
+VALIDATION
+==================================================
+
+Setelah implementasi:
+
+git status
+git diff --stat
+git diff
+
+Kemudian jalankan validation:
+
+pnpm install --frozen-lockfile
+
+format check
+lint
+typecheck
+import-check
+build
+test
+
+Pastikan seluruh workspace tetap valid.
+
+Pastikan packages/contracts dapat dikonsumsi oleh frontend tanpa
+membuat dependency cycle.
+
+Jika ada test khusus contracts, jalankan juga.
+
+==================================================
+GIT
+==================================================
+
+Jika B-010 berhasil:
+
+git add <B-010 files>
+
+git commit -m "feat: establish backend contracts"
+
+JANGAN PUSH.
+
+Jika tidak ada perubahan karena B-010 ternyata sudah terpenuhi:
+jangan membuat commit kosong.
+
+Jika B-010 BLOCKED karena requirement roadmap tidak jelas:
+STOP dan laporkan, jangan menebak.
+
+==================================================
+FINAL REPORT
+==================================================
+
+BOTSPACE B-010 RESULT
+
+Task:
+B-010
+
+Status:
+COMPLETE / PARTIAL / BLOCKED
+
+Roadmap Definition:
+...
+
+Existing Contracts:
+...
+
+New Contracts:
+...
+
+Architecture Decision:
+...
+
+Changed Files:
+- ...
+
+Validation:
+- Frozen Install:
+- Format:
+- Lint:
+- Typecheck:
+- Import Check:
+- Build:
+- Test:
+
+Contract Boundary:
+PASS / FAIL
+
+Frontend Consumption Ready:
+YES / NO
+
+Backend Files Changed:
+...
+
+Shared Files Changed:
+...
+
+ROADMAP.md:
+NOT MODIFIED
+
+ROADMAP_V2.md:
+NOT MODIFIED
+
+Commit:
+...
+
+Working Tree:
+CLEAN / DIRTY
+
+Push:
+NO
+
+Next Task:
+...
+
+IMPORTANT:
+B-010 adalah dependency untuk F-012.
+Jangan mengerjakan F-012 di backend.
+Jangan membuat API endpoint production kecuali memang termasuk
+scope B-010.
+
+DO NOT PUSH.
+WAIT FOR NEXT INSTRUCTION.
 
 
 ```
