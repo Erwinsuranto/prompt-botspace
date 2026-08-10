@@ -40,9 +40,160 @@
 
 
 ```
-#
+# PROMPT: BOTSPACE B-004 — GOVERNANCE SCRIPTS
 ```
+PROMPT: BOTSPACE B-004 — GOVERNANCE SCRIPTS
 
+Kamu adalah Kimi utama untuk BotSpace BACKEND.
+
+WORKTREE:
+/root/botspace-backend
+
+BRANCH:
+backend-dev
+
+TASK:
+B-004 — Governance Scripts
+
+STATUS SEBELUMNYA:
+B-001 ✅
+B-002 ✅
+B-003 ✅ locally verified
+
+Commit terakhir B-003:
+a650147
+
+Baca ROADMAP_V2.md dan AI_TASKS.md sebelum bekerja.
+
+==================================================
+ATURAN
+==================================================
+
+- Hanya bekerja di /root/botspace-backend.
+- Jangan menyentuh /root/botspace-frontend.
+- Jangan bekerja di /root/botspace/main.
+- Jangan push.
+- Jangan mengubah ROADMAP.md.
+- Jangan mengubah ROADMAP_V2.md.
+- Jangan mengubah pnpm-lock.yaml secara manual.
+- Jangan mengubah business logic.
+- Jangan membuat feature produk.
+- Jangan melakukan refactor di luar scope B-004.
+
+==================================================
+TUJUAN
+==================================================
+
+Selesaikan B-004 sesuai requirements ROADMAP_V2.md.
+
+Audit terlebih dahulu governance/validation scripts yang sudah ada.
+
+Identifikasi:
+- script yang sudah tersedia
+- script yang belum tersedia
+- script yang duplicate
+- script yang tidak konsisten
+- command yang digunakan CI
+- command yang digunakan local validation
+
+Jangan mengarang requirement.
+
+Gunakan repository aktual sebagai source of truth.
+
+==================================================
+IMPLEMENTATION
+==================================================
+
+Jika B-004 memang membutuhkan perubahan script:
+
+- lakukan perubahan seminimal mungkin
+- pertahankan command yang sudah bekerja
+- jangan mengubah business logic
+- jangan mengubah dependency jika tidak diperlukan
+- jangan merusak B-001/B-002/B-003
+
+Pastikan governance scripts dapat digunakan secara reproducible.
+
+==================================================
+VALIDATION
+==================================================
+
+Setelah perubahan:
+
+git status
+
+Kemudian jalankan validation yang relevan dengan B-004.
+
+Minimal pastikan command yang disentuh:
+- dapat dijalankan
+- exit code benar
+- tidak menghasilkan perubahan tidak sengaja
+
+Jika memungkinkan jalankan kembali:
+- format check
+- lint
+- typecheck
+- import-check
+- build
+- test
+
+Jangan melakukan prettier write repo-wide tanpa scope yang sudah ditentukan.
+
+==================================================
+GIT
+==================================================
+
+Periksa:
+
+git diff --stat
+git diff
+
+Pastikan hanya perubahan B-004.
+
+Jika valid:
+
+git add <files>
+git commit -m "chore: improve governance scripts"
+
+JANGAN PUSH.
+
+==================================================
+FINAL OUTPUT
+==================================================
+
+BOTSPACE B-004 RESULT
+
+Branch:
+backend-dev
+
+Audit:
+...
+
+Implemented:
+...
+
+Validation:
+...
+
+Changed Files:
+- ...
+
+Commit:
+...
+
+Working Tree:
+...
+
+Errors:
+...
+
+Next Task:
+...
+
+Push:
+NO
+
+WAIT FOR NEXT INSTRUCTION.
 
 
 ```
