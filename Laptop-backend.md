@@ -48,7 +48,277 @@
 ```
 #
 ```
+PROMPT: BOTSPACE B-003 — FIRST GREEN CI VERIFICATION
 
+Kamu adalah Kimi utama untuk BotSpace BACKEND.
+
+WORKTREE:
+ /root/botspace-backend
+
+BRANCH:
+ backend-dev
+
+TASK:
+B-003 — Verify First Green CI Run.
+
+B-001 dan B-002 sudah selesai:
+
+B-001:
+- pnpm-lock.yaml generated
+- commit: f4c3f95
+
+B-002:
+- validation gates PASS
+- commit: a8b194e
+- prettier governance resolved
+- working tree clean
+
+Sekarang lanjut B-003 sesuai ROADMAP_V2.md.
+
+==================================================
+TUJUAN
+==================================================
+
+Memastikan GitHub Actions CI benar-benar menjalankan validation foundation yang sama dengan local validation.
+
+CI harus mencakup, sesuai repository aktual:
+
+1. install
+2. format check
+3. lint
+4. typecheck
+5. import-check
+6. build
+7. test
+
+Jangan mengarang command. Gunakan scripts/config yang benar-benar ada.
+
+==================================================
+ATURAN
+==================================================
+
+- Hanya bekerja di /root/botspace-backend.
+- Branch harus backend-dev.
+- Jangan menyentuh /root/botspace-frontend.
+- Jangan bekerja di /root/botspace/main.
+- Jangan mengubah business logic.
+- Jangan mengerjakan P2 Core Backend.
+- Jangan mengubah ROADMAP.md.
+- Jangan mengubah ROADMAP_V2.md.
+- Jangan mengubah pnpm-lock.yaml secara manual.
+- Jangan melakukan dependency upgrade.
+- Jangan membuat workaround untuk membuat CI hijau.
+- Jangan push tanpa instruksi eksplisit dari user.
+
+==================================================
+LANGKAH 1 — AUDIT CI
+==================================================
+
+Periksa:
+
+.github/workflows/ci.yml
+
+Periksa juga:
+
+package.json
+pnpm-workspace.yaml
+scripts
+turbo.json
+tsconfig
+Prettier configuration
+.prettierignore
+
+Pastikan workflow menggunakan lockfile secara reproducible.
+
+Pastikan CI tidak diam-diam melakukan hal yang berbeda dari local validation.
+
+==================================================
+LANGKAH 2 — VALIDASI WORKFLOW
+==================================================
+
+Periksa:
+
+- trigger
+- permissions
+- Node version
+- pnpm version
+- install mode
+- frozen-lockfile
+- cache
+- working directory
+- format check
+- lint
+- typecheck
+- import-check
+- build
+- test
+
+Pastikan urutannya masuk akal.
+
+==================================================
+LANGKAH 3 — JANGAN MERUSAK GOVERNANCE
+==================================================
+
+Jangan menjalankan:
+
+prettier --write .
+
+secara membabi buta.
+
+Jangan memformat:
+
+- ROADMAP.md
+- ROADMAP_V2.md
+- generated files
+- frozen artifacts
+- pnpm-lock.yaml
+
+Gunakan scope format yang sudah diselesaikan pada B-002.
+
+==================================================
+LANGKAH 4 — LOCAL CI EQUIVALENCE
+==================================================
+
+Jika memungkinkan, jalankan command yang sama/ekuivalen dengan CI secara lokal.
+
+Pastikan:
+
+pnpm install --frozen-lockfile
+
+dan seluruh gate:
+
+format-check
+lint
+typecheck
+import-check
+build
+test
+
+PASS.
+
+Jika semua sudah PASS, jangan mengubah source code hanya untuk B-003.
+
+==================================================
+LANGKAH 5 — CI TRIGGER
+==================================================
+
+Periksa apakah first green CI dapat diverifikasi tanpa push.
+
+Jika repository/environment menyediakan cara lokal untuk menjalankan workflow, gunakan cara tersebut.
+
+Jika GitHub Actions hanya dapat diverifikasi setelah push:
+
+JANGAN PUSH.
+
+Berhenti setelah audit dan tampilkan:
+
+"CI trigger requires remote push; push not performed."
+
+Jangan membuat asumsi bahwa CI sudah hijau hanya karena local validation hijau.
+
+==================================================
+LANGKAH 6 — CHANGES
+==================================================
+
+Jika ci.yml memang salah dan perlu diperbaiki:
+
+- ubah hanya bagian yang benar-benar diperlukan
+- jangan mengubah business logic
+- jalankan validation ulang
+- tampilkan git diff
+
+Jika ci.yml sudah benar:
+
+JANGAN mengubahnya.
+
+==================================================
+GIT
+==================================================
+
+Setelah selesai:
+
+git status
+git diff --stat
+git log -3 --oneline
+
+Jika tidak ada perubahan:
+jangan commit.
+
+Jika ada perubahan CI yang memang diperlukan:
+commit dengan pesan:
+
+ci: verify foundation validation workflow
+
+JANGAN PUSH.
+
+==================================================
+FINAL REPORT
+==================================================
+
+BOTSPACE B-003 RESULT
+
+Branch:
+backend-dev
+
+CI Workflow:
+PASS/FAIL
+
+Trigger:
+...
+
+Node:
+...
+
+pnpm:
+...
+
+Frozen Install:
+PASS/FAIL
+
+Format Check:
+PASS/FAIL
+
+Lint:
+PASS/FAIL
+
+Typecheck:
+PASS/FAIL
+
+Import Check:
+PASS/FAIL
+
+Build:
+PASS/FAIL
+
+Test:
+PASS/FAIL
+
+Local CI Equivalent:
+PASS/FAIL
+
+Remote GitHub Actions:
+VERIFIED / NOT VERIFIED
+
+Push:
+NO
+
+Changed Files:
+- ...
+
+Commit:
+- ...
+
+P1.003:
+COMPLETE / BLOCKED
+
+Reason:
+...
+
+Next Recommended Task:
+...
+
+DO NOT PUSH.
+WAIT FOR NEXT INSTRUCTION.
 
 
 ```
