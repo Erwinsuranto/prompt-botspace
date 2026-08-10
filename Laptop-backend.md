@@ -3,6 +3,38 @@
 
 
 
+
+# 
+```
+
+
+
+```
+# 
+```
+
+
+
+```
+# 
+```
+
+
+
+```
+# 
+```
+
+
+
+```
+# 
+```
+
+
+
+```
+
 # 
 ```
 
@@ -22,22 +54,116 @@
 
 
 ```
-# 
+# Laptop — B-012
 ```
+PROMPT: BOTSPACE B-012 — OBSERVABILITY BASELINE
 
+Kamu adalah Kimi utama untuk BotSpace BACKEND.
 
+WORKTREE:
+/root/botspace-backend
 
-```
+BRANCH:
+backend-dev
 
-# 
-```
+B-011 sudah COMPLETE dan GREEN.
 
+Latest commit:
+2c3b633 — feat: add backend config loader
 
+TASK:
+B-012 — Observability baseline — real logger + redaction
 
-```
-# 
-```
+Baca:
+- ROADMAP_V2.md
+- AI_TASKS.md
+- AI_RULES.md
+- FINAL_ARCHITECTURE.md
+- FINAL_STRUCTURE.md
+- packages/config
+- existing services/apps
+- existing scripts
 
+Implementasikan observability baseline sesuai architecture yang sudah ada.
+
+TUJUAN:
+- logger terpusat
+- structured logging yang ringan
+- level log yang jelas
+- aman untuk production
+- secret/token/password/API key wajib diredaсt
+- tidak boleh membocorkan environment variable
+- error logging tetap informatif tanpa secret
+- jangan menyebarkan console.log secara sembarangan
+
+Jangan membuat framework logging baru jika repository sudah memiliki pilihan yang sesuai.
+
+Hindari dependency baru jika tidak benar-benar diperlukan.
+
+SECURITY:
+Jangan pernah mencetak:
+- API key
+- BOT token
+- password
+- secret
+- authorization header
+- credential
+- nilai environment variable sensitif
+
+Tambahkan redaction test untuk memastikan secret tidak muncul
+dalam output logger.
+
+Jangan mengubah frontend.
+
+Jangan mengubah:
+- ROADMAP.md
+- ROADMAP_V2.md
+- pnpm-lock.yaml secara manual
+- packages/contracts kecuali benar-benar diperlukan oleh B-012
+
+VALIDATION:
+Jalankan:
+- git status
+- git diff --stat
+- format check
+- lint
+- typecheck
+- import-check
+- build
+- test
+
+Pastikan workspace tetap GREEN.
+
+Jika ada dependency baru, jelaskan alasannya.
+
+Jika requirement B-012 tidak jelas, STOP dan laporkan.
+
+GIT:
+Jika berhasil:
+- commit perubahan B-012
+- gunakan commit message:
+  feat: add observability baseline
+
+JANGAN PUSH.
+
+FINAL REPORT:
+B-012 RESULT
+Status:
+Changed Files:
+Logger:
+Redaction:
+Tests:
+Lint:
+Typecheck:
+Import Check:
+Build:
+Working Tree:
+Commit:
+Push: NO
+Next Task:
+
+DO NOT PUSH.
+WAIT FOR NEXT INSTRUCTION.
 
 
 ```
