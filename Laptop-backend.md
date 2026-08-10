@@ -41,10 +41,279 @@
 
 
 ```
-# 
+# Laptop — B-011
 ```
 
+PROMPT: BOTSPACE B-011 — CONFIG LOADER + ENV VALIDATION
 
+Kamu adalah Kimi utama untuk BotSpace BACKEND.
+
+WORKTREE:
+/root/botspace-backend
+
+BRANCH:
+backend-dev
+
+CURRENT STATUS:
+B-001 ✅
+B-002 ✅
+B-003 ✅ locally verified
+B-004 ✅
+B-005 ✅
+B-010 ✅
+
+Latest commit:
+3df80d0 — feat: establish backend contracts
+
+B-010:
+- Contract Boundary: PASS
+- Frontend Consumption Ready: YES
+- Working Tree: CLEAN
+- Push: NO
+
+==================================================
+TASK
+==================================================
+
+B-011 — Config Loader with ENV Validation.
+
+Baca terlebih dahulu:
+
+- ROADMAP_V2.md
+- AI_TASKS.md
+- AI_RULES.md
+- FINAL_ARCHITECTURE.md
+- FINAL_STRUCTURE.md
+- package.json
+- existing config/environment files
+- existing scripts
+- services/apps structure
+
+Jangan langsung coding.
+
+Audit konfigurasi yang sudah ada dan tentukan acceptance criteria
+B-011 dari ROADMAP_V2.md.
+
+==================================================
+TUJUAN
+==================================================
+
+Implementasikan config loader backend yang:
+
+- typed
+- terpusat
+- deterministic
+- memvalidasi environment variables
+- fail-fast untuk konfigurasi wajib
+- tidak membocorkan secret
+- mudah digunakan oleh service backend
+- tidak bergantung pada frontend
+- tidak mengandung business logic
+
+Ikuti architecture repository yang sudah ada.
+
+Jangan membuat konfigurasi baru jika mekanisme yang benar sudah ada.
+
+==================================================
+SECURITY
+==================================================
+
+Sangat penting:
+
+Jangan pernah:
+- print API key
+- print BOT_TOKEN
+- print password
+- print secret
+- commit .env
+- memasukkan secret ke test fixture
+- memasukkan secret ke README
+- memasukkan secret ke source code
+
+Error validation boleh menyebut NAMA environment variable,
+tetapi jangan pernah menampilkan NILAINYA.
+
+Gunakan .env.example jika memang sudah tersedia.
+
+==================================================
+VALIDATION RULES
+==================================================
+
+Audit environment variables yang memang diperlukan repository.
+
+Pisahkan:
+
+REQUIRED
+OPTIONAL
+DEFAULT
+
+Jangan mengarang environment variable.
+
+Jika requirement B-011 tidak jelas:
+STOP dan laporkan.
+
+Config harus gagal dengan pesan yang jelas jika REQUIRED env
+tidak tersedia.
+
+Config harus tetap aman ketika OPTIONAL env tidak tersedia
+jika memang diperbolehkan oleh architecture.
+
+==================================================
+IMPLEMENTATION
+==================================================
+
+Gunakan TypeScript dengan strict typing.
+
+Hindari:
+- any
+- duplicate config parsing
+- process.env tersebar di seluruh business logic
+- silent fallback untuk required secret
+- hardcoded secret
+- dependency baru tanpa alasan
+
+Jika repository sudah memiliki validation library:
+gunakan yang sudah ada.
+
+Jangan menambahkan library baru hanya untuk validasi sederhana
+jika repository sudah mempunyai mekanisme yang sesuai.
+
+==================================================
+TESTING
+==================================================
+
+Tambahkan test untuk behavior config yang memang diperlukan.
+
+Minimal pertimbangkan:
+
+1. required env tersedia → PASS
+2. required env hilang → FAIL
+3. optional env → sesuai default/optional rule
+4. secret tidak bocor dalam error
+5. type hasil config benar
+
+Gunakan environment test yang aman.
+
+Jangan menggunakan secret asli.
+
+==================================================
+WORKTREE SAFETY
+==================================================
+
+Hanya bekerja di:
+
+/root/botspace-backend
+
+Jangan menyentuh frontend.
+
+Jangan mengubah:
+
+- ROADMAP.md
+- ROADMAP_V2.md
+- pnpm-lock.yaml secara manual
+- packages/contracts/ kecuali B-011 benar-benar membutuhkan perubahan
+- business logic yang bukan dependency B-011
+
+Jika shared contract harus berubah:
+STOP dan laporkan sebelum melakukan perubahan.
+
+==================================================
+VALIDATION
+==================================================
+
+Setelah implementasi jalankan:
+
+git status
+git diff --stat
+git diff
+
+Kemudian:
+
+pnpm install --frozen-lockfile
+
+format check
+lint
+typecheck
+import-check
+build
+test
+
+Pastikan seluruh workspace tetap green.
+
+==================================================
+GIT
+==================================================
+
+Jika B-011 berhasil:
+
+git add <B-011 files>
+
+git commit -m "feat: add backend config loader"
+
+JANGAN PUSH.
+
+Jika blocked karena requirement tidak jelas:
+jangan commit.
+
+==================================================
+FINAL REPORT
+==================================================
+
+BOTSPACE B-011 RESULT
+
+Task:
+B-011
+
+Status:
+COMPLETE / PARTIAL / BLOCKED
+
+Config Variables Audited:
+...
+
+Required:
+...
+
+Optional:
+...
+
+Defaults:
+...
+
+Implementation:
+...
+
+Security:
+...
+
+Tests:
+...
+
+Validation:
+- Frozen Install:
+- Format:
+- Lint:
+- Typecheck:
+- Import Check:
+- Build:
+- Test:
+
+Changed Files:
+- ...
+
+Commit:
+...
+
+Working Tree:
+CLEAN / DIRTY
+
+Push:
+NO
+
+Next Task:
+...
+
+DO NOT PUSH.
+WAIT FOR NEXT INSTRUCTION.
 
 ```
 
