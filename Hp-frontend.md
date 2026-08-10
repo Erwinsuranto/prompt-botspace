@@ -48,10 +48,284 @@
 
 ```
 
-# 
+# F-011 audit
 ```
 
+PROMPT: BOTSPACE F-011 — UI PRIMITIVES BASELINE AUDIT
 
+Kamu adalah Kimi utama untuk BotSpace FRONTEND.
+
+WORKTREE:
+/root/botspace-frontend
+
+BRANCH:
+frontend-dev
+
+==================================================
+CURRENT STATUS
+==================================================
+
+F-002:
+COMPLETE
+
+F-010:
+COMPLETE
+
+Existing frontend design commit:
+07ff3f1
+
+F-010 tidak menghasilkan commit baru karena deliverable F-010
+sudah tercakup oleh commit 07ff3f1.
+
+Validation:
+- Lint PASS
+- Typecheck PASS
+- Test PASS
+- Build PASS
+- Mobile 390px PASS
+- Desktop 1440px PASS
+- No horizontal overflow
+
+Backend files changed:
+NONE
+
+Shared files changed:
+NONE
+
+Push:
+NO
+
+==================================================
+TASK
+==================================================
+
+Audit F-011 — UI primitives baseline.
+
+Baca:
+- ROADMAP_V2.md
+- AI_TASKS.md
+- AI_RULES.md
+- docs/architecture/ADR-009-frontend-framework.md
+- struktur frontend aktual
+
+JANGAN LANGSUNG CODING.
+
+Pertama tentukan apakah F-011:
+1. belum dikerjakan,
+2. sebagian dikerjakan,
+3. atau SUDAH TERPENUHI oleh commit 07ff3f1.
+
+==================================================
+AUDIT EXISTING UI
+==================================================
+
+Cari dan audit komponen/primitive yang sudah tersedia.
+
+Minimal periksa apakah sudah ada:
+
+- Button
+- Card
+- Badge
+- Input
+- Select
+- Textarea
+- Table
+- Modal/Dialog
+- Dropdown
+- Tabs
+- Toast
+- Tooltip
+- Empty State
+- Loading State
+- Error State
+
+Jangan mengasumsikan semua komponen wajib dibuat.
+Ikuti acceptance criteria F-011 yang sebenarnya.
+
+Cari juga penggunaan komponen tersebut di:
+
+apps/web
+packages/ui
+dan folder frontend lain yang relevan.
+
+==================================================
+DUPLICATION RULE
+==================================================
+
+SANGAT PENTING:
+
+Jangan membuat komponen baru jika komponen yang setara sudah ada.
+
+Jangan membuat design system kedua.
+
+Jika 07ff3f1 sudah memenuhi F-011:
+JANGAN mengubah source code.
+JANGAN membuat commit baru.
+
+Cukup dokumentasikan evidence bahwa F-011 sudah terpenuhi.
+
+Jika F-011 hanya sebagian terpenuhi:
+implementasikan HANYA bagian yang benar-benar masih kurang.
+
+Jika F-011 membutuhkan dependency baru:
+STOP dan laporkan terlebih dahulu.
+Jangan install dependency tanpa alasan yang jelas.
+
+==================================================
+DESIGN REQUIREMENTS
+==================================================
+
+UI harus:
+
+- cepat
+- ringan
+- jelas
+- readable
+- responsive
+- mobile-first
+- konsisten dengan design BotSpace
+- tidak menggunakan animasi berat
+- tidak menggunakan library besar tanpa kebutuhan
+
+Pastikan komponen dapat digunakan kembali oleh halaman BotSpace berikutnya.
+
+Jangan membuat komponen khusus untuk satu halaman jika sebenarnya dapat dibuat reusable.
+
+==================================================
+WORKTREE SAFETY
+==================================================
+
+Hanya bekerja di:
+
+/root/botspace-frontend
+
+Jangan menyentuh:
+
+/root/botspace
+/root/botspace-backend
+
+Jangan mengubah:
+
+- ROADMAP.md
+- ROADMAP_V2.md
+- pnpm-lock.yaml
+- root package.json
+- pnpm-workspace.yaml
+- turbo.json
+- packages/contracts/
+
+kecuali F-011 secara eksplisit membutuhkan perubahan tersebut.
+
+Jika ada kebutuhan shared-file change:
+STOP dan laporkan.
+
+==================================================
+VALIDATION
+==================================================
+
+Jika tidak ada perubahan:
+cukup lakukan audit dan validation ringan untuk membuktikan existing implementation.
+
+Jika ada perubahan:
+jalankan:
+
+- lint
+- typecheck
+- test
+- build
+
+Verifikasi:
+
+390px mobile
+768px tablet
+1440px desktop
+
+Pastikan tidak ada horizontal overflow.
+
+==================================================
+GIT
+==================================================
+
+Jika F-011 SUDAH TERPENUHI:
+
+- jangan ubah file
+- jangan commit
+- jangan push
+
+Jika F-011 membutuhkan implementasi baru:
+
+- hanya commit perubahan F-011
+- gunakan pesan:
+
+feat: complete F-011 ui primitives baseline
+
+JANGAN PUSH.
+
+==================================================
+FINAL REPORT
+==================================================
+
+BOTSPACE F-011 RESULT
+
+Task:
+F-011
+
+Title:
+...
+
+Status:
+ALREADY COMPLETE / PARTIAL / IMPLEMENTED / BLOCKED
+
+Evidence:
+...
+
+Existing Components:
+...
+
+Missing Components:
+...
+
+Files Changed:
+- ...
+
+Validation:
+- Lint:
+- Typecheck:
+- Test:
+- Build:
+- Mobile:
+- Desktop:
+
+Backend Files Changed:
+NONE
+
+Shared Files Changed:
+NONE
+
+ROADMAP.md:
+NOT MODIFIED
+
+ROADMAP_V2.md:
+NOT MODIFIED
+
+Commit:
+...
+
+Working Tree:
+...
+
+Push:
+NO
+
+Next Recommended Task:
+...
+
+IMPORTANT:
+Jika F-011 sudah terpenuhi oleh 07ff3f1, jangan membuat pekerjaan
+duplikat. Laporkan bahwa F-011 COMPLETE berdasarkan existing deliverable.
+
+DO NOT PUSH.
+WAIT FOR NEXT INSTRUCTION.
 
 ```
 # 
