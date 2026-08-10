@@ -2,6 +2,31 @@
 
 
 
+# 
+```
+
+
+
+```
+
+# 
+```
+
+
+
+```
+# 
+```
+
+
+
+```
+# 
+```
+
+
+
+```
 
 #
 ```
@@ -29,7 +54,103 @@
 ```
 #
 ```
+PROMPT: BOTSPACE B-002 — RESOLVE PRETTIER GOVERNANCE BLOCKER
 
+WORKTREE:
+ /root/botspace-backend
+
+BRANCH:
+ backend-dev
+
+B-002 sebelumnya gagal hanya pada:
+prettier --check
+
+Hasil:
+- 116 files memiliki formatting mismatch
+- tidak ada source code yang berubah
+- working tree tetap clean
+- B-001 lockfile sudah benar
+- jangan push
+
+TUGAS SEKARANG:
+Audit dan selesaikan masalah GOVERNANCE/FORMAT CHECK agar B-002 dapat berjalan dengan benar.
+
+ATURAN SANGAT PENTING:
+
+1. Jangan mengubah business logic.
+2. Jangan melakukan refactor source code.
+3. Jangan mengubah ROADMAP.md.
+4. Jangan mengubah ROADMAP_V2.md.
+5. Jangan mengubah pnpm-lock.yaml secara manual.
+6. Jangan menyentuh frontend worktree.
+7. Jangan melakukan push.
+8. Jangan menjalankan prettier --write ke seluruh repository secara membabi buta.
+
+Audit terlebih dahulu:
+
+- prettier config
+- .prettierignore
+- package.json scripts
+- workspace configuration
+- generated files
+- frozen documentation
+- files yang memang seharusnya diformat
+- files yang memang harus dikecualikan
+
+Tujuan:
+Tentukan SCOPE FORMAT yang benar berdasarkan repository dan governance yang sudah ada.
+
+Jika perlu membuat atau memperbaiki .prettierignore/config/script, lakukan hanya jika benar-benar sesuai governance repository.
+
+Setelah scope benar:
+
+1. jalankan prettier check pada scope yang benar
+2. jalankan format check
+3. jalankan lint
+4. jalankan typecheck
+5. jalankan import-check jika tersedia
+6. jalankan build
+7. jalankan test
+
+Jangan memformat:
+- ROADMAP.md
+- generated/frozen artifacts
+- pnpm-lock.yaml
+- file yang memang dikecualikan oleh governance
+
+Jika source files memang wajib diformat, hanya format file yang masuk scope resmi.
+
+Setelah selesai:
+
+git status
+git diff --stat
+git diff
+
+Pastikan perubahan hanya governance/formatting yang memang diperlukan.
+
+Jika semua PASS, commit perubahan B-002 dengan pesan yang sesuai.
+
+JANGAN PUSH.
+
+FINAL OUTPUT:
+
+B-002 RESULT
+Prettier Scope:
+Format Check:
+Lint:
+Typecheck:
+Import Check:
+Build:
+Test:
+P1.003:
+Changed Files:
+Commit:
+Working Tree:
+Errors:
+Next Task:
+
+DO NOT PUSH.
+WAIT FOR NEXT INSTRUCTION.
 
 
 ```
