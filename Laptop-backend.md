@@ -41,9 +41,480 @@
 
 
 ```
-# 
+# BOTSPACE B-015
 ```
+PROMPT: BOTSPACE B-015 — DOMAIN PRIMITIVES + REPOSITORY PORTS
 
+ROLE:
+Kimi utama — Senior Backend Architect / TypeScript Engineer.
+
+WORKTREE:
+ /root/botspace-backend
+
+BRANCH:
+ backend-dev
+
+IMPORTANT:
+B-013 DATABASE FOUNDATION SUDAH COMPLETE.
+B-010 CONTRACTS SUDAH COMPLETE.
+B-011 CONFIG LOADER SUDAH COMPLETE.
+B-012 OBSERVABILITY SUDAH COMPLETE.
+
+JANGAN PUSH.
+JANGAN mengerjakan B-014.
+Fokus penuh B-015.
+
+==================================================
+OBJECTIVE
+==================================================
+
+Implementasikan B-015:
+DOMAIN PRIMITIVES + REPOSITORY PORTS.
+
+Tujuan task ini adalah membuat boundary domain/backend
+yang kuat sebelum API server dan business use-case dibangun.
+
+Jangan sekadar membuat interface kosong.
+Audit architecture terlebih dahulu lalu implementasikan
+primitive dan repository port yang benar-benar konsisten
+dengan schema, contracts, roadmap, dan struktur repository.
+
+==================================================
+1. ARCHITECTURE AUDIT
+==================================================
+
+Baca terlebih dahulu:
+
+- ROADMAP_V2.md
+- AI_TASKS.md
+- AI_RULES.md
+- FINAL_ARCHITECTURE.md
+- FINAL_STRUCTURE.md
+- MODULES.md
+- PROJECT_STATUS.md
+- packages/contracts
+- packages/config
+- packages/observability
+- packages/database / schema / migrations
+- services/*
+- apps/*
+- package.json
+- pnpm-workspace.yaml
+
+Cari dan petakan:
+
+- domain entities yang sudah ditentukan
+- database entities B-013
+- shared contracts
+- existing repository interfaces
+- service boundaries
+- dependency direction
+- ID strategy
+- timestamp strategy
+- error strategy
+- pagination/filter conventions
+- ownership rules
+
+JANGAN mengarang domain baru jika tidak ada dasar
+di architecture/roadmap/contracts.
+
+==================================================
+2. DOMAIN PRIMITIVES
+==================================================
+
+Buat primitive/value object yang memang diperlukan oleh
+domain yang sudah didefinisikan.
+
+Contoh kategori yang boleh dipertimbangkan hanya jika
+didukung architecture:
+
+- UserId
+- WorkspaceId
+- BotId
+- AccountId
+- WorkspaceMemberId
+- JobId
+- ApiKeyId
+- ProviderId
+- Status types
+- pagination primitives
+- timestamp/date primitives
+- validated string identifiers
+
+Primitive harus:
+
+- type-safe
+- runtime-safe jika diperlukan
+- tidak bergantung pada database ORM
+- tidak bergantung pada HTTP framework
+- tidak bergantung pada Express/Fastify/Hono
+- mudah digunakan oleh application layer
+- memiliki validation yang jelas
+- memiliki test
+
+Jangan membuat value object hanya untuk menambah jumlah file.
+
+==================================================
+3. ID STRATEGY
+==================================================
+
+Ikuti keputusan architecture.
+
+Jangan membuat UUID/random ID baru secara sembarangan.
+
+Jika UUID/ULID adalah application concern,
+implementasikan di domain/application boundary.
+
+Database tidak boleh menjadi alasan domain
+bergantung langsung pada ORM.
+
+Pastikan ID type tidak mudah tertukar.
+
+Contoh:
+
+UserId tidak boleh interchangeable secara sembarangan
+dengan WorkspaceId jika architecture mengharuskan
+strong typing.
+
+==================================================
+4. DOMAIN TYPES
+==================================================
+
+Definisikan domain types berdasarkan entity yang benar-benar
+sudah ada.
+
+Minimal evaluasi:
+
+- User
+- Workspace
+- WorkspaceMember
+- Bot
+- Account
+- Job
+
+Hanya implementasikan entity yang memang sudah menjadi
+bagian architecture/roadmap.
+
+Jangan membuat business logic lengkap.
+B-015 fokus pada primitives dan boundary.
+
+==================================================
+5. REPOSITORY PORTS
+==================================================
+
+Buat repository ports/interface untuk domain yang relevan.
+
+Repository port harus:
+
+- berada pada layer domain/application yang benar
+- tidak mengimpor ORM
+- tidak mengimpor database client
+- tidak mengimpor HTTP framework
+- tidak mengetahui PostgreSQL implementation detail
+- memiliki input/output type yang jelas
+- memiliki error semantics yang jelas
+
+Gunakan interface/type yang dapat diimplementasikan
+oleh database adapter pada tahap berikutnya.
+
+Jangan implementasikan PostgreSQL repository penuh
+kecuali architecture memang memintanya untuk B-015.
+
+==================================================
+6. QUERY / PAGINATION CONTRACT
+==================================================
+
+Jika repository membutuhkan list/query:
+
+buat primitive yang konsisten untuk:
+
+- limit
+- cursor/offset sesuai architecture
+- sorting jika memang diperlukan
+- filtering jika sudah ditentukan
+
+Hindari membuat query DSL besar.
+
+Prioritaskan API sederhana dan type-safe.
+
+==================================================
+7. ERROR MODEL
+==================================================
+
+Buat atau gunakan error model yang sudah ada.
+
+Minimal bedakan secara jelas jika architecture membutuhkan:
+
+- not found
+- conflict
+- validation error
+- persistence error
+- invalid input
+
+Jangan expose database error mentah ke domain.
+
+Jangan memasukkan HTTP status code ke domain layer.
+
+==================================================
+8. DEPENDENCY RULE
+==================================================
+
+WAJIB:
+
+domain/application
+        ↓
+repository port
+        ↓
+infrastructure/database adapter
+
+BUKAN:
+
+domain
+  ↓
+Prisma/Drizzle/pg/ORM
+
+dan bukan:
+
+domain
+  ↓
+HTTP framework
+
+Pastikan import graph sesuai architecture.
+
+Gunakan import-check untuk membuktikannya.
+
+==================================================
+9. DATABASE ALIGNMENT
+==================================================
+
+Bandingkan hasil B-015 dengan schema B-013.
+
+Pastikan:
+
+- naming konsisten
+- ID semantics konsisten
+- nullable fields konsisten
+- enum/status semantics konsisten
+- timestamps konsisten
+- relation semantics konsisten
+
+Jika ada mismatch:
+
+JANGAN langsung mengubah B-013.
+
+Identifikasi mismatch terlebih dahulu.
+
+Jika memang membutuhkan perubahan,
+jelaskan dalam final report sebelum melakukan perubahan
+yang berada di luar scope.
+
+==================================================
+10. CONTRACT ALIGNMENT
+==================================================
+
+Bandingkan dengan:
+
+packages/contracts
+
+Pastikan domain types tidak bertentangan dengan public/API
+contracts.
+
+Domain model dan transport contract tidak harus identik.
+
+Jangan memaksa domain memakai DTO HTTP.
+
+Gunakan mapper/boundary jika memang diperlukan.
+
+==================================================
+11. TESTING
+==================================================
+
+Buat test yang benar-benar menguji behavior.
+
+Minimal:
+
+- valid primitive diterima
+- invalid primitive ditolak
+- ID types tidak mudah tertukar
+- repository port memiliki contract yang jelas
+- validation behavior konsisten
+- error semantics konsisten
+- pagination primitive tervalidasi
+- domain types tidak mengimpor infrastructure
+
+Tambahkan compile-time checks jika berguna.
+
+Jangan membuat test yang hanya memeriksa
+"object exists".
+
+==================================================
+12. STATIC ARCHITECTURE CHECK
+==================================================
+
+Buat/verifikasi architecture boundary.
+
+Cari import ilegal seperti:
+
+- domain -> database
+- domain -> ORM
+- domain -> HTTP
+- domain -> process.env
+- domain -> infrastructure
+
+Jika ada violation dari sebelum B-015:
+
+jangan sembunyikan.
+
+Audit dan perbaiki hanya jika memang bagian scope
+atau dokumentasikan blocker.
+
+==================================================
+13. PERFORMANCE
+==================================================
+
+Gunakan TypeScript code yang sederhana dan cepat.
+
+Hindari:
+
+- dependency besar tanpa kebutuhan
+- runtime reflection
+- decorator-heavy architecture
+- unnecessary abstraction
+- generic framework layer
+- duplicate validation library
+
+Prioritaskan compile-time safety.
+
+==================================================
+14. SECURITY
+==================================================
+
+Audit:
+
+- secret leakage
+- credential types
+- logging
+- error serialization
+- unsafe coercion
+- arbitrary object input
+- prototype pollution risk
+- database error leakage
+
+Domain layer tidak boleh mengetahui secret value.
+
+==================================================
+15. VALIDATION PENUH
+==================================================
+
+Setelah coding jalankan:
+
+- git status
+- git diff --stat
+- format check
+- lint
+- typecheck
+- import-check
+- secret scan
+- ownership check
+- doc-link check
+- build
+- test
+- frozen install validation jika tersedia
+
+Jika ada error:
+perbaiki sampai GREEN.
+
+Jangan berhenti pada first failure.
+
+==================================================
+16. SCOPE CONTROL
+==================================================
+
+JANGAN mengerjakan:
+
+- B-014 API server selection
+- API routes
+- HTTP controllers
+- Telegram bot implementation
+- frontend
+- authentication implementation
+- production deployment
+- provider integration
+- business workflow lengkap
+
+B-015 hanya:
+
+DOMAIN PRIMITIVES
++
+DOMAIN TYPES
++
+REPOSITORY PORTS
++
+VALIDATION
++
+TESTS
++
+ARCHITECTURE BOUNDARY
+
+==================================================
+17. GIT
+==================================================
+
+Jika semua validation GREEN:
+
+Working tree harus CLEAN.
+
+Commit:
+
+feat: establish domain primitives and repository ports
+
+JANGAN PUSH.
+
+==================================================
+FINAL REPORT
+==================================================
+
+B-015 RESULT
+
+Status:
+Architecture Audit:
+Domain Primitives:
+Domain Types:
+Repository Ports:
+ID Strategy:
+Error Model:
+Pagination:
+Database Alignment:
+Contract Alignment:
+Dependency Boundary:
+Tests:
+Lint:
+Typecheck:
+Import Check:
+Build:
+Security:
+Changed Files:
+Working Tree:
+Commit:
+Push: NO
+
+Architecture Decisions:
+- ...
+
+Assumptions:
+- ...
+
+Problems Found:
+- ...
+
+Remaining Risks:
+- ...
+
+Next Recommended Task:
+- ...
+
+DO NOT PUSH.
+WAIT FOR NEXT INSTRUCTION.
 
 
 ```
