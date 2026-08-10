@@ -2,6 +2,26 @@
 
 
 
+
+# 
+```
+
+
+
+```
+# 
+```
+
+
+
+```
+
+# 
+```
+
+
+
+```
 # 
 ```
 
@@ -34,9 +54,263 @@
 
 
 ```
-#
+#B-005
 ```
+PROMPT: BOTSPACE B-005 — RESOLVE MODULES PATH GOVERNANCE
 
+Kamu adalah Kimi utama untuk BotSpace BACKEND.
+
+WORKTREE:
+/root/botspace-backend
+
+BRANCH:
+backend-dev
+
+CURRENT STATUS:
+
+B-001 ✅
+B-002 ✅
+B-003 ✅ locally verified
+B-004 ✅
+
+Latest commit:
+282d49c — chore: improve governance scripts
+
+Working Tree:
+CLEAN
+
+Push:
+NO
+
+==================================================
+TASK
+==================================================
+
+B-005 — Resolve modules/path governance discrepancy.
+
+Baca terlebih dahulu:
+
+- ROADMAP_V2.md
+- AI_TASKS.md
+- MODULES.md
+- pnpm-workspace.yaml
+- struktur repository aktual
+- FINAL_STRUCTURE.md
+- FINAL_ARCHITECTURE.md
+- CONTRIBUTING.md
+- scripts/README.md
+
+Jangan langsung membuat folder modules/.
+
+==================================================
+PROBLEM
+==================================================
+
+Saat audit ditemukan:
+
+pnpm-workspace.yaml memasukkan:
+
+modules/*
+
+tetapi folder:
+
+modules/
+
+tidak ada di repository.
+
+Ini menyebabkan discrepancy antara workspace configuration dan struktur
+repository aktual.
+
+==================================================
+TUJUAN
+==================================================
+
+Tentukan berdasarkan dokumentasi dan repository:
+
+APAKAH:
+
+A. modules/ memang merupakan bagian resmi arsitektur dan harus dibuat,
+
+ATAU
+
+B. modules/* adalah konfigurasi lama/tidak digunakan dan harus
+dihapus/diperbaiki,
+
+ATAU
+
+C. ada aturan lain yang sudah ditentukan di MODULES.md / architecture
+yang harus diikuti.
+
+Jangan mengambil keputusan berdasarkan asumsi.
+
+Gunakan dokumentasi repository sebagai source of truth.
+
+==================================================
+ATURAN KETAT
+==================================================
+
+- Jangan mengubah business logic.
+- Jangan membuat feature baru.
+- Jangan membuat module dummy hanya agar check hijau.
+- Jangan membuat folder kosong sebagai workaround.
+- Jangan menghapus konfigurasi tanpa bukti bahwa konfigurasi tersebut
+  obsolete.
+- Jangan mengubah ROADMAP.md.
+- Jangan mengubah ROADMAP_V2.md.
+- Jangan mengubah pnpm-lock.yaml secara manual.
+- Jangan menyentuh frontend.
+- Jangan push.
+
+Jika keputusan membutuhkan klarifikasi arsitektur:
+STOP dan laporkan, jangan menebak.
+
+==================================================
+AUDIT
+==================================================
+
+Periksa:
+
+1. pnpm-workspace.yaml
+2. MODULES.md
+3. FINAL_STRUCTURE.md
+4. FINAL_ARCHITECTURE.md
+5. package.json
+6. semua workspace/package yang benar-benar ada
+7. apakah ada referensi "modules/*" di repository
+8. apakah CI/governance script mengharapkan modules/
+9. apakah modules/ pernah direncanakan tetapi belum dibuat
+
+Gunakan pencarian repository untuk menemukan semua referensi
+"modules/" dan "modules/*".
+
+==================================================
+IMPLEMENTATION
+==================================================
+
+Setelah bukti cukup:
+
+Jika modules/* memang salah:
+perbaiki konfigurasi secara minimal.
+
+Jika modules/ memang resmi:
+ikuti struktur yang sudah ditentukan dokumentasi.
+Jangan membuat implementasi bisnis.
+
+Jika hanya dokumentasi yang salah:
+perbaiki dokumentasi yang memang menjadi scope B-005.
+
+Jika ada konflik antar dokumen:
+JANGAN memilih secara diam-diam.
+Laporkan konflik tersebut.
+
+==================================================
+VALIDATION
+==================================================
+
+Setelah perubahan, jalankan validation yang relevan.
+
+Minimal:
+
+pnpm install --frozen-lockfile
+
+Kemudian:
+
+format check
+lint
+typecheck
+import-check
+build
+test
+
+Pastikan workspace resolution tidak lagi menghasilkan discrepancy.
+
+Periksa:
+
+git status
+git diff --stat
+git diff
+
+Pastikan tidak ada perubahan tidak sengaja.
+
+==================================================
+GIT
+==================================================
+
+Jika B-005 berhasil diselesaikan:
+
+commit:
+
+chore: resolve modules path governance
+
+JANGAN PUSH.
+
+Jika tidak ada perubahan yang diperlukan:
+jangan membuat commit kosong.
+
+Jika B-005 BLOCKED karena konflik dokumentasi:
+jangan commit dan jangan push.
+
+==================================================
+FINAL REPORT
+==================================================
+
+BOTSPACE B-005 RESULT
+
+Task:
+B-005
+
+Status:
+COMPLETE / BLOCKED
+
+Root Cause:
+...
+
+Evidence:
+...
+
+Decision:
+KEEP modules/*
+atau
+REMOVE/CHANGE modules/*
+atau
+DOCUMENTATION ISSUE
+atau
+NEEDS CLARIFICATION
+
+Implementation:
+...
+
+Changed Files:
+- ...
+
+Validation:
+- Frozen Install:
+- Format:
+- Lint:
+- Typecheck:
+- Import Check:
+- Build:
+- Test:
+- Workspace Resolution:
+
+Commit:
+...
+
+Working Tree:
+CLEAN / DIRTY
+
+Push:
+NO
+
+Next Recommended Task:
+...
+
+IMPORTANT:
+Jangan membuat folder modules/ hanya untuk menghilangkan error.
+Keputusan harus berdasarkan architecture dan governance repository.
+
+DO NOT PUSH.
+WAIT FOR NEXT INSTRUCTION.
 
 
 ```
