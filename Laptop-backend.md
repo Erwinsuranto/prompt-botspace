@@ -35,9 +35,417 @@
 
 ```
 
-# 
+# Prompt 16 — B-014 API Server Skeleton
 ```
+PROMPT 16: BOTSPACE B-014 — API SERVER SKELETON
 
+WORKTREE:
+ /root/botspace-backend
+
+BRANCH:
+ backend-dev
+
+ROLE:
+Kimi utama — Senior TypeScript Backend Architect.
+
+PREVIOUS TASKS:
+B-010 Contracts           COMPLETE
+B-011 Config Loader       COMPLETE
+B-012 Observability       COMPLETE
+B-013 Database Foundation COMPLETE
+B-015 Domain/Repository   COMPLETE
+
+NEXT TASK:
+B-014 — API SERVER SKELETON
+
+IMPORTANT:
+- Jangan push.
+- Jangan mengubah main.
+- Jangan mengerjakan frontend.
+- Jangan mengerjakan Telegram bot implementation.
+- Jangan mengimplementasikan business logic besar.
+- Pertahankan architecture boundary yang sudah dibuat B-015.
+
+==================================================
+OBJECTIVE
+==================================================
+
+Bangun skeleton API server production-quality yang menjadi
+entry point backend BotSpace.
+
+Server harus memiliki foundation:
+
+1. HTTP framework/server
+2. bootstrap lifecycle
+3. health endpoint
+4. readiness endpoint jika architecture membutuhkan
+5. centralized error handling
+6. error envelope
+7. request correlation/request ID
+8. graceful shutdown
+9. config integration dari B-011
+10. observability integration dari B-012
+11. domain/error boundary dari B-015
+12. typed route structure yang mudah diperluas
+
+Jangan membuat fitur bisnis palsu.
+
+==================================================
+1. AUDIT SEBELUM CODING
+==================================================
+
+Baca:
+
+- ROADMAP_V2.md
+- FINAL_ARCHITECTURE.md
+- FINAL_STRUCTURE.md
+- AI_RULES.md
+- AI_WORKFLOW.md
+- PROJECT_STATUS.md
+- packages/config
+- packages/observability
+- packages/contracts
+- B-015 domain/repository code
+- package.json
+- pnpm-workspace.yaml
+
+Tentukan framework HTTP berdasarkan architecture/repository.
+
+Jangan mengganti framework hanya karena preferensi pribadi.
+
+Jika sudah ada framework yang dipilih:
+gunakan framework tersebut.
+
+==================================================
+2. SERVER BOUNDARY
+==================================================
+
+Buat boundary yang jelas:
+
+bootstrap
+  ↓
+HTTP server
+  ↓
+routes
+  ↓
+application/domain
+  ↓
+repository ports
+
+HTTP layer tidak boleh mengetahui detail database.
+
+HTTP layer tidak boleh langsung menggunakan ORM.
+
+HTTP DTO tidak boleh menjadi domain entity.
+
+==================================================
+3. CONFIG
+==================================================
+
+Gunakan config loader B-011.
+
+Jangan membaca process.env tersebar di seluruh aplikasi.
+
+Server harus mengambil configuration dari config boundary.
+
+Minimal konfigurasi yang perlu dievaluasi:
+
+- host
+- port
+- environment
+- shutdown timeout
+- logging/observability settings
+
+Jangan menambahkan env variables yang tidak diperlukan.
+
+==================================================
+4. HEALTH
+==================================================
+
+Implementasikan endpoint health yang sederhana dan cepat.
+
+Contoh:
+
+GET /health
+
+Response harus:
+
+- deterministic
+- JSON
+- tidak membocorkan secret
+- tidak melakukan query database berat
+
+Jika architecture membutuhkan readiness:
+
+GET /ready
+
+Bedakan:
+
+liveness
+vs
+readiness
+
+Jangan menyebut service READY jika dependency wajib
+belum siap.
+
+==================================================
+5. ERROR ENVELOPE
+==================================================
+
+Buat centralized error response.
+
+Format harus konsisten.
+
+Minimal memiliki:
+
+- error/code
+- message
+- request/correlation ID
+
+Detail internal hanya boleh muncul sesuai environment.
+
+Jangan mengirim:
+
+- stack trace production
+- database credentials
+- SQL
+- environment secrets
+- internal filesystem paths
+
+Domain errors dari B-015 harus dapat dipetakan
+ke HTTP response tanpa memasukkan HTTP concern
+ke domain layer.
+
+==================================================
+6. REQUEST ID / CORRELATION
+==================================================
+
+Setiap request harus memiliki correlation/request ID.
+
+Jika client mengirim ID yang valid:
+gunakan sesuai security policy.
+
+Jika tidak:
+generate ID baru.
+
+ID harus tersedia untuk:
+
+- response header
+- structured logs
+- error response
+
+Jangan log secret atau authorization credential.
+
+==================================================
+7. OBSERVABILITY
+==================================================
+
+Gunakan package observability B-012.
+
+Integrasikan:
+
+- request lifecycle
+- error logging
+- startup
+- shutdown
+
+Jangan membuat logger kedua jika B-012 sudah menyediakan
+abstraction yang benar.
+
+Log harus ringkas dan terstruktur.
+
+==================================================
+8. GRACEFUL SHUTDOWN
+==================================================
+
+Implementasikan lifecycle:
+
+startup
+→ server listening
+→ request handling
+→ shutdown signal
+→ stop accepting requests
+→ cleanup resources
+→ exit
+
+Handle setidaknya:
+
+SIGTERM
+SIGINT
+
+Gunakan timeout agar shutdown tidak menggantung selamanya.
+
+Jangan menggunakan process.exit secara brutal
+sebelum cleanup selesai kecuali sebagai last-resort timeout.
+
+==================================================
+9. ROUTER STRUCTURE
+==================================================
+
+Pisahkan:
+
+- server bootstrap
+- router registration
+- health routes
+- error handler
+- middleware/plugin setup
+
+Jangan membuat satu file server raksasa.
+
+Namun jangan over-engineer.
+
+Target:
+struktur kecil, jelas, mudah dipelihara.
+
+==================================================
+10. CONTRACTS
+==================================================
+
+Gunakan contracts package bila endpoint sudah memiliki
+public contract.
+
+Jangan membuat API contract baru yang bertentangan
+dengan B-010.
+
+Jika endpoint health belum memiliki public contract,
+gunakan response internal sederhana dan dokumentasikan
+keputusan tersebut.
+
+==================================================
+11. TESTS
+==================================================
+
+Buat test untuk:
+
+- server bootstrap
+- health endpoint
+- readiness jika ada
+- JSON response
+- request ID
+- error envelope
+- unknown route
+- graceful shutdown jika feasible
+- no secret leakage
+- config failure behavior
+
+Gunakan test environment yang deterministik.
+
+Jangan membuat test yang membutuhkan production database
+untuk health endpoint kecuali architecture memang
+mewajibkannya.
+
+==================================================
+12. SECURITY
+==================================================
+
+Audit:
+
+- malformed request
+- oversized request jika framework mendukung
+- header handling
+- error leakage
+- secret leakage
+- request ID injection
+- unsafe logging
+
+Jangan menambahkan authentication implementation
+di B-014.
+
+==================================================
+13. PERFORMANCE
+==================================================
+
+Server foundation harus ringan.
+
+Hindari:
+
+- dependency besar tanpa kebutuhan
+- synchronous blocking work
+- database access pada liveness
+- duplicate serialization
+- unnecessary middleware
+- unnecessary abstraction
+
+==================================================
+14. VALIDATION
+==================================================
+
+Setelah implementasi jalankan seluruh validation:
+
+- git status
+- git diff --stat
+- format check
+- lint
+- typecheck
+- import-check
+- secret scan
+- ownership check
+- doc-link check
+- build
+- test
+
+Jika ada failure:
+diagnosis root cause dan perbaiki.
+
+Jangan sekadar bypass test.
+
+==================================================
+15. GIT
+==================================================
+
+Jika semua green:
+
+commit:
+
+feat: establish api server skeleton
+
+Working tree harus CLEAN.
+
+JANGAN PUSH.
+
+==================================================
+FINAL REPORT
+==================================================
+
+B-014 RESULT
+
+Status:
+Framework:
+Server Entry:
+Health:
+Readiness:
+Error Envelope:
+Request ID:
+Observability:
+Graceful Shutdown:
+Config:
+Contract Integration:
+Security:
+Tests:
+Lint:
+Typecheck:
+Import Check:
+Build:
+
+Changed Files:
+Commit:
+Working Tree:
+Push: NO
+
+Architecture Decisions:
+- ...
+
+Problems Found:
+- ...
+
+Remaining Risks:
+- ...
+
+Next Recommended Task:
+- ...
+
+DO NOT PUSH.
+WAIT FOR NEXT INSTRUCTION.
 
 
 ```
