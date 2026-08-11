@@ -28,9 +28,323 @@
 
 
 ```
-# 
+# Prompt 17 — B-020 User + Session Schema
 ```
+PROMPT 17: BOTSPACE B-020 — USER + SESSION SCHEMA & MIGRATION
 
+WORKTREE:
+ /root/botspace-backend
+
+BRANCH:
+ backend-dev
+
+ROLE:
+Kimi utama — Senior Backend Architect + Database Engineer.
+
+PREVIOUS:
+B-010 Contracts           COMPLETE
+B-011 Config Loader       COMPLETE
+B-012 Observability       COMPLETE
+B-013 Database Foundation COMPLETE
+B-014 API Server Skeleton COMPLETE
+B-015 Domain/Repository   COMPLETE
+
+OBJECTIVE:
+Implement B-020 — User + Session schema and migration.
+
+IMPORTANT:
+- JANGAN PUSH.
+- JANGAN ubah main.
+- Jangan mengerjakan frontend.
+- Jangan mengimplementasikan login UI.
+- Jangan membuat authentication flow lengkap.
+- Fokus pada database/domain foundation untuk User + Session.
+- Jangan mengubah schema yang sudah stabil tanpa alasan.
+- Jangan mengarang entity yang belum dibutuhkan.
+
+==================================================
+1. AUDIT
+==================================================
+
+Baca:
+
+- ROADMAP_V2.md
+- FINAL_ARCHITECTURE.md
+- FINAL_STRUCTURE.md
+- AI_RULES.md
+- PROJECT_STATUS.md
+- B-013 database implementation
+- B-014 API skeleton
+- B-015 domain/repository ports
+- packages/contracts
+- packages/config
+- database schema/migrations
+
+Tentukan terlebih dahulu:
+- existing User model
+- existing session-related fields
+- ID strategy
+- timestamp strategy
+- uniqueness rules
+- deletion strategy
+- migration conventions
+
+Jangan langsung coding sebelum dependency map jelas.
+
+==================================================
+2. USER SCHEMA
+==================================================
+
+Implementasikan User schema sesuai architecture.
+
+Pastikan:
+
+- primary key konsisten dengan B-013/B-015
+- identifier uniqueness jelas
+- createdAt
+- updatedAt
+- nullable fields benar
+- indexes hanya yang memang diperlukan
+- no plaintext secrets
+- tidak ada credential leakage
+
+Jangan menambahkan profil user yang belum dibutuhkan.
+
+==================================================
+3. SESSION SCHEMA
+==================================================
+
+Buat Session schema yang aman.
+
+Minimal evaluasi:
+
+- session ID
+- user relation
+- expiration
+- createdAt
+- updatedAt jika diperlukan
+- revoked/invalidated state jika architecture membutuhkan
+- indexes untuk lookup dan expiry
+
+Session secret/token:
+
+- jangan disimpan plaintext jika architecture membutuhkan
+  hashed token representation
+- jangan log token
+- jangan expose token melalui repository/domain error
+
+Gunakan pendekatan yang aman dan sederhana.
+
+==================================================
+4. RELATIONSHIP
+==================================================
+
+Pastikan:
+
+User
+  ↓
+Session
+
+relationship memiliki:
+
+- foreign key
+- delete behavior yang aman
+- index pada foreign key
+- referential integrity
+
+Jangan merusak relation existing:
+
+Workspace
+WorkspaceMember
+Bot
+Account
+
+==================================================
+5. MIGRATION
+==================================================
+
+Buat migration baru mengikuti format migration B-013.
+
+Migration harus:
+
+- deterministic
+- reversible jika tooling mendukung
+- tidak destructive terhadap existing data
+- memiliki constraint yang benar
+- memiliki index yang diperlukan
+
+Jangan menggunakan destructive migration
+untuk data existing tanpa explicit requirement.
+
+==================================================
+6. DOMAIN ALIGNMENT
+==================================================
+
+Sesuaikan domain primitives/repository ports B-015
+dengan User + Session jika memang diperlukan.
+
+Jangan memasukkan database implementation
+ke domain layer.
+
+Dependency:
+
+domain
+ ↓
+repository port
+ ↓
+database adapter
+
+Tetap pertahankan boundary.
+
+==================================================
+7. CONTRACTS
+==================================================
+
+Audit packages/contracts.
+
+Jika contract User/Session memang sudah tersedia:
+gunakan dan align.
+
+Jika belum tersedia:
+jangan membuat public API contract besar.
+
+Buat hanya type internal yang diperlukan.
+
+==================================================
+8. SECURITY AUDIT
+==================================================
+
+Audit khusus:
+
+- session token storage
+- credential exposure
+- logging
+- serialization
+- database errors
+- session expiration
+- revoked sessions
+- brute-force related indexing/lookup concerns
+
+Jangan implementasikan rate limiting di B-020
+kecuali architecture secara eksplisit meminta.
+
+==================================================
+9. TESTS
+==================================================
+
+Tambahkan test untuk:
+
+- User creation constraints
+- User uniqueness
+- Session → User relation
+- Session expiration
+- session lookup
+- revoked/invalid state jika ada
+- foreign-key behavior
+- migration correctness
+- duplicate constraints
+- repository behavior jika repository implementation
+  memang termasuk scope
+
+Gunakan test database/container sesuai tooling repository.
+
+==================================================
+10. VALIDATION
+==================================================
+
+Jalankan:
+
+- migration validation
+- database schema validation
+- format
+- lint
+- typecheck
+- import-check
+- secret scan
+- ownership check
+- doc-link check
+- build
+- test
+
+Jika PostgreSQL client tidak tersedia:
+gunakan mekanisme Docker yang sudah berhasil dipakai
+pada B-013.
+
+Jangan bypass migration test.
+
+==================================================
+11. ARCHITECTURE
+==================================================
+
+Jangan mengubah:
+
+- API server architecture B-014
+- contracts tanpa kebutuhan
+- observability
+- config
+- frontend
+- bot modules
+
+B-020 harus menjadi foundation yang bisa dipakai
+authentication/session layer berikutnya.
+
+==================================================
+12. GIT
+==================================================
+
+Jika semua validation GREEN:
+
+commit:
+
+feat: add user and session schema
+
+Working tree harus CLEAN.
+
+JANGAN PUSH.
+
+==================================================
+FINAL REPORT
+==================================================
+
+B-020 RESULT
+
+Status:
+User Schema:
+Session Schema:
+Relations:
+Indexes:
+Constraints:
+Migration:
+Security:
+Domain Alignment:
+Contract Alignment:
+
+Migration Test:
+Lint:
+Typecheck:
+Import Check:
+Build:
+Tests:
+
+Changed Files:
+Commit:
+Working Tree:
+Push: NO
+
+Problems Found:
+- ...
+
+Architecture Decisions:
+- ...
+
+Remaining Risks:
+- ...
+
+Next Recommended Task:
+- ...
+
+DO NOT PUSH.
+WAIT FOR NEXT INSTRUCTION.
 
 
 ```
