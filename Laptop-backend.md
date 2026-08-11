@@ -22,9 +22,88 @@
 
 
 ```
-# 
+# Prompt berikutnya — B-021
 ```
+PROMPT B-021 — AUTHENTICATION API
 
+Lanjutkan /root/botspace-backend pada task B-021 sesuai ROADMAP_V2.
+
+Tujuan:
+Implementasikan Authentication API production-grade sebagai fondasi untuk Workspace dan BotSpace.
+
+Scope WAJIB:
+1. Implement signup, login, logout, dan current-session.
+2. Gunakan contract dari packages/contracts yang sudah ada.
+3. Implement credential/password mechanism dengan aman:
+   - password tidak boleh disimpan plaintext
+   - gunakan Argon2id/bcrypt yang sesuai dependency existing
+   - jangan menambahkan dependency baru jika dependency yang ada sudah mencukupi.
+4. Integrasikan dengan SessionRepository dan repository/database adapter yang sudah dibuat.
+5. Session harus:
+   - memiliki token/session identifier yang aman
+   - memiliki expiry
+   - dapat direvoke saat logout
+   - current-session hanya mengembalikan session yang valid.
+6. Buat API error envelope yang konsisten dengan B-014.
+7. Jangan mencampur authentication dengan business logic Workspace/Bot.
+8. Struktur kode harus modular:
+   - auth domain
+   - auth service/use-case
+   - auth repository
+   - HTTP/API handler
+   - schema/validation
+   Pisahkan tanggung jawab dengan jelas agar perubahan auth nantinya tidak mengharuskan audit seluruh backend.
+9. Tambahkan test untuk:
+   - signup berhasil
+   - duplicate email/identity ditolak
+   - login berhasil
+   - password salah ditolak
+   - current-session berhasil
+   - session expired/revoked ditolak
+   - logout berhasil
+   - logout/session invalid tidak menyebabkan crash.
+10. Pastikan tidak ada credential/token/password yang masuk ke log.
+11. Pertahankan boundary:
+   apps -> services -> domain/repository
+   dan contracts tetap menjadi boundary publik.
+12. Jangan mengubah ROADMAP.md / ROADMAP_V2.md.
+13. Jangan menyentuh frontend kecuali benar-benar diperlukan oleh contract.
+14. Jangan melakukan refactor besar di luar scope B-021.
+
+VALIDATION WAJIB:
+- lint
+- typecheck
+- import-check
+- secret scan
+- format check
+- build
+- test
+- frozen install
+- cek git diff/status
+- pastikan working tree bersih setelah commit
+  (kecuali file yang memang sengaja dikecualikan oleh governance).
+
+Jika ada dependency atau kontrak yang belum tersedia:
+- jangan membuat workaround sembarangan
+- identifikasi blocker secara jelas
+- jangan mengubah scope task berikutnya.
+
+COMMIT:
+Buat commit hanya untuk perubahan B-021.
+JANGAN PUSH.
+
+OUTPUT AKHIR WAJIB:
+- files changed
+- API endpoint yang dibuat
+- authentication flow
+- security decisions
+- test/validation result
+- commit hash
+- remaining risks
+- next recommended task
+
+Jika semua validation GREEN, nyatakan:
+B-021 COMPLETE — WAIT FOR NEXT INSTRUCTION.
 
 
 ```
