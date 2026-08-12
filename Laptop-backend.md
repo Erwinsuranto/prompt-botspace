@@ -4,6 +4,9 @@
 
 
 
+
+
+
 # 
 ```
 
@@ -14,6 +17,212 @@
 ```
 
 
+
+```
+# 
+```
+
+
+
+```
+
+# 
+```
+
+
+
+```
+# 
+```
+
+
+
+```
+# B-025: Workspace API
+```
+
+# Prompt B-025 — Workspace API
+
+Lanjutkan project `/root/botspace` dari B-024.
+
+B-021 Authentication, B-022 Rate Limiting, B-023 SessionRepository Pagination, dan B-024 Session Management API sudah COMPLETE.
+
+Jangan mengulang pekerjaan tersebut.
+
+Tujuan B-025:
+Implementasikan Workspace API sebagai fondasi multi-workspace BotSpace.
+
+Konsep:
+- Satu user dapat memiliki beberapa workspace.
+- Setiap workspace dimiliki oleh satu user.
+- Workspace menjadi boundary utama untuk fitur Bot, Telegram account, dan konfigurasi berikutnya.
+- User tidak boleh mengakses workspace milik user lain.
+
+Audit terlebih dahulu architecture existing:
+- domain
+- repository ports
+- database migrations
+- PostgreSQL adapter
+- auth/session
+- router/handlers
+- existing workspace-related code jika ada
+
+Jangan langsung membuat architecture baru jika fondasi existing sudah tersedia.
+
+Implementasikan minimal:
+
+1. Create Workspace
+   POST /v1/workspaces
+
+2. List My Workspaces
+   GET /v1/workspaces
+
+3. Get Workspace
+   GET /v1/workspaces/:id
+
+4. Update Workspace
+   PATCH /v1/workspaces/:id
+
+5. Delete Workspace
+   DELETE /v1/workspaces/:id
+
+Authentication:
+- Semua endpoint workspace membutuhkan authenticated session.
+- Owner berasal dari authenticated user/session.
+- Jangan menerima user_id dari client sebagai authority.
+- Setiap query workspace wajib dibatasi owner/user boundary.
+- Workspace user lain harus tidak dapat dibaca, diubah, atau dihapus.
+
+Workspace fields:
+Gunakan schema/database contract existing jika sudah ada.
+Jika belum ada, gunakan desain minimal dan modular:
+- id
+- user_id / owner_id
+- name
+- created_at
+- updated_at
+
+Jangan menambahkan field yang belum diperlukan untuk task ini.
+
+Validation:
+- name wajib valid
+- trim whitespace
+- jangan menerima empty name
+- tetapkan batas panjang yang wajar
+- response/error mengikuti format API existing
+
+Repository:
+Buat WorkspaceRepository interface di domain/port layer.
+Implementasikan PostgreSQL adapter.
+Jangan menaruh SQL di handler.
+Gunakan parameterized query.
+Pastikan foreign key/user ownership benar.
+
+Security:
+- User A tidak boleh membaca workspace User B.
+- User A tidak boleh update workspace User B.
+- User A tidak boleh delete workspace User B.
+- Jangan bocorkan keberadaan workspace milik user lain.
+- Jangan log session token/password.
+- Jangan expose credential fields.
+
+Testing wajib:
+
+Authentication:
+- request tanpa auth → 401
+
+Create:
+- create workspace berhasil
+- invalid name ditolak
+
+List:
+- hanya workspace milik user
+- user dengan banyak workspace
+- user tanpa workspace
+
+Get:
+- workspace sendiri berhasil
+- workspace user lain ditolak
+
+Update:
+- workspace sendiri berhasil
+- workspace user lain ditolak
+
+Delete:
+- workspace sendiri berhasil
+- workspace user lain ditolak
+- delete ulang ditangani sesuai contract
+
+Regression:
+- seluruh test B-021/B-022/B-023/B-024 tetap GREEN.
+
+Jika database migration workspace belum ada:
+- buat migration baru yang additive/forward-only
+- jangan mengubah migration 0001–0004
+- migration harus idempotent sesuai migration runner existing
+- foreign key ke users harus benar
+- tambahkan index yang memang diperlukan untuk query ownership
+
+Jangan:
+- membuat Bot API
+- membuat Telegram API
+- membuat frontend
+- membuat billing
+- membuat Redis
+- mengubah authentication flow
+- mengubah rate limiter
+- mengubah session management kecuali diperlukan untuk integration
+- push ke GitHub
+
+Validation:
+
+pnpm build
+pnpm test
+pnpm typecheck
+pnpm lint
+
+Kemudian:
+
+curl http://127.0.0.1:3001/health
+curl http://127.0.0.1:3001/ready
+
+Lakukan integration test dengan minimal dua user:
+- User A membuat workspace
+- User A melihat workspace
+- User B tidak dapat melihat workspace A
+- User B tidak dapat update/delete workspace A
+- User A dapat update/delete workspace sendiri
+
+Sebelum selesai:
+
+git diff
+git status
+
+Jika semua GREEN, commit:
+
+feat: add workspace api
+
+Jangan push.
+
+Final report wajib berisi:
+- files changed
+- database migration
+- workspace data model
+- API endpoints
+- ownership/security model
+- integration test dua user
+- tests
+- build
+- typecheck
+- lint
+- health
+- ready
+- commit hash
+- remaining risks
+
+Jika semua berhasil:
+
+B-025 COMPLETE — WAIT FOR NEXT INSTRUCTION
 
 ```
 # 
