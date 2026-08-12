@@ -18,7 +18,47 @@
 ```
 # 
 ```
+Audit dan perbaiki masalah API server pada project Botspace di /root/botspace.
 
+Kondisi saat ini:
+- PostgreSQL Docker sudah berjalan normal.
+- Database migration berhasil: 3 migration applied.
+- pnpm install --frozen-lockfile berhasil.
+- pnpm build berhasil: 11/11 packages successful.
+- pnpm dev juga selesai dengan 5/5 successful, tetapi semua proses langsung exit.
+- services/api/src/main.ts sudah memanggil:
+  await app.server.start();
+- services/api/src/app.ts sudah membuat server melalui createApiServer().
+- Namun node dist/main.js langsung kembali ke shell dan tidak membuka port API_PORT=3001.
+- Web/admin/worker/scheduler saat ini masih foundation/stub dan hanya mencetak "foundation ready".
+
+Tugas:
+1. Audit services/api/src/server.ts dan seluruh implementasi createApiServer().
+2. Telusuri kenapa await app.server.start() tidak membuat proses tetap hidup/listen pada port 3001.
+3. Audit main.ts, app.ts, server.ts, router.ts dan konfigurasi host/port.
+4. Jangan membuat workaround sementara.
+5. Jangan menghapus fitur atau merombak arsitektur yang sudah ada.
+6. Pertahankan struktur repository dan dependency yang ada.
+7. Perbaiki implementasi API server agar benar-benar listen pada APP/API port yang dikonfigurasi.
+8. Pastikan proses Node tetap berjalan setelah start().
+9. Pastikan endpoint /health dan /ready bisa diakses.
+10. Jalankan:
+   - pnpm build
+   - pnpm dev atau start API yang sesuai
+   - curl http://127.0.0.1:3001/health
+   - curl http://127.0.0.1:3001/ready
+   - ss -lntp | grep 3001
+11. Jika ada masalah konfigurasi APP_URL/APP_PORT/API_PORT, gunakan konfigurasi project yang sudah ada dan jangan mengubah .env secara sembarangan.
+12. Setelah selesai, tampilkan:
+   - file yang diubah
+   - penyebab utama
+   - perubahan yang dilakukan
+   - hasil build
+   - hasil curl /health
+   - port yang berhasil listen
+
+Penting:
+Jangan hanya menjelaskan masalah. Lakukan audit, edit file yang diperlukan, build ulang, dan verifikasi sampai API benar-benar listening.
 
 
 ```
