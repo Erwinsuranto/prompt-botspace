@@ -26,9 +26,98 @@
 
 ```
 
-# 
+# B-031 — Membership / Invitation API
 ```
+Prompt B-031 — Membership / Invitation API
 
+Lanjutkan BotSpace dari commit terakhir B-030:
+7436ce6 feat: add workspace api
+
+Implementasikan B-031 — Membership / Invitation API sesuai ROADMAP_V2.md dan contract yang sudah ada.
+
+ATURAN UTAMA:
+- Jangan mengulang atau merusak B-020 sampai B-030.
+- Jangan mengerjakan B-040 Telegram Account.
+- Jangan mengerjakan B-050 Bot Installation.
+- Jangan mengerjakan frontend.
+- Jangan mengubah ROADMAP_V2.md.
+- Ikuti arsitektur dan pola code yang sudah ada.
+- Sebelum coding, audit contract/domain/repository/migration/API existing agar implementasi tepat terhadap contract, bukan menebak desain baru.
+
+Scope B-031:
+1. Audit contract membership/invitation yang sudah tersedia.
+2. Implementasikan domain types/entity/errors yang memang diwajibkan contract.
+3. Implementasikan repository interface dan adapter sesuai pola B-030.
+4. Tambahkan migration database jika contract membutuhkan perubahan schema.
+5. Implementasikan membership lifecycle:
+   - member/workspace relationship
+   - role sesuai contract
+   - invitation lifecycle sesuai contract
+   - pending/accepted/rejected/expired state jika memang didefinisikan contract
+6. Implementasikan authorization:
+   - workspace owner/admin hanya boleh melakukan operasi yang memang diizinkan contract.
+   - user tidak boleh mengakses membership workspace lain.
+   - tenant/workspace isolation wajib.
+   - jangan memperluas permission di luar contract.
+7. Implementasikan service/use-case layer.
+8. Implementasikan HTTP handlers/routes sesuai API contract.
+9. Validasi request dan error mapping harus mengikuti pola existing.
+10. Jangan expose credential, token rahasia, password, atau internal database fields.
+
+Invitation security:
+- Invitation token/secret jangan disimpan plaintext jika contract memerlukan secret.
+- Jangan mengembalikan secret/token sensitif di log.
+- Duplicate invitation harus ditangani sesuai contract.
+- Expired/revoked/invalid invitation harus menghasilkan error contract yang benar.
+- Invitation dari workspace/tenant lain tidak boleh dapat digunakan.
+- Acceptance harus atomic dan aman terhadap race condition sesuai kemampuan adapter/database saat ini.
+
+Testing WAJIB:
+- domain/unit tests
+- membership authorization tests
+- invitation lifecycle tests
+- duplicate invitation
+- invalid/expired/revoked invitation
+- cross-workspace/tenant isolation
+- owner/admin permission tests
+- unauthorized user tests
+- repository tests jika adapter tersedia
+- API/handler integration tests
+- regression seluruh test B-020 sampai B-030
+
+Database:
+- Gunakan migration forward-only/additive.
+- Jangan mengubah migration lama.
+- SQL wajib parameterized.
+- Pastikan schema assertion/migration test tetap hijau.
+
+Validation WAJIB:
+pnpm build
+pnpm test
+pnpm typecheck
+pnpm lint
+pnpm format
+
+Jika ada test/regression gagal akibat implementasi B-031, perbaiki sampai seluruh validation hijau.
+
+Git:
+- Setelah implementasi dan semua validation hijau, buat SATU commit:
+  feat: add membership invitation api
+- Jangan push ke remote.
+- Working tree harus bersih setelah commit.
+
+Laporan akhir:
+1. Ringkasan B-031.
+2. File yang dibuat/diubah.
+3. Migration/schema yang ditambahkan.
+4. Endpoint membership/invitation.
+5. Authorization dan tenant-isolation yang diterapkan.
+6. Security invitation.
+7. Hasil build/test/typecheck/lint/format.
+8. Commit hash.
+9. Remaining risks.
+10. Jika semua berhasil, tulis:
+B-031 COMPLETE — WAIT FOR NEXT INSTRUCTION
 
 
 ```
