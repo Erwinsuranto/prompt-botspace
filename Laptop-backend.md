@@ -32,10 +32,86 @@
 
 
 ```
-# 
+# Prompt B-030 — Workspace API
 ```
 
+Prompt B-030 — Workspace API
 
+Lanjutkan project BotSpace dari kondisi repository saat ini. Jangan mengulang atau mengubah fitur B-020, B-021, B-022, B-023, atau B-024 yang sudah ada.
+
+Tugas utama:
+Implementasikan B-030 — Workspace API sesuai ROADMAP_V2.md, kontrak yang sudah ada, arsitektur repository, dan pola code/test yang sekarang.
+
+Sebelum coding:
+1. Audit kontrak workspace yang sudah tersedia di packages/contracts dan domain primitives yang relevan.
+2. Audit repository/service/router/handler yang sudah ada.
+3. Audit migration database yang sudah ada.
+4. Pastikan desain mengikuti boundary yang sudah ditetapkan:
+   - workspace memiliki tenant isolation.
+   - workspace mempunyai unique pair sesuai kontrak.
+   - workspace memiliki state/status yang jelas.
+   - jangan memasukkan logic Telegram bot/account dulu.
+   - jangan mengerjakan membership/invitation B-031 dulu kecuali type/interface minimal memang dibutuhkan oleh kontrak B-030.
+5. Jangan membuat arsitektur baru jika pola existing bisa digunakan.
+
+Implementasi B-030 harus mencakup:
+- workspace domain entity/value types yang diperlukan sesuai contract.
+- repository interface dan PostgreSQL repository.
+- migration database baru jika memang diwajibkan oleh kontrak.
+- use-case/service layer.
+- API handler/routes untuk workspace sesuai contract.
+- validasi input.
+- tenant isolation: operasi workspace tidak boleh bisa mengakses workspace milik tenant/user lain.
+- error mapping mengikuti error contract existing.
+- correlation/request handling mengikuti pola API existing.
+- gunakan parameterized SQL.
+- jangan expose secret atau data internal.
+- pertahankan framework-agnostic domain/service layer.
+
+Testing wajib:
+- unit test domain.
+- repository test dengan PostgreSQL Docker bila pola project sudah mendukungnya.
+- service/use-case test.
+- API/handler integration test.
+- test tenant isolation/cross-tenant access.
+- test duplicate/invalid input.
+- test not-found dan error mapping.
+- regression test seluruh fitur sebelumnya.
+
+Validation wajib:
+- pnpm build
+- pnpm test
+- pnpm typecheck
+- pnpm lint
+
+Jangan berhenti hanya karena ada test lama yang gagal. Perbaiki regression yang disebabkan implementasi B-030 tanpa merusak kontrak sebelumnya.
+
+Governance:
+- Jangan mengubah ROADMAP_V2.md.
+- Jangan menghapus test existing.
+- Jangan mengubah API auth/session B-020 sampai B-024 kecuali ada dependency nyata yang diperlukan B-030.
+- Jangan membuat frontend.
+- Jangan membuat fitur B-031 membership/invitation.
+- Jangan membuat Telegram account/bot feature.
+- Jangan menggunakan mock sebagai pengganti implementasi production jika contract B-030 sudah jelas.
+- Ikuti struktur modular repository yang sekarang.
+
+Git:
+- Setelah seluruh implementasi selesai dan semua validation hijau, buat SATU commit dengan message:
+  feat: add workspace api
+- Jangan push ke remote.
+- Working tree harus bersih setelah commit.
+
+Laporan akhir wajib berisi:
+1. Ringkasan implementasi B-030.
+2. Semua file yang dibuat/diubah.
+3. Migration yang dibuat dan alasannya.
+4. Endpoint API yang ditambahkan.
+5. Security/tenant-isolation checks.
+6. Hasil build/test/typecheck/lint.
+7. Commit hash.
+8. Remaining risks jika ada.
+9. Tuliskan: B-030 COMPLETE — WAIT FOR NEXT INSTRUCTION hanya jika seluruh validation berhasil.
 
 ```
 # B-025: Workspace API
