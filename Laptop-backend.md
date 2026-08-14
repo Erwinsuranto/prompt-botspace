@@ -30,10 +30,82 @@
 
 ```
 
-# 
+# ISOLATION EVIDENCE TEST
 ```
 
+Lanjutkan B-040 — WORKSPACE ISOLATION EVIDENCE TEST dari kondisi saat ini.
 
+PENTING:
+- Jangan mengulang B-032 atau B-033.
+- Jangan mengerjakan task setelah B-040.
+- Jangan mengubah kontrak API yang sudah selesai.
+- Fokus hanya menyelesaikan B-040.
+- Gunakan pola test yang sudah ada di tests/src.
+- Pertahankan semua 273+ test yang saat ini hijau.
+
+Tujuan B-040:
+Tambahkan evidence test yang membuktikan tenant/workspace isolation benar-benar bekerja pada connection/repository path yang digunakan workspace API.
+
+Sebelum coding:
+1. Baca ROADMAP_V2.md untuk kontrak B-040.
+2. Audit tests/src/workspace-isolation.evidence.test.ts.
+3. Audit connectionRepository/startApp dan adapter yang digunakan.
+4. Gunakan helper/test setup existing, jangan membuat infrastructure test baru jika tidak diperlukan.
+
+Jika workspace-isolation evidence test membutuhkan connectionRepository:
+- perbaiki setup test agar dependency yang benar di-inject melalui startApp;
+- jangan menggunakan global/shared repository yang dapat menyebabkan test saling bocor;
+- gunakan connectionRepository instance yang sesuai dengan app/test context.
+
+Evidence minimal harus membuktikan:
+- User A tidak dapat membaca workspace/resource milik User B.
+- User B tidak dapat membaca workspace/resource milik User A.
+- workspace_id dari request tidak dapat melewati authorization boundary.
+- query/repository tetap menggunakan user/workspace boundary yang benar.
+- data tenant lain tidak muncul dalam list/detail response.
+- unauthorized access menghasilkan error sesuai contract existing.
+- tidak ada raw credential/session/token yang bocor.
+
+Jangan hanya membuat test yang memeriksa HTTP status.
+Pastikan evidence test benar-benar memverifikasi data isolation.
+
+Jika perlu:
+- tambahkan fixture user/workspace;
+- buat dua tenant;
+- masukkan data berbeda pada masing-masing tenant;
+- lakukan request silang;
+- assert data tenant lain tidak dapat diakses.
+
+Jangan mengubah production behaviour hanya agar test lulus.
+Jika ditemukan bug isolation pada production code, perbaiki root cause secara minimal dan sesuai architecture existing.
+
+Validation setelah selesai:
+pnpm build
+pnpm test
+pnpm typecheck
+pnpm lint
+pnpm format:check
+
+Jalankan juga migration/database test yang tersedia jika B-040 membutuhkannya.
+
+Setelah semua hijau:
+- tampilkan jumlah test;
+- tampilkan file berubah;
+- tampilkan hasil validation;
+- tampilkan security/isolation evidence;
+- tampilkan remaining risks.
+
+GIT:
+- satu commit saja untuk B-040;
+- jangan pisahkan test dan production code menjadi commit berbeda;
+- jangan push ke remote.
+
+Commit format:
+test: add workspace isolation evidence
+
+Akhiri dengan:
+
+B-040 COMPLETE — WAIT FOR NEXT INSTRUCTION
 
 ```
 # 
