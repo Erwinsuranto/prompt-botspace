@@ -39,7 +39,212 @@
 # 
 ```
 
+PROMPT B-033 — NEXT ROADMAP TASK
 
+Lanjutkan project BotSpace dari kondisi repository SAAT INI setelah B-032 COMPLETE.
+
+PENTING:
+- Jangan mengulang B-001 sampai B-032.
+- B-032 sudah selesai dengan commit:
+  1e8b19b feat: add workspace api
+- Working tree harus dipertahankan bersih sebelum mulai.
+- Jangan membuat backend dan frontend sebagai dua task terpisah.
+- Kerjakan SATU task roadmap berikutnya saja.
+- Sebelum coding, baca ROADMAP_V2.md dan tentukan ID/task berikutnya setelah B-032.
+- Jangan menebak isi task. Gunakan ROADMAP_V2.md sebagai source of truth.
+- Audit dependency B-033 terlebih dahulu dan pastikan seluruh dependency-nya sudah COMPLETE.
+- Jika dependency belum selesai, jangan mengarang implementasi. Laporkan blocker.
+
+==================================================
+1. AUDIT
+==================================================
+
+Sebelum coding baca:
+
+- ROADMAP_V2.md
+- README.md
+- PROJECT_STATUS.md jika tersedia
+- docs/architecture/*
+- docs/contracts/*
+- docs/security/*
+- database/README.md
+- implementation yang berkaitan dengan dependency B-033
+- hasil/commit B-032
+
+Cari:
+- ID task berikutnya setelah B-032
+- Description
+- Expected result
+- Dependency
+- Contract
+- Provides
+- Status
+
+Tentukan scope B-033 berdasarkan roadmap, bukan asumsi.
+
+==================================================
+2. IMPLEMENTASI
+==================================================
+
+Implementasikan HANYA task berikutnya setelah B-032 sesuai ROADMAP_V2.md.
+
+Pertahankan architecture existing:
+
+- domain
+- contracts
+- repository abstraction
+- service/use-case
+- HTTP handlers
+- router
+- authentication/session
+- authorization
+- validation
+- error handling
+- correlation/request ID
+- database migration
+- test conventions
+
+Jangan membuat architecture baru jika abstraction existing sudah memenuhi kebutuhan.
+
+Jangan melakukan refactor besar yang tidak diperlukan.
+
+Jangan menghapus behaviour existing.
+
+Jangan membuat endpoint tambahan yang tidak diminta contract.
+
+Jika task membutuhkan database:
+- gunakan migration additive/forward-only;
+- jangan mengubah migration lama;
+- ikuti naming convention existing;
+- gunakan parameterized SQL;
+- pertahankan tenant isolation.
+
+Jika task membutuhkan authentication/authorization:
+- gunakan session/auth implementation existing;
+- jangan membuat authentication mechanism baru;
+- jangan mempercayai user_id/workspace_id dari client sebagai bukti authorization.
+
+Jika task membutuhkan repository:
+- buat interface/domain contract terlebih dahulu bila memang belum ada;
+- implementasikan adapter sesuai pola existing;
+- jangan coupling domain ke PostgreSQL/HTTP.
+
+==================================================
+3. IMAGE REFERENCE
+==================================================
+
+Folder berikut SUDAH dibuat pada B-032:
+
+docs/design-references/
+
+Aturan:
+- folder tersebut adalah tempat reference image UI;
+- jangan menghapus atau memindahkan folder;
+- jangan membuat folder reference kedua;
+- jika task ini belum membutuhkan frontend, jangan membuat frontend besar;
+- jika task ini memang membutuhkan frontend berdasarkan roadmap, WAJIB periksa docs/design-references/ terlebih dahulu sebelum membuat UI;
+- gambar reference hanya menjadi acuan visual, bukan source code atau database data.
+
+==================================================
+4. TEST
+==================================================
+
+Tambahkan test untuk behaviour task ini.
+
+Pastikan mencakup:
+- happy path;
+- validation;
+- authentication jika diperlukan;
+- authorization;
+- tenant isolation jika workspace-related;
+- not found;
+- conflict jika relevan;
+- persistence/error handling;
+- regression terhadap task sebelumnya.
+
+Jangan menghapus test existing.
+
+==================================================
+5. VALIDATION
+==================================================
+
+Setelah selesai jalankan semua validation yang tersedia, minimal:
+
+pnpm build
+pnpm test
+pnpm typecheck
+pnpm lint
+pnpm format:check
+
+Jika project memiliki migration/schema test, jalankan juga.
+
+Jika ada failure:
+- perbaiki jika failure disebabkan implementasi task ini;
+- jangan menutupi atau melewati test;
+- jangan menghapus test untuk membuat build hijau.
+
+==================================================
+6. SECURITY AUDIT
+==================================================
+
+Sebelum selesai pastikan:
+
+- tidak ada secret/password/session token di log;
+- tidak ada raw token dalam response;
+- tidak ada SQL injection;
+- tidak ada authorization bypass;
+- tenant isolation tetap aman;
+- error response tidak membocorkan internal detail;
+- existing authentication/session behaviour tetap aman.
+
+==================================================
+7. GIT
+==================================================
+
+Setelah implementation dan validation selesai:
+
+- tampilkan git status;
+- tampilkan files changed;
+- tampilkan test/build/typecheck/lint result;
+- tampilkan remaining risks.
+
+Jika workflow project menggunakan commit per task, buat SATU commit untuk task ini.
+
+Jangan membuat commit backend dan frontend terpisah.
+
+Gunakan commit message yang sesuai dengan ID dan nama task sebenarnya dari ROADMAP_V2.md.
+
+Jangan push ke remote kecuali workflow repository secara eksplisit mengharuskannya.
+
+==================================================
+8. FINAL REPORT
+==================================================
+
+Tampilkan:
+
+B-XXX — [NAMA TASK] — Final Report
+
+1. Roadmap task
+2. Dependency check
+3. Scope implemented
+4. Files changed
+5. Database changes
+6. API/contract changes
+7. Authorization/security
+8. Tests
+9. Validation
+10. Image reference impact
+11. Remaining risks
+12. Commit hash
+13. B-XXX COMPLETE — WAIT FOR NEXT INSTRUCTION
+
+PENTING:
+- Jika ROADMAP_V2.md menunjukkan task berikutnya bukan B-033, gunakan ID yang benar.
+- Jangan mengerjakan task setelahnya.
+- Jangan melompati dependency.
+- Jangan mengubah roadmap.
+- Jangan mengulang pekerjaan yang sudah COMPLETE.
+- Kerjakan sekarang.
 
 ```
 # 
