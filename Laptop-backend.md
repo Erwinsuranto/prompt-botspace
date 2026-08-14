@@ -4,9 +4,6 @@
 
 
 
-
-
-
 # 
 ```
 
@@ -23,6 +20,430 @@
 ```
 
 
+
+```
+
+# 
+```
+
+
+
+```
+
+# 
+```
+
+
+
+```
+# 
+```
+
+
+
+```
+# 
+```
+
+PROMPT B-032 — WORKSPACE API + IMAGE REFERENCE FOUNDATION
+
+Lanjutkan implementasi project BotSpace dari kondisi repository SAAT INI.
+
+PENTING:
+- Jangan mengulang pekerjaan B-001 sampai B-031 yang sudah selesai.
+- Jangan merombak arsitektur yang sudah ada.
+- Jangan membuat backend dan frontend sebagai dua task terpisah.
+- Untuk task ini fokus pada backend/API sesuai roadmap B-032.
+- Tetap gunakan architecture, contracts, domain boundaries, repository pattern, validation, error handling, authentication/session flow, dan coding conventions yang sudah ada.
+- Sebelum coding, audit singkat repository dan baca ROADMAP_V2.md untuk memastikan kontrak B-032 yang sebenarnya.
+- Jangan menebak kontrak jika sudah tersedia di docs/contracts/ADR/roadmap. Ikuti kontrak repository yang sudah ada.
+- Pertahankan semua behaviour B-020 sampai B-031.
+- Jangan menghapus test existing.
+- Jangan membuat mock implementation jika repository/adapter nyata memang sudah menjadi bagian dari kontrak task.
+- Jangan mengubah API existing secara breaking.
+
+==================================================
+1. TASK UTAMA — B-032 WORKSPACE API
+==================================================
+
+Implementasikan B-032 sesuai ROADMAP_V2.md dan kontrak yang sudah tersedia.
+
+Tujuan:
+Workspace adalah tenant/boundary utama setelah authentication dan membership/invitation.
+
+Pastikan implementasi workspace mengikuti prinsip:
+- setiap workspace memiliki identity/id yang stabil;
+- workspace memiliki owner;
+- user hanya dapat mengakses workspace yang memang menjadi miliknya melalui membership;
+- tenant isolation wajib ditegakkan di repository/query layer;
+- jangan pernah mempercayai workspace_id hanya dari input client tanpa memvalidasi membership/authorization;
+- gunakan authenticated session/user sebagai sumber identitas;
+- jangan bocorkan data workspace milik user lain;
+- error response harus konsisten dengan error contract yang sudah ada;
+- jangan expose credential, password, session token, token hash, atau secret material.
+
+Ikuti dependency B-030 dan B-031 yang sudah selesai.
+
+==================================================
+2. AUDIT SEBELUM IMPLEMENTASI
+==================================================
+
+Sebelum mengubah file:
+
+1. Baca:
+   - ROADMAP_V2.md
+   - README.md
+   - docs/architecture/*
+   - docs/security/*
+   - docs/contracts/*
+   - database/README.md
+   - package/workspace/domain yang relevan
+   - auth/session implementation
+   - membership/invitation implementation B-031
+
+2. Cari apakah sudah ada:
+   - workspace entity
+   - workspace repository interface
+   - workspace contracts
+   - workspace migration
+   - workspace_members/membership table
+   - invitation table
+   - authenticated request/session helper
+   - authorization helper
+   - error types
+   - pagination primitives
+
+3. Gunakan yang sudah ada.
+   Jangan membuat duplikasi entity, repository, error type, pagination, atau auth helper.
+
+4. Jika ada bagian B-032 yang ternyata sudah partially implemented:
+   - audit dahulu;
+   - pertahankan implementasi yang benar;
+   - lengkapi hanya bagian yang kurang;
+   - jangan rewrite tanpa alasan.
+
+==================================================
+3. DOMAIN / CONTRACT
+==================================================
+
+Implementasikan workspace sesuai boundary domain yang sudah ditentukan.
+
+Minimal pastikan domain contract mencakup kebutuhan yang memang disebut B-032, misalnya:
+- create workspace
+- get workspace
+- list current user's workspaces
+- update workspace jika memang ada di contract
+- membership/authorization check
+- workspace ownership
+
+Jangan menambahkan endpoint atau behaviour yang tidak diminta roadmap.
+
+Jika ROADMAP_V2.md memiliki nama endpoint atau response contract spesifik, gunakan nama tersebut secara persis.
+
+Gunakan typed result/error pattern yang sudah digunakan repository.
+
+Validasi:
+- workspace name wajib valid sesuai domain rule;
+- trim input jika contract mengharuskan;
+- jangan menerima nilai kosong;
+- validasi panjang maksimal;
+- jangan memperbolehkan data invalid masuk database;
+- gunakan validation mechanism existing.
+
+==================================================
+4. AUTHORIZATION & TENANT ISOLATION
+==================================================
+
+Ini bagian penting.
+
+Setiap workspace operation harus memastikan user authenticated.
+
+Aturan:
+- unauthenticated -> 401 sesuai contract;
+- authenticated tetapi bukan member -> 403 atau error yang sudah ditentukan contract;
+- workspace tidak ada -> 404 sesuai contract;
+- jangan membocorkan apakah workspace tertentu ada jika security contract mensyaratkan generic response;
+- query repository harus selalu memiliki workspace/user boundary yang benar.
+
+Jangan membuat pola seperti:
+
+SELECT * FROM workspaces WHERE id = $1
+
+lalu baru melakukan authorization di tempat lain jika arsitektur repository mengharuskan tenant filtering.
+
+Gunakan boundary yang konsisten.
+
+Untuk list workspace:
+- hanya workspace yang user memang memiliki membership/ownership;
+- jangan mengembalikan workspace milik user lain;
+- gunakan repository query yang memiliki user_id boundary.
+
+Untuk workspace detail:
+- pastikan requester memiliki akses;
+- jangan percaya workspace_id dari body/query sebagai authorization proof.
+
+==================================================
+5. DATABASE
+==================================================
+
+Audit migration existing terlebih dahulu.
+
+Jika schema workspace sudah ada:
+- gunakan schema tersebut;
+- jangan membuat tabel duplicate.
+
+Jika B-032 memang membutuhkan migration baru berdasarkan roadmap:
+- buat migration additive/forward-only;
+- jangan mengubah migration lama;
+- gunakan naming convention migration existing;
+- gunakan FK yang tepat;
+- gunakan UNIQUE constraint yang memang dibutuhkan contract;
+- gunakan timestamp convention yang sama;
+- pastikan migration idempotency sesuai migration runner project.
+
+Jika workspace sudah memiliki owner:
+- gunakan relation yang benar ke users.
+- jangan menyimpan password/session/token di workspace.
+
+Jika membership table sudah tersedia dari B-031:
+- gunakan table tersebut.
+- jangan membuat duplicate membership table.
+
+==================================================
+6. REPOSITORY
+==================================================
+
+Tambahkan/selesaikan workspace repository sesuai repository abstraction yang sudah digunakan project.
+
+Repository harus:
+- parameterized SQL;
+- tidak melakukan string interpolation untuk user input;
+- menangani not-found dengan error type existing;
+- menangani unique violation/persistence error dengan mapping existing;
+- menjaga user/workspace boundary;
+- mendukung testability;
+- tidak bergantung langsung ke HTTP layer.
+
+Jika project saat ini masih memakai in-memory adapter untuk roadmap tahap tersebut:
+- ikuti roadmap;
+- jangan tiba-tiba mengubah seluruh repository architecture;
+- tetap siapkan contract agar PostgreSQL adapter berikutnya dapat mengikuti interface yang sama.
+
+==================================================
+7. SERVICE / USE CASE
+==================================================
+
+Workspace business logic harus berada di service/use-case layer, bukan di router.
+
+Service harus:
+- menerima authenticated user identity;
+- melakukan validation;
+- melakukan authorization;
+- memanggil repository;
+- mengembalikan domain result;
+- tidak bergantung pada HTTP framework.
+
+Jangan menaruh business rule di handler jika service pattern existing sudah tersedia.
+
+==================================================
+8. HTTP API
+==================================================
+
+Tambahkan endpoint B-032 sesuai kontrak ROADMAP_V2.md.
+
+Gunakan:
+- router convention existing;
+- handler convention existing;
+- correlation/request ID existing;
+- error mapping existing;
+- authentication middleware/helper existing;
+- response format existing.
+
+Jangan membuat format response baru jika repository sudah memiliki standard envelope.
+
+Pastikan:
+- 401 untuk unauthenticated;
+- 400/422 untuk invalid input sesuai contract;
+- 403 untuk unauthorized jika contract menggunakan 403;
+- 404 untuk resource not found sesuai contract;
+- 409 untuk conflict jika diperlukan;
+- 500 hanya untuk unexpected persistence/internal error.
+
+Jangan mengembalikan stack trace atau internal database error ke client.
+
+==================================================
+9. TEST
+==================================================
+
+Tambahkan test yang benar-benar menguji behaviour B-032.
+
+Minimal coverage:
+
+A. Authentication
+- request tanpa session -> 401.
+
+B. Create workspace
+- authenticated user dapat membuat workspace;
+- owner tersimpan benar;
+- invalid name ditolak;
+- duplicate/conflict mengikuti contract.
+
+C. List workspace
+- user hanya melihat workspace yang dia miliki/ikuti;
+- workspace user lain tidak muncul.
+
+D. Get workspace
+- member/owner dapat melihat workspace;
+- user lain tidak dapat melihat workspace.
+
+E. Tenant isolation
+Buat test eksplisit:
+- user A memiliki workspace A;
+- user B memiliki workspace B;
+- user A mencoba mengakses workspace B;
+- operasi harus ditolak;
+- tidak boleh ada data workspace B yang bocor.
+
+F. Regression
+- seluruh test B-020/B-021/B-022/B-023/B-024/B-030/B-031 tetap hijau.
+
+Jika sudah ada test helper untuk session/user, gunakan helper tersebut.
+Jangan membuat test infrastructure duplicate.
+
+==================================================
+10. IMAGE REFERENCE FOUNDATION
+==================================================
+
+Tambahkan folder:
+
+docs/design-references/
+
+Buat:
+
+docs/design-references/README.md
+
+Isi README secara singkat bahwa folder tersebut digunakan untuk menyimpan screenshot/gambar referensi desain UI yang akan digunakan AI/OpenCode pada task frontend berikutnya.
+
+Aturan folder:
+- PNG/JPG/JPEG/WebP diperbolehkan;
+- jangan masukkan gambar ke source code;
+- jangan masukkan gambar ke database;
+- jangan mengubah gambar yang nantinya saya upload;
+- gambar hanya sebagai visual reference;
+- pada task frontend berikutnya, AI wajib memeriksa folder ini sebelum mengimplementasikan UI;
+- jangan membuat frontend pada task B-032 hanya karena folder reference dibuat.
+
+Jangan membuat folder reference lain.
+
+==================================================
+11. FRONTEND
+==================================================
+
+JANGAN mengerjakan implementasi frontend besar pada task ini.
+
+Hanya siapkan:
+
+docs/design-references/
+
+beserta README.md.
+
+Frontend akan dikerjakan pada task frontend yang memang sudah ditentukan roadmap.
+
+Namun pastikan API contract B-032 dapat digunakan frontend berikutnya.
+
+==================================================
+12. QUALITY GATE
+==================================================
+
+Setelah coding jalankan seluruh validation yang tersedia.
+
+Minimal:
+
+pnpm build
+pnpm test
+pnpm typecheck
+pnpm lint
+pnpm format:check
+
+Jika script berbeda, gunakan script yang memang tersedia di package.json/root workspace.
+
+Jika ada database migration test:
+- jalankan juga migration/schema assertion test yang tersedia.
+
+Jika Docker PostgreSQL diperlukan oleh test:
+- gunakan environment existing;
+- jangan merusak container/project lain.
+
+==================================================
+13. AUDIT SECURITY
+==================================================
+
+Sebelum selesai cek:
+
+- tidak ada password/token/secret di log;
+- tidak ada raw session token di response;
+- tidak ada token hash di response;
+- tidak ada SQL injection;
+- tidak ada authorization bypass;
+- workspace isolation benar;
+- user_id tidak dapat dipalsukan melalui request body;
+- workspace_id tidak menjadi authorization proof;
+- error tidak membocorkan informasi internal;
+- existing auth/session security tidak rusak.
+
+==================================================
+14. GIT / COMMIT
+==================================================
+
+JANGAN push ke remote.
+
+JANGAN membuat commit jika repository workflow saat ini memang meminta working tree untuk diperiksa terlebih dahulu.
+
+Setelah implementation selesai:
+- tampilkan git status;
+- tampilkan file yang berubah;
+- tampilkan ringkasan perubahan;
+- tampilkan hasil build/test/typecheck/lint;
+- tampilkan remaining risks.
+
+Jika workflow repository memang mengharuskan commit pada setiap task, buat SATU commit saja untuk seluruh B-032.
+
+Jangan membuat commit terpisah backend/frontend.
+
+Format commit:
+
+feat: add workspace api
+
+==================================================
+15. FINAL REPORT
+==================================================
+
+Di akhir berikan laporan dengan format:
+
+B-032 — Workspace API — Final Report
+
+1. Scope
+2. Files Changed
+3. Database Changes
+4. API Endpoints
+5. Authorization / Tenant Isolation
+6. Tests
+7. Validation
+8. Security Checks
+9. Image Reference Folder
+10. Remaining Risks
+11. Commit Hash
+12. B-032 COMPLETE — WAIT FOR NEXT INSTRUCTION
+
+PENTING:
+Jika ada masalah atau kontrak B-032 ambigu, JANGAN mengarang behaviour baru.
+Berhenti pada bagian yang ambigu, jelaskan temuan, dan tunggu instruksi.
+
+Kerjakan sekarang dari repository yang ada.
+Jangan mengulang task yang sudah COMPLETE.
+Jangan mengubah roadmap.
+Jangan membuat frontend besar.
+Fokus B-032 + image-reference foundation.
 
 ```
 
