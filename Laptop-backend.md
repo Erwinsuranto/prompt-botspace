@@ -26,7 +26,237 @@
 # 
 ```
 
+PROMPT B-041 — CONNECTION FAILURE-PATH / TELEGRAM CONNECTION REPOSITORY
 
+Lanjutkan BotSpace dari kondisi repository SAAT INI setelah:
+
+B-040 COMPLETE
+Commit: e0996e1 test: add workspace isolation evidence
+
+Fokus HANYA pada task roadmap berikutnya: B-041.
+
+PENTING:
+- Jangan mengulang B-040 atau task sebelumnya.
+- Jangan melompati dependency.
+- Baca ROADMAP_V2.md untuk memastikan scope B-041 yang sebenarnya.
+- Audit implementasi yang sudah ada sebelum coding.
+- Jangan mengubah arsitektur yang sudah benar.
+- Jangan membuat backend dan frontend terpisah.
+- Satu task saja.
+- Jangan mengerjakan task setelah B-041.
+
+==================================================
+1. AUDIT B-041
+==================================================
+
+Sebelum coding baca:
+
+- ROADMAP_V2.md
+- docs/architecture/*
+- docs/contracts/*
+- docs/security/*
+- services/api/src/
+- domain repository/connection-related contracts
+- Telegram connection-related code yang sudah ada
+- B-030/B-031/B-040 implementation
+- existing tests
+
+Cari secara khusus:
+- TelegramConnectionRepository
+- connectionRepository
+- connection service
+- adapter interface
+- in-memory adapter
+- PostgreSQL adapter jika sudah tersedia
+- health/state machine
+- failure-path contract
+- error mapping
+- existing mocks/test doubles
+
+Pastikan dependency B-041 dari roadmap memang sudah COMPLETE.
+
+==================================================
+2. IMPLEMENTASI B-041
+==================================================
+
+Implementasikan B-041 persis berdasarkan ROADMAP_V2.md dan contract existing.
+
+Tujuan utama:
+- connection failure-path harus memiliki behaviour yang deterministik;
+- repository/service harus dapat menangani persistence failure dengan benar;
+- error harus dipetakan ke error contract existing;
+- tidak boleh membocorkan credential/token/secret;
+- state connection tidak boleh menjadi inconsistent ketika persistence gagal.
+
+Jangan membuat behaviour baru yang tidak ada di roadmap.
+
+Jika B-041 memang membutuhkan TelegramConnectionRepository:
+- ikuti repository interface existing;
+- jangan membuat interface duplicate;
+- gunakan domain type existing;
+- gunakan persistence abstraction existing;
+- jangan coupling domain dengan HTTP.
+
+Jika adapter PostgreSQL memang belum menjadi scope B-041:
+- jangan memaksa implementasi PostgreSQL penuh;
+- gunakan adapter/test double sesuai roadmap;
+- dokumentasikan remaining risk jika PostgreSQL adapter memang dijadwalkan task berikutnya.
+
+==================================================
+3. FAILURE-PATH TEST
+==================================================
+
+Tambahkan evidence test yang benar-benar menguji failure path.
+
+Minimal periksa skenario yang sesuai contract:
+
+1. Connection creation/update gagal karena persistence error.
+2. Error persistence tidak berubah menjadi success palsu.
+3. State connection tidak berubah secara parsial.
+4. Retry/recovery behaviour mengikuti contract existing.
+5. Error yang dikembalikan ke caller menggunakan error type existing.
+6. Tidak ada raw database error/credential/token yang bocor.
+7. User/workspace isolation tetap berlaku.
+8. Existing successful connection flow tetap bekerja.
+9. Existing B-040 isolation tests tetap hijau.
+
+Jika service memiliki state transition:
+- pastikan transition hanya terjadi setelah persistence operation berhasil;
+- jika persistence gagal, state harus tetap konsisten dengan state sebelumnya.
+
+Jika transaction diperlukan oleh contract:
+- gunakan transaction abstraction existing;
+- jangan membuat transaction framework baru.
+
+==================================================
+4. HEALTH / FAILURE STATE
+==================================================
+
+Jika B-041 menyentuh connection health/state:
+
+- gunakan state model yang sudah tersedia;
+- jangan membuat state enum duplicate;
+- failure harus dapat dibedakan dari successful connection;
+- jangan menganggap connection sehat hanya karena object berhasil dibuat;
+- jangan melakukan credential logging;
+- jangan mengubah /health atau /ready kecuali memang bagian contract B-041.
+
+Jika health/readiness belum menjadi scope B-041:
+- jangan mengerjakannya.
+
+==================================================
+5. SECURITY
+==================================================
+
+Audit khusus:
+
+- token tidak masuk log;
+- secret_ref tetap opaque;
+- password tidak pernah muncul;
+- database error tidak dikirim mentah ke client;
+- workspace/user boundary tetap diterapkan;
+- failure pada connection milik user A tidak dapat mengubah/membaca connection user B;
+- request user tidak dapat memalsukan owner/user_id.
+
+==================================================
+6. REGRESSION
+==================================================
+
+Jangan menghapus test existing.
+
+Pastikan seluruh regression tetap hijau:
+
+B-020
+B-021
+B-022
+B-023
+B-024
+B-030
+B-031
+B-032
+B-040
+
+Gunakan test helper existing.
+
+==================================================
+7. VALIDATION
+==================================================
+
+Setelah implementasi:
+
+pnpm build
+pnpm test
+pnpm typecheck
+pnpm lint
+pnpm format:check
+
+Jika ada database migration/schema test yang relevan, jalankan juga.
+
+Jika test gagal:
+- cari root cause;
+- perbaiki implementation;
+- jangan skip test;
+- jangan mengurangi coverage hanya agar hijau.
+
+==================================================
+8. IMAGE REFERENCE
+==================================================
+
+Tidak ada UI pada B-041.
+
+Jangan menambahkan gambar baru.
+Jangan mengubah docs/design-references/.
+Folder tersebut tetap dipertahankan untuk task frontend/UI mendatang.
+
+==================================================
+9. GIT
+==================================================
+
+Setelah selesai:
+
+- git status
+- git diff --stat
+- tampilkan files changed
+- tampilkan validation result
+- tampilkan test count
+- tampilkan security/failure-path evidence
+- tampilkan remaining risks
+
+Buat SATU commit saja untuk B-041 jika workflow task menggunakan commit.
+
+Jangan push ke remote.
+
+Commit format:
+
+test: add connection failure path
+
+Jika B-041 membutuhkan production code + tests, tetap satu commit.
+
+==================================================
+10. FINAL REPORT
+==================================================
+
+Tampilkan:
+
+B-041 — [nama task sesuai ROADMAP_V2.md] — Final Report
+
+1. Roadmap scope
+2. Dependency check
+3. Audit findings
+4. Implementation
+5. Failure-path evidence
+6. Security
+7. Tests
+8. Validation
+9. Files changed
+10. Remaining risks
+11. Commit hash
+12. B-041 COMPLETE — WAIT FOR NEXT INSTRUCTION
+
+PENTING:
+Jika ROADMAP_V2.md menunjukkan nama/scope B-041 berbeda dari asumsi prompt ini, ikuti ROADMAP_V2.md sebagai source of truth dan sesuaikan implementasi tanpa mengerjakan task setelah B-041.
+
+Kerjakan sekarang.
 
 ```
 
