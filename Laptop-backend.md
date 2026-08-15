@@ -4,6 +4,7 @@
 
 
 
+
 # 
 ```
 
@@ -20,6 +21,107 @@
 ```
 
 
+
+```
+# 
+```
+
+
+
+```
+# 
+```
+
+
+
+```
+# LANJUTKAN IMPLEMENTASI PROJECT BOTSPACE DARI TASK TERAKHIR.
+```
+
+LANJUTKAN IMPLEMENTASI PROJECT BOTSPACE DARI TASK TERAKHIR.
+
+KONDISI TERAKHIR:
+- B-041 sudah COMPLETE.
+- Commit terakhir B-041: fa2f31c
+- Working tree harus dipertahankan bersih.
+- Jangan mengulang atau mengubah scope B-041 kecuali ditemukan bug/regression nyata.
+- Semua pekerjaan backend + frontend tetap dianggap SATU WORKFLOW / SATU PROJECT. Jangan membuat task terpisah hanya karena menyentuh frontend dan backend.
+- Jangan membuat branch baru.
+- Jangan push ke remote kecuali diminta.
+- Setelah pekerjaan selesai, commit perubahan lokal.
+
+TUGAS:
+
+1. Baca ROADMAP_V2.md dan seluruh dokumen governance/architecture yang relevan.
+2. Tentukan SECARA OTOMATIS task berikutnya setelah B-041 berdasarkan:
+   - ID/dependency roadmap
+   - status TODO/COMPLETE
+   - dependency yang sudah terpenuhi
+   - kontrak yang sudah tersedia
+   - pekerjaan yang benar-benar belum dikerjakan di repository
+3. Jangan menebak task. Tampilkan terlebih dahulu:
+   - ID task berikutnya
+   - judul
+   - dependency
+   - tujuan
+   - file/area yang kemungkinan disentuh
+4. Setelah tervalidasi, LANGSUNG IMPLEMENTASIKAN task tersebut.
+5. Sebelum coding:
+   - audit implementasi existing agar tidak membuat duplicate abstraction
+   - gunakan contract/domain/repository yang sudah ada
+   - ikuti architecture boundary yang sudah ditetapkan
+   - jangan mengubah kontrak task sebelumnya tanpa alasan kuat
+   - jangan membuat workaround hanya untuk membuat test hijau
+6. Jika task berikutnya membutuhkan backend dan frontend, kerjakan dalam SATU IMPLEMENTASI TERPADU.
+7. Jika task tersebut belum membutuhkan UI, jangan membuat UI palsu hanya demi memenuhi task.
+8. Untuk UI:
+   - gunakan folder docs/design-references/ sebagai referensi visual bila tersedia
+   - JANGAN menghapus atau mengubah gambar referensi
+   - jika membutuhkan contoh gambar untuk desain/implementasi, buat/pertahankan folder referensi yang jelas sehingga AI dapat membaca gambar tersebut
+   - jangan memasukkan gambar referensi sebagai asset production kecuali memang diperlukan oleh kontrak/task.
+9. Implementasikan production-quality code sesuai architecture yang ada.
+10. Tambahkan test yang memang diperlukan untuk acceptance criteria.
+11. Jalankan validasi penuh yang relevan:
+    - pnpm build
+    - pnpm test
+    - pnpm typecheck
+    - pnpm lint
+    - pnpm format:check
+    - migration/schema test jika task menyentuh database
+12. Jika ada PostgreSQL/Docker integration yang relevan, lakukan validation terhadap PostgreSQL Docker juga.
+13. Periksa regression terhadap test B-020 sampai B-041 dan test workspace yang sudah ada.
+14. Jangan menghapus test existing.
+15. Jangan menurunkan coverage atau melonggarkan assertion hanya supaya test lolos.
+16. Audit security:
+    - tenant/workspace isolation
+    - authentication/authorization
+    - secret/token leakage
+    - SQL parameterization
+    - error leakage
+    - cross-workspace access
+17. Setelah semua validasi sukses:
+    - tampilkan ringkasan implementasi
+    - files changed
+    - tests added/changed
+    - validation result
+    - remaining risks
+    - commit hash
+18. Commit perubahan dengan format conventional commit yang sesuai task.
+19. Working tree harus bersih setelah commit.
+20. JANGAN mengerjakan task roadmap berikutnya sekaligus. Hanya satu task berikutnya yang benar-benar eligible setelah B-041.
+
+ATURAN PENTING:
+- Jangan berhenti hanya karena task membutuhkan investigation.
+- Jangan meminta saya memilih file jika repository dapat menentukan jawabannya sendiri.
+- Jangan mengarang requirement yang tidak ada di roadmap/architecture.
+- Jangan mengubah roadmap hanya untuk menandai task selesai.
+- Jangan membuat commit kosong.
+- Jika menemukan bahwa task berikutnya sebenarnya sudah selesai di repository, audit dan buktikan terlebih dahulu, lalu cari task eligible berikutnya.
+- Jika ada dependency yang belum terpenuhi, jangan memaksakan implementasi; jelaskan dependency tersebut dan pilih task eligible yang benar-benar bisa dikerjakan.
+- Setelah selesai, tulis:
+  "<TASK-ID> COMPLETE — WAIT FOR NEXT INSTRUCTION"
+
+MULAI DARI B-041 DAN LANJUT KE TASK ELIGIBLE BERIKUTNYA SEKARANG.
 
 ```
 
