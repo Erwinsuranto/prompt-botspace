@@ -25,7 +25,71 @@
 ```
 # 
 ```
+LANJUTKAN PROJECT BOTSPACE DARI B-052.
 
+STATUS TERAKHIR:
+- B-052 COMPLETE.
+- Commit: 269a2ac — feat: add bot permission auditing + admin action audit trail
+- Working tree clean.
+- Total test 708 dan semuanya hijau.
+- B-020..B-051 regression tetap hijau.
+- Migration 40/40.
+- Build, typecheck, lint, format:check semuanya sukses.
+- Jangan mengulang B-052.
+
+TUGAS:
+1. Baca ROADMAP_V2.md, FLOWS.md, ADR yang relevan, dan status repository.
+2. Tentukan SATU task berikutnya yang benar-benar eligible setelah B-052 berdasarkan dependency dan status aktual.
+3. Jangan menebak nomor task.
+4. Sebelum coding, jelaskan singkat:
+   - task ID
+   - tujuan
+   - dependency yang sudah terpenuhi
+   - mengapa task tersebut eligible sekarang
+5. Audit implementasi existing sebelum membuat kode baru.
+6. Jangan membuat duplicate abstraction.
+7. Pertahankan seluruh contract dan regression B-020..B-052.
+8. Backend + frontend tetap SATU WORKFLOW/PROJECT. Jika task membutuhkan keduanya, kerjakan terpadu.
+9. Jangan membuat UI jika task belum membutuhkan UI.
+10. Jangan mengerjakan task roadmap berikutnya dalam commit yang sama.
+11. Jangan mengubah security design yang sudah disepakati, khususnya:
+    - BotSecretManager tetap write-only
+    - tidak menyimpan plaintext secret
+    - tenant/workspace isolation
+    - tidak membocorkan token/credential/provider raw error
+12. Tambahkan test untuk acceptance criteria, failure path, security, tenant isolation, dan idempotency bila relevan.
+13. Jangan menghapus atau melemahkan test existing.
+14. Jika task menyentuh database, jalankan migration/schema validation PostgreSQL Docker.
+15. Jika task menyentuh UI dan membutuhkan referensi visual, gunakan docs/design-references/ tanpa menghapus gambar referensi.
+
+VALIDASI WAJIB:
+- pnpm build
+- pnpm test
+- pnpm typecheck
+- pnpm lint
+- pnpm format:check
+- migration/schema test jika relevan
+- regression B-020..B-052
+
+SETELAH IMPLEMENTASI:
+- tampilkan task ID
+- summary
+- files changed
+- tests added/changed
+- seluruh validation result
+- security/tenant audit
+- remaining risks
+- commit hash
+- pastikan working tree clean
+
+Commit dengan conventional commit yang sesuai.
+
+JANGAN meminta saya memilih task jika roadmap dan dependency dapat diaudit sendiri.
+
+Hanya kerjakan SATU task eligible berikutnya.
+
+Akhiri dengan:
+<TASK-ID> COMPLETE — WAIT FOR NEXT INSTRUCTION
 
 
 ```
