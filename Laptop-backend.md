@@ -31,7 +31,69 @@
 ```
 # 
 ```
+LANJUTKAN DARI B-051.
 
+STATUS TERAKHIR:
+- B-051 COMPLETE.
+- Evidence B-051: 37 tests.
+- Regression B-020..B-050 tetap hijau.
+- Total test 340.
+- Build/typecheck/lint/format/test semuanya sukses.
+- Migration 36/36 sukses.
+- Security + tenant isolation audit sukses.
+- Working tree harus tetap bersih setelah pekerjaan selesai.
+
+TUGAS:
+1. Baca ROADMAP_V2.md dan dokumen architecture/contract terkait.
+2. Tentukan SATU task roadmap berikutnya yang benar-benar eligible setelah B-051.
+3. Validasi dependency dan status task tersebut sebelum coding.
+4. Jangan mengulang B-050 atau B-051.
+5. Jangan mengerjakan task berikutnya sekaligus dalam commit yang sama.
+6. Audit implementasi existing terlebih dahulu agar tidak membuat duplicate abstraction.
+7. Implementasikan task tersebut secara production-quality.
+8. Backend dan frontend tetap diperlakukan sebagai SATU workflow/project. Jika task memang membutuhkan keduanya, kerjakan terpadu.
+9. Jangan membuat UI jika task belum membutuhkan UI.
+10. Pertahankan seluruh contract dan regression B-020..B-051.
+11. Tambahkan test untuk acceptance criteria dan failure/security/tenant-isolation path yang relevan.
+12. Jangan menghapus atau melemahkan test existing.
+13. Jangan mengubah security design seperti BotSecretManager write-only hanya demi mempermudah implementasi.
+14. Jika ada gambar/reference UI di docs/design-references/, gunakan sebagai referensi dan jangan hapus.
+
+VALIDASI WAJIB:
+- pnpm build
+- pnpm test
+- pnpm typecheck
+- pnpm lint
+- pnpm format:check
+- migration/schema test jika relevan
+- regression B-020..B-051
+
+SECURITY:
+- tenant/workspace isolation
+- authorization
+- secret/token protection
+- no plaintext secret persistence
+- no credential/raw provider error leakage
+- SQL parameterization
+- idempotency bila relevan
+
+SETELAH SELESAI:
+- tampilkan task ID dan alasan task tersebut eligible
+- summary implementasi
+- files changed
+- tests added/changed
+- validation result
+- security/tenant audit
+- remaining risks
+- commit hash
+- pastikan working tree clean
+
+Commit dengan conventional commit yang sesuai.
+
+JANGAN memilih task berdasarkan tebakan. Gunakan ROADMAP_V2.md dan dependency aktual repository.
+
+Akhiri dengan:
+<TASK-ID> COMPLETE — WAIT FOR NEXT INSTRUCTION
 
 
 ```
