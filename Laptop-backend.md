@@ -4,9 +4,538 @@
 
 
 ```
-# 
+# API Contract & Route Completeness.
 ```
+PROMPT: BotSpace — API Contract & Route Completeness Verification
 
+Kita melanjutkan project BotSpace setelah tahap BOT LIFECYCLE dan RESOURCE INTEGRITY yang SUDAH SELESAI.
+
+Repository: /root/botspace
+Branch: backend-dev-recovery
+Remote: https://github.com/zenolamee/botspace.git
+
+Checkpoint terakhir:
+- Bot lifecycle integrity sudah diverifikasi
+- Workspace/resource authorization sudah diverifikasi
+- Authentication/session security sudah diverifikasi
+- Persistence/runtime verification sudah dilakukan
+- Commit lifecycle terakhir sudah dibuat
+- Push dilakukan secara manual oleh user jika sebelumnya gagal karena credential GitHub
+
+PENTING:
+Jangan reset, force push, rebase sembarangan, checkout branch lain, merge ke backend-dev, atau menghapus checkpoint yang sudah ada.
+
+TUJUAN
+
+Sekarang audit API BotSpace untuk memastikan seluruh route yang memang sudah didukung architecture memiliki:
+
+- authentication yang benar
+- authorization yang benar
+- input validation yang benar
+- response contract yang konsisten
+- error handling yang konsisten
+- workspace/resource isolation
+- tidak ada route yang tertinggal dari security layer sebelumnya
+
+Fokus:
+
+ROUTE INVENTORY
+→ AUTHENTICATION
+→ AUTHORIZATION
+→ INPUT VALIDATION
+→ RESPONSE CONTRACT
+→ ERROR CONTRACT
+→ REGRESSION TEST
+→ BUILD
+→ COMMIT
+→ PUSH
+
+Jangan membuat fitur besar baru.
+
+1. AUDIT SELURUH API ROUTE
+
+Baca struktur services/api dan inventory seluruh route yang benar-benar tersedia.
+
+Kelompokkan:
+
+PUBLIC
+- route yang memang boleh tanpa authentication
+
+PROTECTED
+- route yang membutuhkan authentication
+
+WORKSPACE-SCOPED
+- route yang membutuhkan workspace authorization
+
+BOT-SCOPED
+- route yang membutuhkan bot/resource authorization
+
+ADMIN/SYSTEM
+- jika memang ada
+
+Jangan membuat route baru hanya untuk melengkapi daftar.
+
+Gunakan route yang benar-benar ada di repository.
+
+2. AUTHENTICATION COVERAGE
+
+Untuk setiap protected route pastikan authentication benar-benar dijalankan.
+
+Cari kemungkinan route yang:
+
+- lupa authentication middleware
+- menerima userId dari request
+- menerima accountId dari request
+- menerima ownerId dari request
+- hanya memvalidasi workspaceId
+- hanya memvalidasi botId
+
+Authenticated identity harus berasal dari auth/session context.
+
+Tambahkan regression test jika ditemukan route yang sebelumnya belum protected.
+
+3. AUTHORIZATION COVERAGE
+
+Untuk setiap route sensitif pastikan urutannya:
+
+Authentication
+→ Current User
+→ Workspace Access
+→ Membership/Ownership
+→ Permission
+→ Resource Access
+→ Operation
+
+Jangan melakukan mutation sebelum authorization.
+
+Pastikan route tidak hanya mengandalkan frontend.
+
+4. WORKSPACE-SCOPED ROUTE
+
+Audit seluruh route yang menggunakan:
+
+workspaceId
+
+Pastikan user tidak dapat:
+
+- membaca workspace lain
+- mengubah workspace lain
+- menghapus workspace lain
+- membuat resource pada workspace yang tidak dapat diakses
+- memodifikasi membership workspace lain
+
+Jika workspaceId berasal dari URL/body/query, tetap lakukan authorization berdasarkan authenticated user.
+
+5. BOT-SCOPED ROUTE
+
+Audit seluruh route yang menggunakan:
+
+botId
+
+Pastikan:
+
+- bot milik workspace sendiri → allowed sesuai permission
+- bot workspace lain → denied
+- unauthenticated → denied
+- invalid bot → error sesuai convention
+
+Audit juga child resource:
+
+- commands
+- flows
+- settings
+- integrations
+- webhooks
+- logs
+- statistics
+- configuration
+
+Hanya audit resource yang benar-benar tersedia.
+
+6. INPUT VALIDATION
+
+Audit request schema setiap route.
+
+Pastikan:
+
+- path parameter tervalidasi
+- query parameter tervalidasi
+- body tervalidasi
+- enum tervalidasi
+- ID tervalidasi
+- required field tervalidasi
+- optional field memiliki behavior yang benar
+
+Cari mass assignment.
+
+Field seperti:
+
+- userId
+- accountId
+- workspaceId
+- ownerId
+- createdBy
+- permissions
+- role
+- createdAt
+- updatedAt
+
+tidak boleh dipercaya dari client jika seharusnya ditentukan server.
+
+Gunakan validation framework yang sudah ada.
+
+Jangan membuat validation framework baru.
+
+7. RESPONSE CONTRACT
+
+Audit response setiap route.
+
+Pastikan response:
+
+- konsisten
+- tidak mengembalikan database object mentah jika tidak diperlukan
+- tidak membocorkan secret
+- tidak membocorkan credential
+- tidak membocorkan password
+- tidak membocorkan session token
+- tidak membocorkan resource workspace lain
+
+Jika DTO/response schema sudah tersedia, gunakan abstraction tersebut.
+
+Jangan mengubah API response tanpa kebutuhan.
+
+8. ERROR CONTRACT
+
+Pastikan route menggunakan error system yang sudah ada.
+
+Bedakan:
+
+- unauthenticated
+- unauthorized
+- not found
+- validation error
+- conflict
+- domain/business error
+
+Ikuti convention repository.
+
+Jangan membuat error system kedua.
+
+Pastikan error production tidak membocorkan:
+
+- SQL error
+- stack trace internal
+- credential
+- token
+- secret
+- database structure yang sensitif
+
+9. HTTP METHOD DAN SEMANTIC CHECK
+
+Audit apakah route menggunakan method yang sesuai dengan behavior aktual:
+
+GET
+POST
+PATCH/PUT
+DELETE
+
+Pastikan mutation tidak dapat dilakukan melalui route yang seharusnya read-only.
+
+Pastikan endpoint status seperti enable/disable tetap mengikuti authorization.
+
+Jangan mengubah route contract hanya demi style jika behavior saat ini memang sudah benar.
+
+10. ROUTE DUPLICATION
+
+Cari kemungkinan:
+
+- duplicate endpoint
+- duplicate authorization logic
+- duplicate validation
+- duplicate controller
+- duplicate service untuk resource yang sama
+
+Jika ada duplicate yang jelas dan aman diperbaiki, gunakan abstraction yang sudah ada.
+
+Jangan melakukan refactor besar.
+
+11. API CONTRACT TEST
+
+Tambahkan/perbaiki test sesuai route yang memang tersedia.
+
+Minimal test:
+
+Authentication:
+- protected route tanpa auth → DENY
+
+Workspace:
+- own workspace → PASS
+- other workspace → DENY
+
+Bot:
+- own bot → PASS
+- other workspace bot → DENY
+
+Input:
+- invalid ID → DENY
+- invalid body → DENY
+- missing required field → DENY
+
+Privilege:
+- spoofed userId → DENY
+- spoofed accountId → DENY
+- spoofed ownerId → DENY
+- spoofed permissions → DENY
+- spoofed role → DENY
+
+Response:
+- secret tidak bocor
+- credential tidak bocor
+
+Error:
+- error type sesuai convention
+- tidak ada internal stack trace pada response production
+
+Sesuaikan test dengan route yang benar-benar tersedia.
+
+Jangan membuat test untuk endpoint yang tidak ada.
+
+12. REGRESSION
+
+Pastikan seluruh checkpoint sebelumnya tetap PASS:
+
+- authentication
+- session
+- current user
+- workspace authorization
+- workspace membership
+- ownership
+- permission policy
+- bot authorization
+- bot lifecycle
+- resource integrity
+- persistence/runtime
+
+Jangan melemahkan test lama.
+
+13. API DOCUMENTATION
+
+Periksa apakah repository memiliki dokumentasi API/OpenAPI/schema.
+
+Jika memang sudah ada:
+
+- pastikan route yang tersedia tercermin dengan benar
+- pastikan request/response schema tidak bertentangan dengan implementation
+- update dokumentasi hanya jika memang sudah stale
+
+Jangan membuat dokumentasi API baru jika project belum menggunakan sistem tersebut.
+
+README.md tetap satu file saja jika perlu diperbarui.
+
+14. TYPESCRIPT QUALITY
+
+Pastikan:
+
+- tidak ada any baru tanpa alasan
+- tidak ada @ts-ignore baru
+- tidak ada unused import
+- tidak ada dead code
+- tidak ada duplicate controller
+- tidak ada duplicate validation
+- tidak ada duplicate authorization
+- tidak ada circular dependency baru
+- tidak ada hardcoded secret
+
+Ikuti architecture repository.
+
+15. BACKWARD COMPATIBILITY
+
+Jangan membuat breaking change.
+
+Sebelum mengubah:
+
+- route path
+- HTTP method
+- request body
+- response schema
+- function signature
+- service contract
+- repository contract
+
+cari seluruh caller dan test yang menggunakan contract tersebut.
+
+Jika contract sudah benar, jangan diubah.
+
+16. VERIFICATION
+
+Setelah implementasi jalankan verification resmi repository.
+
+Minimal:
+
+- domain tests
+- API tests
+- authentication/session tests
+- workspace authorization tests
+- membership tests
+- bot/resource tests
+- lifecycle tests
+- typecheck
+- format check
+- import boundary check
+- lint jika tersedia
+- build
+
+Jika ada failure:
+
+1. identifikasi root cause
+2. perbaiki
+3. jalankan ulang test terkait
+4. jalankan full verification kembali
+
+Jangan skip test.
+
+Jangan menghapus test existing.
+
+17. GIT AUDIT
+
+Sebelum commit:
+
+git status
+git diff --stat
+git diff
+
+Pastikan perubahan hanya terkait API contract/security verification.
+
+Jangan commit:
+
+- .env
+- API key
+- token
+- credential
+- log
+- temporary files
+- build artifacts
+
+18. COMMIT
+
+Jika seluruh verification PASS:
+
+buat SATU commit baru.
+
+Gunakan commit message berdasarkan perubahan sebenarnya.
+
+Contoh:
+
+fix: harden api route contracts
+
+atau:
+
+fix: verify api authorization boundaries
+
+Pilih yang paling sesuai dengan implementation aktual.
+
+Setelah commit:
+
+git status
+git log --oneline -3
+
+19. PUSH
+
+Jalankan:
+
+git push
+
+Branch tetap:
+
+backend-dev-recovery
+
+Jangan:
+
+- force push
+- ubah remote
+- merge ke backend-dev
+- reset checkpoint
+- rebase sembarangan
+
+Jika push gagal karena credential GitHub:
+
+JANGAN mengubah source code lagi.
+
+Pertahankan commit lokal dan laporkan error sebenarnya.
+
+20. HASIL AKHIR
+
+Tampilkan laporan:
+
+Implementation:
+- ...
+
+API Routes:
+- jumlah route yang diaudit
+- route yang diperbaiki
+
+Security:
+- Authentication: ...
+- Authorization: ...
+- Workspace isolation: ...
+- Bot isolation: ...
+- Input validation: ...
+- Response security: ...
+- Error security: ...
+
+Tests:
+- Domain: ...
+- API: ...
+- Auth/Session: ...
+- Workspace: ...
+- Membership: ...
+- Bot/Resource: ...
+- Lifecycle: ...
+- Typecheck: ...
+- Format: ...
+- Import boundary: ...
+- Build: ...
+
+Commit:
+- hash: ...
+- message: ...
+
+Git:
+- branch: ...
+- push: success/failed
+
+Working Tree:
+- clean/dirty
+
+Jika ada failure, tampilkan error sebenarnya.
+
+Jangan mengklaim sukses jika verification, commit, atau push belum berhasil.
+
+21. PENTING
+
+Jangan membuat fitur baru besar.
+
+Tahap ini hanya:
+
+AUDIT
+→ ROUTE INVENTORY
+→ AUTHENTICATION
+→ AUTHORIZATION
+→ INPUT VALIDATION
+→ RESPONSE SECURITY
+→ ERROR CONTRACT
+→ REGRESSION TEST
+→ BUILD
+→ COMMIT
+→ PUSH
+
+Gunakan semua abstraction security yang sudah ada.
+
+Jangan membuat sistem authorization kedua.
+
+Jangan mengubah arsitektur BotSpace secara besar-besaran.
+
+Selesaikan sampai push berhasil lalu berhenti.
 
 
 ```
