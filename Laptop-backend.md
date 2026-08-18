@@ -65,10 +65,512 @@
 
 
 ```
-# 
+# Prompt: BotSpace — Final Production Smoke Test & Deployment Readiness
 ```
 
+PROMPT: BotSpace — Final Production Smoke Test & Deployment Readiness
 
+Kita melanjutkan project BotSpace dari checkpoint FINAL SOURCE-CODE yang sudah selesai.
+
+Repository:
+/root/botspace
+
+Branch:
+backend-dev-recovery
+
+Tujuan tahap ini:
+FINAL PRODUCTION VERIFICATION
+
+PENTING:
+- Jangan menggunakan Kiro.
+- Jangan membuat fitur baru.
+- Jangan melakukan refactor besar.
+- Jangan mengubah architecture.
+- Jangan reset.
+- Jangan force push.
+- Jangan rebase.
+- Jangan checkout branch lain.
+- Jangan merge ke backend-dev.
+- Jangan mengubah credential GitHub.
+- Jangan menyentuh production database secara destruktif.
+- Jangan menginstal Docker hanya untuk membuat verification terlihat PASS.
+- Jangan mengubah source code hanya karena Docker tidak tersedia.
+
+CHECKPOINT SAAT INI
+
+Source-code verification sebelumnya:
+
+- Domain tests: PASS
+- API tests: PASS
+- Observability: PASS
+- Auth/Session: PASS
+- Workspace: PASS
+- Membership: PASS
+- Bot/Resource: PASS
+- Lifecycle: PASS
+- Validation: PASS
+- Mass-assignment: PASS
+- Abuse boundary: PASS
+- Secret leakage: PASS
+- Typecheck: PASS
+- Format: PASS
+- Import boundary: PASS
+- Build: 11/11 successful
+- pnpm check: 44/44 successful
+- Working tree: CLEAN
+- Git commit: sudah tersedia
+- Git push: sudah berhasil
+
+DATABASE MIGRATION
+
+Status sebelumnya:
+
+BLOCKED
+
+Error:
+
+/bin/sh: 1: docker: not found
+
+Ini adalah ENVIRONMENT BLOCKER, bukan source-code failure.
+
+Jangan:
+- mengubah migration hanya untuk melewati blocker
+- membuat fake migration success
+- mengganti migration production behavior
+- menghapus migration test
+- menambahkan Docker dependency ke source code
+- mengubah source code hanya agar verification terlihat hijau
+
+Jika Docker tidak tersedia, laporkan sebagai:
+
+DATABASE MIGRATION:
+BLOCKED — Docker unavailable in current environment
+
+Jangan klaim migration PASS.
+
+==================================================
+1. FINAL REPOSITORY AUDIT
+==================================================
+
+Mulai dengan membaca kondisi repository aktual.
+
+Jalankan:
+
+pwd
+git branch --show-current
+git status --short
+git log --oneline -5
+git remote -v
+
+Pastikan:
+
+- berada di /root/botspace
+- branch backend-dev-recovery
+- working tree clean
+- remote tetap benar
+- tidak ada perubahan lokal yang tidak diketahui
+
+Jika working tree dirty:
+
+JANGAN langsung commit.
+
+Audit perubahan terlebih dahulu dan laporkan.
+
+==================================================
+2. FINAL SOURCE-CODE VERIFICATION
+==================================================
+
+Jalankan verification resmi repository yang memang tersedia.
+
+Gunakan command yang sudah digunakan repository sebelumnya.
+
+Minimal:
+
+- pnpm check
+- typecheck
+- format check
+- import boundary check
+- test suite
+- build
+
+Jangan membuat command baru jika repository sudah memiliki command resmi.
+
+Jangan skip test.
+
+Jika semuanya PASS, jangan mengubah source code.
+
+Jika failure:
+
+1. identifikasi apakah failure berasal dari source code atau environment
+2. jika environment-only, jangan mengubah source code
+3. jika source-code regression nyata, perbaiki hanya jika benar-benar diperlukan
+4. ulangi verification
+
+==================================================
+3. DATABASE MIGRATION AUDIT
+==================================================
+
+Periksa status migration secara READ-ONLY.
+
+Cari:
+
+- migration files
+- migration scripts
+- database schema
+- migration command
+- migration documentation
+
+Pastikan migration source code terlihat konsisten.
+
+Jangan menjalankan migration terhadap production database.
+
+Jika command migration membutuhkan Docker dan Docker tidak tersedia:
+
+STOP pada bagian execution.
+
+Laporkan:
+
+Database migration:
+BLOCKED
+Reason:
+Docker is unavailable in current environment.
+
+Jangan membuat workaround palsu.
+
+==================================================
+4. ENVIRONMENT AUDIT
+==================================================
+
+Audit environment tanpa menampilkan secret.
+
+Periksa:
+
+- Node.js version
+- pnpm version
+- environment variable NAMES saja
+- required configuration names
+- port configuration
+- database configuration presence
+- API configuration presence
+
+JANGAN tampilkan:
+
+- API key
+- token
+- password
+- secret
+- session secret
+- credential
+- private key
+
+Gunakan masking jika perlu.
+
+Contoh:
+
+API_KEY=********
+
+Bukan nilai sebenarnya.
+
+==================================================
+5. PRODUCTION CONFIGURATION AUDIT
+==================================================
+
+Audit konfigurasi production yang sudah tersedia.
+
+Cari:
+
+- NODE_ENV
+- PORT
+- HOST
+- database URL presence
+- CORS configuration
+- cookie/session configuration
+- logging configuration
+- health endpoint
+- readiness endpoint
+- graceful shutdown
+- error handling
+
+Jangan mengubah configuration production.
+
+Jika configuration belum tersedia, laporkan sebagai checklist item.
+
+==================================================
+6. STARTUP SMOKE TEST
+==================================================
+
+Jika repository menyediakan command startup resmi:
+
+gunakan command tersebut secara aman.
+
+Tujuan:
+
+memastikan aplikasi dapat start tanpa error source-code.
+
+Periksa:
+
+- application startup
+- module loading
+- database initialization behavior
+- route registration
+- configuration validation
+- graceful startup failure
+
+Jangan menjalankan destructive database migration.
+
+Jika aplikasi membutuhkan database atau secret yang tidak tersedia di environment saat ini:
+
+jangan membuat fake value.
+
+Laporkan dependency yang hilang.
+
+==================================================
+7. HEALTH CHECK
+==================================================
+
+Jika health endpoint tersedia:
+
+jalankan health check.
+
+Contoh pola:
+
+curl -i http://127.0.0.1:<PORT>/health
+
+atau command health check resmi repository.
+
+Jika health endpoint berbeda, gunakan route aktual repository.
+
+Pastikan:
+
+- HTTP status sesuai
+- response tidak membocorkan secret
+- application process aktif
+
+Jika endpoint tidak tersedia:
+
+jangan membuat endpoint baru.
+
+Laporkan:
+
+Health endpoint:
+NOT AVAILABLE
+
+==================================================
+8. API SMOKE TEST
+==================================================
+
+Jika API dapat dijalankan di environment ini, lakukan smoke test minimal.
+
+Test hanya endpoint yang memang tersedia.
+
+Minimal:
+
+PUBLIC:
+- public endpoint jika ada
+
+AUTH:
+- unauthenticated protected endpoint harus ditolak
+
+WORKSPACE:
+- authenticated workspace access
+
+BOT:
+- authenticated bot/resource access
+
+SECURITY:
+- cross-workspace request ditolak
+
+Jangan membuat test data production.
+
+Gunakan test/dev database jika repository menyediakannya.
+
+Jangan menggunakan credential production.
+
+==================================================
+9. SECRET LEAKAGE FINAL CHECK
+==================================================
+
+Lakukan final audit untuk kemungkinan secret masuk ke:
+
+- source code
+- logs
+- error messages
+- test output
+- API response
+- git diff
+- git history baru
+
+Cari pola secret secara aman.
+
+Jangan mencetak nilai secret ke terminal report.
+
+Jika menemukan secret nyata:
+
+JANGAN menampilkan nilainya.
+
+Laporkan hanya lokasi file/jenis masalah.
+
+==================================================
+10. GIT FINAL AUDIT
+==================================================
+
+Setelah seluruh verification:
+
+jalankan:
+
+git status
+git diff --stat
+git diff
+git log --oneline -5
+
+Pastikan:
+
+Working tree:
+CLEAN
+
+Jika clean, jangan membuat empty commit.
+
+Jangan membuat commit hanya untuk dokumentasi status.
+
+==================================================
+11. PUSH FINAL
+==================================================
+
+Jika tidak ada perubahan source code dan checkpoint terakhir sudah berhasil dipush:
+
+JANGAN membuat commit kosong.
+
+JANGAN push ulang tanpa perubahan.
+
+Jika memang ada perubahan nyata yang diperbaiki pada tahap ini:
+
+- jalankan verification ulang
+- buat SATU commit
+- push branch backend-dev-recovery
+
+Jika push gagal:
+
+jangan mengubah source code.
+
+Laporkan error Git sebenarnya.
+
+==================================================
+12. PRODUCTION READINESS DECISION
+==================================================
+
+Buat keputusan berdasarkan hasil nyata.
+
+Gunakan kategori:
+
+READY FOR PRODUCTION
+
+jika:
+- source code verification PASS
+- tests PASS
+- build PASS
+- working tree CLEAN
+- Git checkpoint aman
+- tidak ada source-code blocker
+
+Environment blocker seperti Docker migration harus dipisahkan sebagai:
+
+ENVIRONMENT BLOCKER
+
+Jangan menyebut source code FAILED jika hanya environment yang tidak tersedia.
+
+==================================================
+13. FINAL REPORT
+==================================================
+
+Tampilkan laporan akhir dengan format:
+
+FINAL PRODUCTION VERIFICATION
+
+Repository:
+- /root/botspace
+
+Branch:
+- ...
+
+Commit:
+- hash: ...
+- message: ...
+
+Source Code:
+- Domain: PASS/FAIL
+- API: PASS/FAIL
+- Auth/Session: PASS/FAIL
+- Workspace: PASS/FAIL
+- Membership: PASS/FAIL
+- Bot/Resource: PASS/FAIL
+- Lifecycle: PASS/FAIL
+- Typecheck: PASS/FAIL
+- Format: PASS/FAIL
+- Import boundary: PASS/FAIL
+- Build: PASS/FAIL
+
+Runtime:
+- Startup: PASS/FAIL/BLOCKED
+- Health: PASS/FAIL/N/A
+- API smoke test: PASS/FAIL/BLOCKED
+
+Database:
+- Migration source audit: PASS/FAIL
+- Migration execution: PASS/BLOCKED
+- Blocker: Docker unavailable jika memang masih terjadi
+
+Security:
+- Secret leakage: PASS/FAIL
+- Cross-workspace isolation: PASS/FAIL
+- Authentication: PASS/FAIL
+- Authorization: PASS/FAIL
+
+Git:
+- Working tree: CLEAN/DIRTY
+- Push: SUCCESS/NOT NEEDED/FAILED
+
+FINAL DECISION:
+
+READY FOR PRODUCTION
+
+atau:
+
+NOT READY
+
+Jika NOT READY, jelaskan hanya blocker nyata.
+
+==================================================
+14. STOP CONDITION
+==================================================
+
+Jika hasil akhirnya:
+
+- source code PASS
+- tests PASS
+- build PASS
+- working tree CLEAN
+- Git checkpoint aman
+- hanya Docker migration yang BLOCKED karena environment
+
+maka:
+
+JANGAN melakukan coding tambahan.
+
+JANGAN membuat commit kosong.
+
+JANGAN membuat fitur baru.
+
+JANGAN mengubah security code.
+
+JANGAN mengulang audit yang sudah PASS.
+
+Nyatakan:
+
+SOURCE CODE FINAL
+PRODUCTION READY
+DATABASE MIGRATION MENUNGGU ENVIRONMENT DOCKER
+
+Kemudian STOP.
 
 ```
 # 
