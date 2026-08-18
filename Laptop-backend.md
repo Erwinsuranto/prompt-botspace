@@ -103,6 +103,716 @@
 ```
 # 
 ```
+PROMPT: BotSpace — API Security & Bot Resource Authorization
+
+Kita melanjutkan project BotSpace setelah checkpoint Authentication & Session Security.
+
+CHECKPOINT TERAKHIR
+
+Repository: /root/botspace
+Branch: backend-dev-recovery
+Remote: https://github.com/zenolamee/botspace.git
+
+Checkpoint sebelumnya:
+e28105b — fix: secure workspace membership access
+
+Checkpoint terbaru:
+f6b1ab1 — fix: harden authentication and session security
+
+Verification sebelumnya:
+
+* Format check: PASS
+* Import boundary check: PASS
+* Build: 11 tasks successful
+* Working tree: clean
+* Commit berhasil dibuat
+* Push mungkin perlu dilakukan jika belum berhasil
+
+JANGAN reset, force push, rebase sembarangan, checkout branch lain, atau menghapus checkpoint yang sudah ada.
+
+Jangan merge backend-dev-recovery ke backend-dev.
+
+TUJUAN
+
+Setelah workspace authorization, membership, ownership, authentication, dan session security diperbaiki, tahap berikutnya adalah memastikan seluruh BOT RESOURCE dan API RESOURCE benar-benar mengikuti security boundary tersebut.
+
+Fokus utama:
+
+AUTHENTICATION
+→ CURRENT USER
+→ WORKSPACE ACCESS
+→ BOT OWNERSHIP/MEMBERSHIP
+→ RESOURCE AUTHORIZATION
+→ API SECURITY
+→ TEST
+→ BUILD
+→ COMMIT
+→ PUSH
+
+Jangan membuat sistem authorization kedua.
+
+1. AUDIT SELURUH BOT RESOURCE
+
+Audit seluruh implementasi bot yang sudah ada.
+
+Cari:
+
+* Bot entity/model
+* Bot repository
+* Bot service
+* Bot API routes
+* bot creation
+* bot listing
+* bot detail
+* bot update
+* bot delete
+* bot enable
+* bot disable
+* bot status
+* bot configuration
+* bot token/credential handling
+* bot logs
+* bot statistics
+* bot settings
+* bot integrations
+* bot templates
+* bot commands
+* bot flow
+* semua resource yang memiliki botId
+
+Pahami hubungan:
+
+User
+→ Workspace
+→ Bot
+→ Bot Resource
+
+Jangan mengubah arsitektur yang sudah benar.
+
+2. BOT WORKSPACE BOUNDARY
+
+Setiap bot harus memiliki workspace yang jelas.
+
+Pastikan:
+
+* bot hanya dapat diakses oleh user yang memiliki akses ke workspace bot
+* bot tidak dapat dipindahkan secara ilegal ke workspace lain
+* botId dari request tidak boleh melewati workspace authorization
+* user tidak boleh mengambil bot workspace lain hanya karena mengetahui botId
+
+Test:
+
+User A:
+workspace-A
+bot-A
+
+User B:
+workspace-B
+bot-B
+
+User A:
+
+GET bot-A = ALLOW
+UPDATE bot-A = ALLOW
+DELETE bot-A = ALLOW sesuai permission
+
+GET bot-B = DENY
+UPDATE bot-B = DENY
+DELETE bot-B = DENY
+
+3. BOT CREATION
+
+Audit create bot.
+
+Pastikan user tidak dapat membuat bot atas nama workspace yang tidak dapat dia akses.
+
+Request seperti:
+
+workspaceId = workspace-B
+
+harus tetap diverifikasi berdasarkan authenticated user.
+
+Jangan hanya memvalidasi bahwa workspaceId valid.
+
+Pastikan:
+
+Authentication
+→ workspace access
+→ create bot
+→ assign workspaceId
+
+4. BOT UPDATE
+
+Audit seluruh field yang dapat diubah.
+
+Perhatikan terutama:
+
+* workspaceId
+* ownerId
+* bot status
+* bot token
+* bot configuration
+* permissions
+* integrations
+* webhook
+* commands
+
+User yang hanya memiliki permission mengelola bot tidak boleh otomatis dapat mengubah ownership atau workspace assignment jika permission tersebut tidak diberikan oleh policy.
+
+Jangan mempercayai:
+
+ownerId
+workspaceId
+role
+permissions
+
+dari request body sebagai authorization source.
+
+5. BOT DELETE
+
+Pastikan delete bot membutuhkan authorization terhadap workspace bot.
+
+Test:
+
+* owner dapat delete jika policy mengizinkan
+* member dengan permission delete dapat delete
+* member tanpa permission ditolak
+* user workspace lain ditolak
+* unauthenticated ditolak
+* nonexistent bot ditangani sesuai error convention
+
+Jangan melakukan deletion sebelum authorization selesai.
+
+6. BOT ENABLE / DISABLE
+
+Audit endpoint atau service untuk:
+
+* enable bot
+* disable bot
+* toggle bot status
+
+Pastikan status change tidak dapat digunakan untuk mengakses atau memodifikasi bot workspace lain.
+
+Test:
+
+* authorized user → allowed
+* unauthorized member → denied
+* cross-workspace user → denied
+* unauthenticated → denied
+
+7. BOT TOKEN DAN SECRET
+
+Audit semua penyimpanan dan response bot credential.
+
+Cari:
+
+* bot token
+* Telegram token
+* webhook secret
+* API key
+* integration secret
+* access token
+* refresh token
+
+Pastikan secret tidak:
+
+* dikembalikan dalam list bot
+* dikembalikan dalam response detail tanpa alasan
+* dicetak ke log
+* masuk ke error message
+* dimasukkan ke analytics
+* dimasukkan ke audit log secara plaintext
+
+Jika secret memang perlu ditampilkan sekali saat creation, ikuti behavior yang sudah ada.
+
+Jangan mengubah secret architecture secara besar-besaran tanpa kebutuhan.
+
+8. BOT LISTING
+
+Audit endpoint list bots.
+
+Pastikan query tidak mengembalikan semua bot kemudian hanya menyembunyikan bot pada response.
+
+Jika repository memungkinkan workspace-scoped query, gunakan scope tersebut.
+
+User hanya boleh mendapatkan:
+
+* bot workspace yang dapat dia akses
+
+Bukan:
+
+* seluruh bot database
+
+Test bahwa user A tidak menerima bot workspace B dalam list response.
+
+9. BOT DETAIL
+
+Audit get bot.
+
+Pastikan:
+
+botId
+→ resolve bot
+→ resolve workspace
+→ verify access
+→ return resource
+
+Jangan:
+
+botId
+→ return resource
+
+tanpa authorization.
+
+10. BOT RESOURCE TURUNAN
+
+Cari semua resource yang memiliki hubungan dengan bot:
+
+* bot settings
+* commands
+* flows
+* templates
+* logs
+* statistics
+* analytics
+* webhook
+* integrations
+* credentials
+* API configuration
+* deployment configuration
+
+Semua resource tersebut harus mewarisi security boundary bot/workspace.
+
+Jika user tidak memiliki akses ke bot, user juga tidak boleh mengakses resource turunannya hanya dengan mengetahui child resource ID.
+
+Contoh:
+
+User A tidak boleh:
+
+GET /flows/flow-B
+
+jika flow-B milik bot-B di workspace-B.
+
+11. RESOURCE IDOR AUDIT
+
+Cari pola:
+
+findById(id)
+
+findUnique({ id })
+
+where: { id }
+
+atau equivalent lainnya.
+
+Untuk setiap resource workspace/bot:
+
+tentukan apakah authorization sudah dilakukan setelah lookup atau query sudah workspace-scoped.
+
+Jangan melakukan perubahan query secara membabi buta.
+
+Gunakan abstraction repository yang sudah ada.
+
+Prioritas:
+
+* correctness
+* security
+* minimal change
+
+12. API ROUTE AUDIT
+
+Audit semua protected API route.
+
+Pastikan tidak ada route yang:
+
+* lupa authentication
+* lupa workspace authorization
+* lupa membership check
+* lupa permission check
+* mempercayai userId dari request
+* mempercayai workspaceId dari request
+* mempercayai ownerId dari request
+
+Buat daftar internal route yang diaudit dan perbaiki yang memang bermasalah.
+
+Tidak perlu menambahkan endpoint baru.
+
+13. API INPUT VALIDATION
+
+Audit input bot/resource.
+
+Pastikan:
+
+* ID divalidasi sesuai schema
+* enum divalidasi
+* status divalidasi
+* workspaceId divalidasi
+* botId divalidasi
+* body tidak dapat memasukkan field privilege yang seharusnya server-controlled
+
+Jika schema validation library sudah tersedia, gunakan yang sudah ada.
+
+Jangan membuat validation framework baru.
+
+14. MASS ASSIGNMENT / PRIVILEGE ESCALATION
+
+Cari request body yang memungkinkan user mengubah field sensitif sekaligus.
+
+Contoh berbahaya:
+
+{
+workspaceId,
+ownerId,
+role,
+permissions,
+status
+}
+
+Pastikan hanya field yang memang boleh diubah oleh endpoint yang diproses.
+
+Field server-controlled harus diabaikan atau ditolak sesuai convention project.
+
+Minimal audit:
+
+* workspaceId
+* ownerId
+* userId
+* permissions
+* role
+* createdBy
+* accountId
+
+15. BOT OWNERSHIP TRANSFER
+
+Jangan menambahkan fitur transfer ownership.
+
+Tetapi pastikan endpoint update biasa tidak dapat digunakan untuk melakukan transfer ownership secara diam-diam.
+
+Jika bot tidak boleh berpindah workspace melalui update biasa:
+
+* cegah perubahan workspaceId
+* gunakan policy yang sesuai
+* tambahkan regression test
+
+16. API RESPONSE SECURITY
+
+Audit response DTO/schema.
+
+Pastikan response tidak membocorkan:
+
+* internal database IDs jika tidak diperlukan
+* password
+* token
+* secret
+* credential
+* internal authorization metadata
+* workspace/resource milik user lain
+
+Gunakan DTO yang sudah ada jika tersedia.
+
+Jangan mengembalikan object database mentah jika itu menyebabkan secret leakage.
+
+17. ERROR SECURITY
+
+Pastikan error tidak membocorkan:
+
+* SQL/database detail
+* secret
+* token
+* credential
+* resource milik workspace lain
+* internal stack trace pada production response
+
+Ikuti error handling yang sudah ada.
+
+Jangan membuat error system kedua.
+
+18. TESTING WAJIB
+
+Tambahkan atau perbaiki test minimal:
+
+Authentication:
+
+* unauthenticated bot access DENY
+
+Workspace:
+
+* authorized workspace access PASS
+* cross-workspace access DENY
+
+Bot:
+
+* own bot GET PASS
+* own bot UPDATE PASS
+* own bot DELETE PASS sesuai permission
+* other workspace bot GET DENY
+* other workspace bot UPDATE DENY
+* other workspace bot DELETE DENY
+
+Bot status:
+
+* authorized enable PASS
+* unauthorized enable DENY
+* cross-workspace enable DENY
+* authorized disable PASS
+* unauthorized disable DENY
+
+Bot list:
+
+* hanya bot yang boleh diakses yang muncul
+* bot workspace lain tidak muncul
+
+Child resources:
+
+* unauthorized flow DENY
+* unauthorized command DENY
+* unauthorized log DENY
+* unauthorized integration DENY
+* sesuai resource yang memang tersedia di project
+
+Privilege escalation:
+
+* workspaceId spoof DENY
+* ownerId spoof DENY
+* userId spoof DENY
+* role spoof DENY
+* permissions spoof DENY
+
+Secret:
+
+* bot token tidak muncul pada list
+* bot token tidak bocor pada response yang tidak seharusnya
+* credential tidak masuk log/error
+
+Sesuaikan dengan API dan resource yang benar-benar ada.
+
+Jangan membuat test untuk endpoint yang tidak tersedia.
+
+19. REGRESSION TEST
+
+Pastikan perubahan tidak merusak:
+
+* workspace authorization
+* workspace membership
+* ownership
+* authentication
+* session security
+* permission policy
+
+Semua test lama harus tetap berjalan.
+
+20. TYPESCRIPT QUALITY
+
+Pastikan:
+
+* tidak menambahkan any tanpa alasan
+* tidak menambahkan @ts-ignore
+* tidak ada duplicate authorization logic
+* tidak ada duplicate validation system
+* tidak ada unused import
+* tidak ada dead code
+* tidak ada circular dependency baru
+* tidak ada hardcoded secret
+* mengikuti struktur repository
+
+21. BACKWARD COMPATIBILITY
+
+Jangan merusak API existing.
+
+Sebelum mengubah:
+
+* function signature
+* DTO
+* route contract
+* repository contract
+* service contract
+
+cari seluruh caller dan update secara aman.
+
+Jangan membuat breaking change tanpa alasan.
+
+22. README
+
+Jika diperlukan, update README.md yang sudah ada.
+
+Jangan membuat README baru.
+
+Dokumentasikan secara singkat:
+
+* bot workspace isolation
+* bot authorization
+* resource security
+* credential handling
+* test command
+
+23. VERIFICATION
+
+Setelah implementation:
+
+jalankan verification resmi repository.
+
+Minimal:
+
+* domain tests
+* API tests
+* auth/session tests
+* workspace authorization tests
+* membership tests
+* bot/resource tests
+* typecheck
+* format check
+* import boundary check
+* lint jika tersedia
+* build
+
+Pastikan semua PASS.
+
+Jika ada failure:
+
+* identifikasi root cause
+* perbaiki
+* ulangi test terkait
+* ulangi full verification
+
+Jangan skip test.
+
+Jangan menghapus test existing.
+
+24. GIT AUDIT
+
+Sebelum commit:
+
+git status
+git diff --stat
+git diff
+
+Pastikan hanya perubahan yang berkaitan dengan task.
+
+Jangan commit:
+
+* .env
+* credential
+* secret
+* temporary files
+* logs
+* build artifacts
+
+25. COMMIT
+
+Jika seluruh verification PASS:
+
+buat SATU commit.
+
+Gunakan commit message berdasarkan perubahan sebenarnya.
+
+Contoh:
+
+fix: secure bot resource authorization
+
+atau:
+
+fix: enforce bot workspace isolation
+
+Pilih message yang paling sesuai dengan implementation aktual.
+
+Setelah commit:
+
+git status
+git log --oneline -3
+
+26. PUSH
+
+Jalankan:
+
+git push
+
+Branch tetap:
+
+backend-dev-recovery
+
+Jangan force push.
+
+Jangan mengubah remote.
+
+Jangan merge ke backend-dev.
+
+Jika push gagal karena credential GitHub, jangan melakukan perubahan lain.
+
+Commit lokal harus tetap dipertahankan.
+
+27. HASIL AKHIR
+
+Tampilkan laporan:
+
+Implementation:
+
+* ...
+
+Bot Security:
+
+* ...
+
+Workspace Isolation:
+
+* ...
+
+Secret Security:
+
+* ...
+
+Tests:
+
+* Domain: ...
+* API: ...
+* Auth/Session: ...
+* Workspace: ...
+* Membership: ...
+* Bot: ...
+* Typecheck: ...
+* Format: ...
+* Import boundary: ...
+* Build: ...
+
+Commit:
+
+* hash: ...
+* message: ...
+
+Git:
+
+* branch: ...
+* push: success/failed
+
+Working Tree:
+
+* clean/dirty
+
+Jika ada failure, tampilkan error sebenarnya.
+
+Jangan mengklaim sukses jika verification belum selesai.
+
+28. PENTING
+
+Jangan membuat fitur baru yang besar.
+
+Tahap ini hanya fokus memastikan seluruh BOT RESOURCE dan API RESOURCE mengikuti security boundary yang sudah dibangun.
+
+Alur:
+
+AUDIT
+→ AUTHENTICATION
+→ WORKSPACE ACCESS
+→ MEMBERSHIP/PERMISSION
+→ BOT AUTHORIZATION
+→ CHILD RESOURCE AUTHORIZATION
+→ SECRET SECURITY
+→ IDOR TEST
+→ REGRESSION TEST
+→ BUILD
+→ COMMIT
+→ PUSH
+
+Selesaikan sampai push berhasil lalu berhenti.
 
 
 
