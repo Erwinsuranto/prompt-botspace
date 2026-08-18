@@ -49,7 +49,401 @@
 ```
 # 
 ```
+PROMPT: BotSpace — API Boundary & Resource Enumeration Hardening
 
+Lanjutkan project BotSpace dari checkpoint TERAKHIR yang SUDAH BERHASIL.
+
+Repository: /root/botspace
+Branch: backend-dev-recovery
+
+HASIL VERIFICATION TERAKHIR:
+- Domain: 107 passed
+- API: 113 passed
+- Observability: 31 passed
+- Auth/Session: PASS
+- Workspace: PASS
+- Membership: PASS
+- Bot/Resource: PASS
+- Lifecycle: PASS
+- Validation: PASS
+- Mass-assignment: PASS
+- Abuse: PASS
+- Response/secret leakage: PASS
+- Typecheck: PASS
+- Format: PASS
+- Import boundary: PASS
+- Build: 11/11 successful
+- pnpm check: 44/44 successful
+
+JANGAN reset, force push, rebase sembarangan, checkout branch lain, merge ke backend-dev, atau menghapus checkpoint yang sudah ada.
+
+TUJUAN
+
+Lanjutkan security hardening BotSpace dengan fokus pada:
+
+API BOUNDARY
+→ RESOURCE ENUMERATION
+→ IDOR
+→ LIST/SEARCH FILTERING
+→ CROSS-WORKSPACE ISOLATION
+→ RESPONSE SECURITY
+→ REGRESSION TEST
+→ BUILD
+→ COMMIT
+→ PUSH
+
+1. AUDIT API BOUNDARY
+
+Audit seluruh protected API yang berhubungan dengan:
+
+- workspace
+- membership
+- bot
+- bot resource
+- integration
+- credential
+- webhook
+- logs
+- statistics
+- settings
+- commands
+- flows
+- resource lain yang tersedia
+
+Pastikan setiap endpoint mengikuti:
+
+Authentication
+→ Current User
+→ Workspace Access
+→ Resource Ownership/Membership
+→ Permission
+→ Operation
+
+Jangan membuat authorization system baru.
+
+2. RESOURCE ENUMERATION
+
+Cari kemungkinan user dapat melakukan enumeration terhadap resource dengan:
+
+- ID guessing
+- sequential ID
+- UUID
+- search
+- filter
+- sorting
+- pagination
+- list endpoint
+- detail endpoint
+- error response
+
+User dari workspace-A tidak boleh mengetahui keberadaan resource workspace-B hanya dengan mencoba ID resource.
+
+Pastikan behavior error mengikuti convention project dan tidak membocorkan metadata yang tidak diperlukan.
+
+3. LIST ENDPOINT
+
+Audit seluruh endpoint list.
+
+Pastikan response hanya berisi resource yang memang boleh dilihat oleh authenticated user.
+
+Jangan menggunakan pola:
+
+ambil semua resource
+→ filter di memory
+
+jika repository/service memungkinkan query yang sudah workspace-scoped.
+
+Pastikan:
+
+- workspace isolation
+- membership authorization
+- permission
+- pagination boundary
+- maximum limit
+
+tetap enforced.
+
+4. SEARCH DAN FILTER
+
+Audit endpoint yang menerima:
+
+- search
+- query
+- filter
+- status
+- ownerId
+- workspaceId
+- accountId
+- botId
+
+Jangan mempercayai field tersebut sebagai authorization.
+
+Contoh:
+
+workspaceId=workspace-B
+
+tidak boleh membuat User A dapat mencari resource workspace-B.
+
+Authorization harus ditentukan berdasarkan authentication context dan policy.
+
+5. PAGINATION
+
+Pastikan seluruh list/search endpoint:
+
+- memiliki default limit
+- memiliki maximum limit
+- tidak menerima unlimited request
+- pagination tetap workspace-scoped
+- pagination tidak dapat melewati authorization boundary
+
+Jika pagination sudah benar, jangan mengubahnya.
+
+Jangan membuat pagination framework baru.
+
+6. IDOR AUDIT
+
+Cari pola seperti:
+
+findById(id)
+findUnique({ id })
+where: { id }
+
+Untuk setiap hasil lookup, pastikan authorization dilakukan dengan benar.
+
+Periksa terutama:
+
+- workspace
+- membership
+- bot
+- child resource
+- integration
+- credential
+- webhook
+- command
+- flow
+- logs
+- statistics
+
+Jangan mengubah semua query secara membabi buta.
+
+Perbaiki hanya vulnerability nyata.
+
+7. RESPONSE SECURITY
+
+Audit response DTO/schema.
+
+Pastikan endpoint tidak membocorkan:
+
+- password
+- API key
+- bot token
+- webhook secret
+- session token
+- credential
+- internal authorization metadata
+- resource workspace lain
+
+Jangan mengembalikan raw database object jika menyebabkan secret leakage.
+
+8. ERROR SECURITY
+
+Audit error response untuk:
+
+- invalid ID
+- unauthorized resource
+- nonexistent resource
+- cross-workspace resource
+- invalid filter
+- invalid pagination
+
+Pastikan error tidak membocorkan:
+
+- database details
+- stack trace
+- secret
+- token
+- credential
+- resource metadata workspace lain
+
+Gunakan error system existing.
+
+9. INPUT BOUNDARY
+
+Audit input API:
+
+- ID
+- search string
+- filter
+- arrays
+- pagination
+- sorting
+- batch input
+
+Pastikan validation existing benar-benar enforced.
+
+Jangan membuat validation framework baru.
+
+10. REGRESSION TEST
+
+Tambahkan test hanya jika diperlukan.
+
+Minimal:
+
+- User A tidak dapat list resource workspace B
+- User A tidak dapat search resource workspace B
+- User A tidak dapat mengambil detail resource workspace B
+- User A tidak dapat menggunakan filter workspace B untuk bypass authorization
+- pagination tidak melewati workspace boundary
+- invalid resource ID tidak membocorkan metadata
+- unauthorized resource tidak membocorkan secret
+- existing abuse tests tetap PASS
+
+Sesuaikan dengan endpoint yang benar-benar tersedia.
+
+Jangan membuat test untuk endpoint yang tidak ada.
+
+11. FULL REGRESSION
+
+Pastikan tetap PASS:
+
+- Domain
+- API
+- Observability
+- Auth/Session
+- Workspace
+- Membership
+- Bot/Resource
+- Lifecycle
+- Validation
+- Mass-assignment
+- Abuse
+- Response/secret leakage
+- Typecheck
+- Format
+- Import boundary
+- Build
+- pnpm check
+
+Jangan skip test.
+
+Jangan menghapus test existing.
+
+12. CODE QUALITY
+
+Pastikan:
+
+- tidak ada any baru tanpa alasan
+- tidak ada @ts-ignore baru
+- tidak ada duplicate authorization
+- tidak ada duplicate validation
+- tidak ada unused import
+- tidak ada dead code
+- tidak ada hardcoded secret
+- tidak ada circular dependency baru
+
+13. README
+
+Jika benar-benar diperlukan, update README.md yang sudah ada.
+
+Jangan membuat README baru.
+
+Dokumentasikan hanya perubahan penting.
+
+14. GIT
+
+Setelah verification PASS:
+
+git status
+git diff --stat
+git diff
+
+Pastikan perubahan hanya terkait task ini.
+
+Jika ada perubahan valid:
+
+buat SATU commit.
+
+Gunakan commit message berdasarkan perubahan sebenarnya, misalnya:
+
+fix: harden api resource boundaries
+
+Kemudian:
+
+git status
+git log --oneline -3
+git push
+
+Branch tetap:
+
+backend-dev-recovery
+
+Jangan force push.
+Jangan ubah remote.
+Jangan merge ke backend-dev.
+
+Jika tidak ada perubahan valid:
+jangan membuat empty commit.
+
+15. HASIL AKHIR
+
+Laporkan:
+
+Implementation:
+- ...
+
+API Boundary:
+- ...
+
+Enumeration/IDOR:
+- ...
+
+Response Security:
+- ...
+
+Tests:
+- Domain: ...
+- API: ...
+- Observability: ...
+- Auth/Session: ...
+- Workspace: ...
+- Membership: ...
+- Bot/Resource: ...
+- Lifecycle: ...
+- Validation: ...
+- Mass-assignment: ...
+- Abuse: ...
+- Secret leakage: ...
+- Typecheck: ...
+- Format: ...
+- Import boundary: ...
+- Build: ...
+- pnpm check: ...
+
+Commit:
+- hash: ...
+- message: ...
+
+Git:
+- branch: ...
+- push: success/failed/not needed
+
+Working Tree:
+- clean/dirty
+
+Jika ada failure, tampilkan error sebenarnya.
+
+Jangan mengklaim sukses jika verification atau push belum berhasil.
+
+Selesaikan:
+
+AUDIT
+→ IMPLEMENT
+→ TEST
+→ BUILD
+→ COMMIT
+→ PUSH
+
+lalu berhenti.
 
 
 ```
