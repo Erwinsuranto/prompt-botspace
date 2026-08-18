@@ -10,10 +10,622 @@
 
 
 ```
-# 
+# Bot Lifecycle & Resource Integrity.
 ```
 
+PROMPT: BotSpace — Bot Lifecycle & Resource Integrity Hardening
 
+Kita melanjutkan project BotSpace dari checkpoint security terakhir yang SUDAH BERHASIL DI-PUSH.
+
+Repository: /root/botspace
+Branch: backend-dev-recovery
+Remote: https://github.com/zenolamee/botspace.git
+
+Checkpoint terakhir:
+d24aeed5d2151484449d94c72609e6f26b332d9c
+
+Status:
+- checkpoint sudah berhasil di-push
+- working tree harus diverifikasi terlebih dahulu
+- jangan reset checkpoint
+- jangan force push
+- jangan rebase sembarangan
+- jangan checkout branch lain
+- jangan merge ke backend-dev
+
+TUJUAN
+
+Lanjutkan BotSpace ke tahap berikutnya dengan fokus pada BOT LIFECYCLE dan RESOURCE INTEGRITY.
+
+Tahap sebelumnya sudah mencakup:
+- authentication
+- session security
+- current user
+- workspace authorization
+- workspace membership
+- ownership
+- permission policy
+- bot resource authorization
+- production runtime persistence verification
+
+Sekarang pastikan lifecycle bot tidak dapat menghasilkan state atau relasi database yang tidak valid.
+
+Fokus:
+
+AUTHENTICATION
+→ WORKSPACE AUTHORIZATION
+→ BOT AUTHORIZATION
+→ BOT LIFECYCLE
+→ RESOURCE INTEGRITY
+→ STATE TRANSITION
+→ DATABASE CONSISTENCY
+→ TEST
+→ BUILD
+→ COMMIT
+→ PUSH
+
+Jangan membuat authorization system kedua.
+
+1. AUDIT TERLEBIH DAHULU
+
+Sebelum mengubah kode:
+
+- cek git status
+- baca struktur repository aktual
+- baca README.md
+- audit bot entity/model
+- audit bot repository
+- audit bot service
+- audit bot API routes
+- audit bot lifecycle
+- audit bot status
+- audit bot configuration
+- audit bot credential
+- audit child resources yang memiliki botId
+- audit workspace → bot relationship
+- audit existing tests
+
+Gunakan repository aktual sebagai sumber kebenaran.
+
+Jangan langsung menulis kode sebelum memahami implementasi yang sudah ada.
+
+2. BOT LIFECYCLE
+
+Audit operasi yang memang tersedia:
+
+- create bot
+- get bot
+- list bot
+- update bot
+- delete bot
+- enable bot
+- disable bot
+- status bot
+- configuration
+- settings
+- commands
+- flows
+- integrations
+- webhook
+- credentials
+- resource lain yang memiliki botId
+
+Jangan membuat endpoint baru jika belum dibutuhkan architecture.
+
+3. BOT STATE
+
+Identifikasi state bot yang BENAR-BENAR digunakan repository.
+
+Jangan membuat state baru jika belum ada.
+
+Audit seluruh transisi state.
+
+Pastikan hanya user yang memiliki authorization yang sesuai yang dapat mengubah state.
+
+4. INVALID STATE TRANSITION
+
+Periksa kemungkinan transition yang tidak valid berdasarkan implementation aktual.
+
+Contoh jika deleted state memang tersedia:
+
+deleted
+→ enable
+
+deleted
+→ update
+
+deleted
+→ disable
+
+harus ditangani sesuai domain rule yang memang ada.
+
+Jangan membuat state machine baru hanya untuk memperumit architecture.
+
+5. CREATE BOT INTEGRITY
+
+Pastikan create bot:
+
+- menggunakan authenticated user
+- workspace valid
+- user memiliki akses workspace
+- workspaceId tidak dapat digunakan untuk mengakses workspace lain
+- ownerId tidak dapat dipalsukan
+- accountId tidak dapat dipalsukan
+- relationship bot → workspace benar
+
+Jangan mempercayai identity dari request body jika identity sudah tersedia dari authentication context.
+
+6. UPDATE BOT INTEGRITY
+
+Audit semua field update.
+
+Pisahkan:
+
+CLIENT-CONTROLLED
+
+dan
+
+SERVER-CONTROLLED
+
+Periksa khusus:
+
+- id
+- workspaceId
+- ownerId
+- accountId
+- createdBy
+- createdAt
+- updatedAt
+- status
+- role
+- permissions
+- credential identifiers
+
+Jangan mengizinkan update biasa mengubah ownership atau workspace assignment jika architecture tidak mendukungnya.
+
+Gunakan explicit field mapping jika diperlukan.
+
+7. DELETE BOT
+
+Pastikan:
+
+- authorization dilakukan sebelum mutation
+- cross-workspace delete ditolak
+- member tanpa permission delete ditolak
+- nonexistent bot mengikuti error convention
+- child resource tidak menjadi orphan secara tidak sengaja
+
+Jika project menggunakan soft delete, pertahankan.
+
+Jika hard delete, audit dependency terlebih dahulu.
+
+Jangan mengubah mekanisme delete tanpa alasan nyata.
+
+8. CHILD RESOURCE INTEGRITY
+
+Audit resource yang bergantung pada bot, jika memang tersedia:
+
+- commands
+- flows
+- settings
+- integrations
+- webhooks
+- logs
+- credentials
+- analytics
+- configuration
+
+Pastikan child resource tidak dapat diakses hanya dengan mengetahui child resource ID.
+
+Contoh:
+
+User A
+→ tidak memiliki akses bot-B
+
+maka User A juga tidak boleh:
+
+- mengakses flow-B
+- mengakses command-B
+- mengakses integration-B
+- mengakses webhook-B
+- mengakses credential-B
+
+Jangan membuat cascade delete besar-besaran tanpa dukungan architecture.
+
+9. CROSS-WORKSPACE RELATION
+
+Audit relationship:
+
+User
+→ Account
+→ Telegram Account
+→ Workspace
+→ Bot
+→ Child Resource
+
+Cari kemungkinan:
+
+- bot.workspaceId berbeda dengan workspace yang seharusnya
+- ownerId tidak sesuai
+- accountId tidak sesuai
+- botId tidak valid
+- child resource memiliki parent yang salah
+- child resource menunjuk ke bot yang sudah tidak valid
+
+Jangan memperbaiki production database secara otomatis.
+
+Fokus pada source code, enforcement, dan test.
+
+10. DATABASE / REPOSITORY
+
+Audit method:
+
+- create
+- update
+- delete
+- status update
+- child resource creation
+
+Pastikan repository/service tidak dapat membuat relationship invalid hanya karena input client.
+
+Jika database constraint sudah ada, gunakan sesuai architecture.
+
+Jika ditemukan bug nyata yang membutuhkan migration:
+
+- buat perubahan minimal
+- jangan menghapus data
+- jangan menyentuh production database
+- buat migration aman
+- test migration
+
+Jangan membuat migration besar tanpa kebutuhan.
+
+11. CONCURRENCY
+
+Audit mutation yang dapat dipanggil bersamaan.
+
+Contoh:
+
+request A:
+enable bot
+
+request B:
+disable bot
+
+Pastikan tidak menghasilkan state corrupt.
+
+Jika transaction atau atomic update sudah tersedia, gunakan abstraction existing.
+
+Jangan membuat concurrency framework baru.
+
+12. DUPLICATE RESOURCE
+
+Periksa apakah architecture memiliki aturan uniqueness untuk:
+
+- bot identifier
+- Telegram bot token
+- external identifier
+- workspace resource
+
+Jika memang ada unique/business rule, pastikan enforcement benar.
+
+Jangan membuat business rule baru tanpa bukti dari repository.
+
+13. CREDENTIAL SECURITY
+
+Audit:
+
+- bot token
+- Telegram token
+- webhook secret
+- API key
+- integration secret
+- access token
+- refresh token
+
+Pastikan credential tidak:
+
+- muncul di list bot
+- bocor di response yang tidak seharusnya
+- masuk log
+- masuk error
+- masuk analytics
+- masuk audit log plaintext
+- digunakan sebagai ownership identifier
+
+Jangan menampilkan secret dalam test output.
+
+14. API INPUT VALIDATION
+
+Audit lifecycle input:
+
+- botId
+- workspaceId
+- status
+- configuration
+- settings
+- commandId
+- flowId
+- integrationId
+- webhookId
+
+Gunakan validation framework yang sudah tersedia.
+
+Jangan membuat framework validation baru.
+
+15. MASS ASSIGNMENT / PRIVILEGE ESCALATION
+
+Cari request body yang memungkinkan user mengirim field sensitif seperti:
+
+- workspaceId
+- ownerId
+- userId
+- accountId
+- role
+- permissions
+- createdBy
+
+Pastikan field server-controlled tidak dapat digunakan untuk privilege escalation.
+
+Authentication context dan authorization policy tetap menjadi sumber kebenaran.
+
+16. TEST MATRIX
+
+Tambahkan/perbaiki test sesuai resource yang benar-benar tersedia.
+
+Create:
+- authenticated + valid workspace = PASS
+- unauthenticated = DENY
+- wrong workspace = DENY
+- spoofed ownerId = DENY
+- spoofed accountId = DENY
+
+Read:
+- own bot = PASS
+- other workspace bot = DENY
+
+Update:
+- authorized update = PASS
+- unauthorized update = DENY
+- workspaceId spoof = DENY
+- ownerId spoof = DENY
+- permission spoof = DENY
+
+Delete:
+- authorized delete = PASS
+- unauthorized delete = DENY
+- cross-workspace delete = DENY
+
+Status:
+- authorized enable = PASS
+- unauthorized enable = DENY
+- cross-workspace enable = DENY
+- authorized disable = PASS
+- unauthorized disable = DENY
+- cross-workspace disable = DENY
+
+Child resources:
+- authorized child access = PASS
+- cross-workspace child access = DENY
+- invalid parent relation = DENY
+
+Credential:
+- secret tidak muncul pada response yang tidak seharusnya
+- secret tidak muncul pada error
+- secret tidak muncul pada log/test output
+
+17. REGRESSION TEST
+
+Pastikan checkpoint security sebelumnya tetap PASS:
+
+- authentication
+- session
+- current user
+- workspace authorization
+- membership
+- ownership
+- permission policy
+- bot resource authorization
+
+Jangan melemahkan test existing.
+
+18. CODE QUALITY
+
+Pastikan:
+
+- tidak menambahkan any tanpa alasan
+- tidak menambahkan @ts-ignore
+- tidak ada unused import
+- tidak ada dead code
+- tidak ada duplicate authorization
+- tidak ada duplicate validation
+- tidak ada duplicate bot lifecycle logic
+- tidak ada circular dependency baru
+- tidak ada hardcoded secret
+
+Ikuti architecture repository.
+
+19. README
+
+Jika diperlukan:
+
+UPDATE README.md yang sudah ada.
+
+JANGAN membuat README baru.
+
+Dokumentasikan secara singkat:
+
+- bot lifecycle
+- bot status
+- authorization
+- resource integrity
+- test command
+
+20. VERIFICATION
+
+Setelah implementasi jalankan verification resmi repository.
+
+Minimal:
+
+- domain tests
+- API tests
+- authentication/session tests
+- workspace authorization tests
+- membership tests
+- bot/resource tests
+- typecheck
+- format check
+- import boundary check
+- lint jika tersedia
+- build
+
+Jika gagal:
+
+1. identifikasi root cause
+2. perbaiki
+3. jalankan test terkait
+4. jalankan full verification kembali
+
+Jangan skip test.
+
+Jangan menghapus test existing.
+
+21. GIT AUDIT
+
+Sebelum commit:
+
+git status
+git diff --stat
+git diff
+
+Pastikan hanya perubahan task ini.
+
+Jangan commit:
+
+- .env
+- API key
+- token
+- credential
+- log
+- temporary file
+- build artifact
+
+22. COMMIT
+
+Jika seluruh verification PASS:
+
+buat SATU commit.
+
+Gunakan commit message sesuai perubahan sebenarnya.
+
+Contoh:
+
+fix: harden bot lifecycle integrity
+
+atau:
+
+fix: enforce bot lifecycle security
+
+Pilih yang paling sesuai dengan implementation aktual.
+
+Setelah commit:
+
+git status
+git log --oneline -3
+
+23. PUSH
+
+Jalankan:
+
+git push
+
+Branch tetap:
+
+backend-dev-recovery
+
+Jangan:
+
+- force push
+- ubah remote
+- merge ke backend-dev
+- reset checkpoint
+- rebase sembarangan
+
+Jika push gagal karena credential GitHub:
+
+JANGAN mengubah source code lagi.
+
+Pertahankan commit lokal dan laporkan error sebenarnya.
+
+24. HASIL AKHIR
+
+Tampilkan laporan:
+
+Implementation:
+- ...
+
+Bot Lifecycle:
+- ...
+
+Resource Integrity:
+- ...
+
+Security:
+- ...
+
+Tests:
+- Domain: ...
+- API: ...
+- Auth/Session: ...
+- Workspace: ...
+- Membership: ...
+- Bot/Resource: ...
+- Typecheck: ...
+- Format: ...
+- Import boundary: ...
+- Build: ...
+
+Commit:
+- hash: ...
+- message: ...
+
+Git:
+- branch: ...
+- push: success/failed
+
+Working Tree:
+- clean/dirty
+
+Jika ada failure, tampilkan error sebenarnya.
+
+Jangan mengklaim sukses jika verification, commit, atau push belum berhasil.
+
+25. PENTING
+
+Jangan membuat fitur besar baru.
+
+Tahap ini hanya fokus:
+
+AUDIT
+→ BOT LIFECYCLE
+→ STATE INTEGRITY
+→ OWNERSHIP INTEGRITY
+→ WORKSPACE RELATION
+→ CHILD RESOURCE INTEGRITY
+→ CREDENTIAL SECURITY
+→ IDOR TEST
+→ REGRESSION TEST
+→ BUILD
+→ COMMIT
+→ PUSH
+
+Gunakan abstraction security yang sudah ada.
+
+Jangan membuat authorization system kedua.
+
+Jangan mengubah arsitektur BotSpace secara besar-besaran.
+
+Selesaikan sampai push berhasil lalu berhenti.
 
 ```
 
