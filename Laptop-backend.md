@@ -89,10 +89,97 @@
 
 
 ```
-# 
+# Prompt: Final Git Push Recovery
 ```
 
+PROMPT: BotSpace — Final Git Push Recovery
 
+Project:
+ /root/botspace
+
+Branch:
+ backend-dev-recovery
+
+Kondisi saat ini:
+- Source code verification: READY
+- Working tree: CLEAN
+- HEAD: d24aeed
+- Commit: docs: finalize production verification guidance
+- HEAD berada 1 commit di depan upstream
+- Commit sudah tersimpan lokal
+- Push sebelumnya GAGAL karena GitHub authentication:
+  fatal: could not read Username for 'https://github.com': No such device or address
+
+TUJUAN:
+Selesaikan hanya proses push commit terakhir ke GitHub.
+
+ATURAN SANGAT PENTING:
+
+1. JANGAN mengubah source code.
+2. JANGAN membuat commit baru.
+3. JANGAN membuat empty commit.
+4. JANGAN reset.
+5. JANGAN force push.
+6. JANGAN rebase.
+7. JANGAN merge.
+8. JANGAN mengubah remote.
+9. JANGAN mengubah credential/token yang sudah tersimpan.
+10. JANGAN meminta atau menampilkan secret/token.
+11. Jangan melakukan perubahan apa pun selain yang diperlukan untuk retry push.
+
+Periksa:
+
+git status
+git log --oneline -3
+git remote -v
+git branch -vv
+
+Pastikan:
+- branch tetap backend-dev-recovery
+- HEAD tetap d24aeed
+- working tree tetap clean
+
+Kemudian coba:
+
+git push
+
+Jika push berhasil:
+
+verifikasi:
+
+git status
+git log --oneline -3
+git branch -vv
+
+Pastikan HEAD dan origin/backend-dev-recovery sudah sinkron.
+
+Jika push gagal lagi karena GitHub authentication:
+
+JANGAN mengubah commit.
+JANGAN membuat commit baru.
+JANGAN force push.
+JANGAN mengubah source code.
+
+Laporkan error GitHub authentication sebenarnya.
+
+FINAL REPORT:
+
+Git:
+- Branch: ...
+- HEAD: ...
+- Commit: d24aeed
+- Push: SUCCESS / FAILED
+- Upstream: ...
+- Working tree: CLEAN
+
+FINAL DECISION:
+Jika push berhasil:
+READY — FINAL
+
+Jika push gagal:
+READY LOCALLY — PUSH BLOCKED BY GITHUB AUTHENTICATION
+
+Setelah laporan akhir, berhenti.
 
 ```
 
