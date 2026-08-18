@@ -55,7 +55,396 @@
 ```
 # 
 ```
+PROMPT: BotSpace — API Abuse Protection & Expensive Operation Hardening
 
+Lanjutkan project BotSpace dari checkpoint TERAKHIR yang SUDAH BERHASIL.
+
+Repository: /root/botspace
+Branch: backend-dev-recovery
+
+HASIL AUDIT TERAKHIR:
+- Domain: 107 passed
+- API: 113 passed
+- Observability: 31 passed
+- Auth/Session: PASS
+- Workspace: PASS
+- Membership: PASS
+- Bot/Resource: PASS
+- Lifecycle: PASS
+- Validation: PASS
+- Mass-assignment: PASS
+- Abuse: PASS
+- Response/secret leakage: PASS
+- Typecheck: PASS
+- Format: PASS
+- Import boundary: PASS
+- Build: 11/11 successful
+- pnpm check: 44/44 successful
+- Existing list boundary sudah menggunakan bounded pagination
+- Integration endpoint sudah diaudit
+- Credential verification endpoint sudah diaudit
+- Runtime bot operation sudah diaudit
+
+JANGAN reset, force push, rebase sembarangan, checkout branch lain, merge ke backend-dev, atau menghapus checkpoint yang sudah ada.
+
+TUJUAN
+
+Lanjutkan security hardening dengan fokus pada:
+
+API ABUSE
+→ EXPENSIVE OPERATION
+→ PAGINATION BOUNDARY
+→ BULK/ENUMERATION PROTECTION
+→ RESOURCE LIMIT
+→ REGRESSION TEST
+→ BUILD
+→ COMMIT
+→ PUSH
+
+PENTING:
+Jangan membuat framework rate-limit baru jika repository belum memilikinya.
+Jangan menambahkan dependency besar.
+Gunakan abstraction dan boundary yang sudah ada.
+
+1. AUDIT EXPENSIVE API
+
+Cari endpoint/service yang dapat melakukan operasi mahal atau berulang, terutama:
+
+- integration endpoint
+- credential verification endpoint
+- runtime bot operation
+- search/list endpoint
+- statistics/analytics
+- logs
+- export
+- bulk operation
+- webhook processing
+- endpoint yang melakukan external API call
+
+Pahami implementation aktual sebelum mengubah kode.
+
+2. PAGINATION
+
+Audit seluruh endpoint list/search.
+
+Pastikan:
+
+- pagination memiliki batas maksimum
+- client tidak dapat meminta jumlah record tidak terbatas
+- default limit aman
+- limit maksimum enforced di backend
+- cursor/offset tidak dapat digunakan untuk melewati authorization boundary
+- query tetap workspace-scoped jika resource bersifat workspace-scoped
+
+Jangan mengubah pagination yang sudah benar.
+
+3. EXPENSIVE OPERATION LIMIT
+
+Untuk endpoint yang melakukan operasi mahal:
+
+- periksa apakah sudah memiliki guard/validation
+- periksa apakah request dapat melakukan pekerjaan berulang tanpa batas
+- periksa apakah input size sudah dibatasi
+- periksa apakah batch size sudah dibatasi
+- periksa apakah timeout/limit sudah tersedia
+
+Jika repository belum memiliki mechanism yang sesuai:
+
+JANGAN membuat framework baru.
+
+Dokumentasikan sebagai future hardening scope jika memang diperlukan.
+
+4. CREDENTIAL VERIFICATION
+
+Audit credential verification endpoint.
+
+Pastikan user tidak dapat:
+
+- melakukan verification terhadap credential workspace lain
+- menggunakan bot/resource ID milik workspace lain
+- melakukan verification dengan input tidak terbatas
+- membocorkan credential melalui response/error/log
+
+Authorization harus dilakukan sebelum operasi verification.
+
+Jangan pernah menampilkan credential asli dalam test output.
+
+5. RUNTIME BOT OPERATION
+
+Audit endpoint/service yang menjalankan operasi bot runtime.
+
+Pastikan:
+
+- authentication wajib
+- workspace authorization wajib
+- bot authorization wajib
+- bot dari workspace lain ditolak
+- input operation dibatasi
+- operation tidak dapat dijalankan berulang tanpa boundary yang tersedia
+- error tidak membocorkan credential/internal detail
+
+Jangan mengubah behavior bot jika tidak ada security issue nyata.
+
+6. BULK OPERATION
+
+Cari endpoint yang menerima array/list input.
+
+Periksa:
+
+- maximum items
+- maximum payload size
+- duplicate items
+- invalid IDs
+- cross-workspace IDs
+- nested/bulk request abuse
+
+Jika limit sudah tersedia, pastikan benar-benar enforced di backend.
+
+Jangan menambahkan bulk endpoint baru.
+
+7. ENUMERATION
+
+Pastikan pagination/search tidak dapat digunakan untuk melakukan enumeration resource workspace lain.
+
+Test:
+
+User A:
+workspace-A
+
+User B:
+workspace-B
+
+User A tidak boleh menemukan resource workspace-B melalui:
+
+- list
+- search
+- pagination
+- filter
+- sorting
+- ID guessing
+- child resource ID
+
+Authorization harus tetap berlaku pada setiap query.
+
+8. REQUEST SIZE / INPUT BOUNDARY
+
+Audit input yang dapat berukuran besar:
+
+- strings
+- arrays
+- JSON configuration
+- filters
+- search query
+- batch input
+- bot configuration
+- webhook payload
+
+Pastikan schema validation yang sudah ada memiliki boundary yang wajar jika memang diperlukan.
+
+Jangan membuat validation framework baru.
+
+9. RATE LIMITING
+
+Cari apakah repository sudah memiliki:
+
+- rate limiter
+- throttle
+- request counter
+- abuse guard
+- retry protection
+
+Jika SUDAH ADA:
+- pastikan endpoint sensitif menggunakannya sesuai abstraction existing.
+
+Jika BELUM ADA:
+- jangan membuat framework rate limiter baru pada task ini.
+- dokumentasikan endpoint yang membutuhkan rate limiting sebagai future scope.
+
+Jangan mengklaim rate limiting sudah implemented jika memang belum ada.
+
+10. TEST
+
+Tambahkan regression test hanya jika memang ada behavior yang diperbaiki.
+
+Minimal audit/test:
+
+- pagination maximum enforced
+- oversized list request ditolak
+- oversized batch ditolak jika batch memang tersedia
+- cross-workspace list/search ditolak
+- credential verification cross-workspace ditolak
+- runtime bot operation cross-workspace ditolak
+- unauthorized expensive operation ditolak
+- existing abuse tests tetap PASS
+
+Jangan membuat test untuk endpoint yang tidak tersedia.
+
+11. SECURITY REGRESSION
+
+Pastikan tetap PASS:
+
+- Authentication
+- Session
+- Workspace
+- Membership
+- Ownership
+- Permission
+- Bot/Resource
+- Lifecycle
+- Validation
+- Mass-assignment
+- Abuse
+- Response/secret leakage
+- Observability
+
+Jangan melemahkan test lama.
+
+12. TYPESCRIPT QUALITY
+
+Pastikan:
+
+- tidak menambahkan any tanpa alasan
+- tidak menambahkan @ts-ignore
+- tidak ada unused import
+- tidak ada dead code
+- tidak ada duplicate validation
+- tidak ada duplicate authorization
+- tidak ada hardcoded secret
+- tidak ada circular dependency baru
+
+13. VERIFICATION
+
+Jalankan verification resmi repository.
+
+Minimal:
+
+- Domain tests
+- API tests
+- Observability tests
+- Auth/Session tests
+- Workspace tests
+- Membership tests
+- Bot/Resource tests
+- Lifecycle tests
+- Validation tests
+- Mass-assignment tests
+- Abuse tests
+- Response/secret leakage tests
+- Typecheck
+- Format
+- Import boundary
+- Build
+- pnpm check
+
+Jika gagal:
+
+1. cari root cause
+2. perbaiki
+3. jalankan test terkait
+4. ulangi full verification
+
+Jangan skip test.
+
+14. GIT
+
+Sebelum commit:
+
+git status
+git diff --stat
+git diff
+
+Jika TIDAK ada perubahan valid:
+- jangan membuat empty commit
+- jangan push ulang tanpa kebutuhan
+- laporkan bahwa checkpoint tetap sama
+
+Jika ADA perubahan valid:
+- buat SATU commit
+- gunakan commit message berdasarkan perubahan sebenarnya
+- jalankan git status
+- jalankan git log --oneline -3
+- git push
+
+Branch tetap:
+backend-dev-recovery
+
+Jangan force push.
+Jangan mengubah remote.
+Jangan merge ke backend-dev.
+
+15. HASIL AKHIR
+
+Laporkan:
+
+Implementation:
+- ...
+
+API Abuse:
+- ...
+
+Pagination:
+- ...
+
+Expensive Operations:
+- ...
+
+Rate Limit:
+- existing / future scope
+
+Tests:
+- Domain: ...
+- API: ...
+- Observability: ...
+- Auth/Session: ...
+- Workspace: ...
+- Membership: ...
+- Bot/Resource: ...
+- Lifecycle: ...
+- Validation: ...
+- Mass-assignment: ...
+- Abuse: ...
+- Response/secret leakage: ...
+- Typecheck: ...
+- Format: ...
+- Import boundary: ...
+- Build: ...
+- pnpm check: ...
+
+Commit:
+- hash: ...
+- message: ...
+
+Git:
+- branch: ...
+- push: success/failed/not needed
+
+Working Tree:
+- clean/dirty
+
+Jika ada failure, tampilkan error sebenarnya.
+
+Jangan mengklaim sukses jika verification belum selesai.
+
+16. PENTING
+
+Scope hanya:
+
+AUDIT
+→ API ABUSE
+→ EXPENSIVE OPERATION
+→ PAGINATION
+→ INPUT/REQUEST BOUNDARY
+→ ENUMERATION
+→ REGRESSION TEST
+→ BUILD
+→ COMMIT
+→ PUSH
+
+Jangan membuat fitur besar baru.
+Jangan membuat rate-limit framework baru tanpa existing architecture.
+Jangan mengubah business behavior tanpa bukti security issue.
+
+Selesaikan sampai verification dan push selesai, lalu berhenti.
 
 
 ```
