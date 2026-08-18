@@ -25,7 +25,152 @@
 ```
 # 
 ```
+PROMPT: BotSpace — Validation & Mass-Assignment Hardening
 
+Lanjutkan project BotSpace dari checkpoint terakhir yang SUDAH VALID.
+
+Repository: /root/botspace
+Branch: backend-dev-recovery
+
+JANGAN reset, force push, rebase sembarangan, checkout branch lain, merge ke backend-dev, atau menghapus checkpoint.
+
+KONDISI TERAKHIR:
+- Domain: 107 passed
+- API: 113 passed
+- Observability: 31 passed
+- Auth/Session: PASS
+- Workspace: PASS
+- Membership: PASS
+- Bot/Resource: PASS
+- Lifecycle: PASS
+- Validation: PASS
+- Mass-assignment: PASS
+- Abuse: PASS
+- Secret leakage: PASS
+- Typecheck: PASS
+- Format: PASS
+- Import boundary: PASS
+- Build: 11/11 successful
+- pnpm check: 44/44 successful
+- Working tree: clean
+- Database migration BLOCKED hanya karena Docker tidak tersedia
+
+TUJUAN
+
+Lakukan audit terakhir yang terarah pada:
+- API input validation
+- mass-assignment
+- privilege escalation melalui request body
+- unsafe field updates
+- bounded pagination/filter/sort
+- abuse boundary
+
+PENTING:
+Jika semua area sudah benar dan test sudah PASS, JANGAN mengubah source code hanya untuk membuat commit.
+
+AUDIT:
+
+1. Cari endpoint/service yang menerima:
+- workspaceId
+- userId
+- accountId
+- ownerId
+- role
+- permissions
+- status
+- createdBy
+- botId
+- resourceId
+
+Pastikan field server-controlled tidak dapat digunakan untuk menaikkan privilege atau mengambil resource lain.
+
+2. Audit pola mass-assignment seperti:
+- spread request body langsung ke entity
+- Object.assign
+- update(data)
+- create(data)
+
+Pastikan hanya field yang memang boleh diubah endpoint yang diproses.
+
+3. Audit:
+- pagination limit
+- offset/cursor
+- sorting
+- filtering
+- search
+
+Pastikan tidak ada query atau response yang tidak bounded.
+
+4. Audit privilege escalation:
+- role spoof
+- permission spoof
+- ownerId spoof
+- userId spoof
+- workspaceId spoof
+- accountId spoof
+
+Pastikan authorization selalu berdasarkan authenticated identity dan policy backend.
+
+5. Audit validation schema yang sudah tersedia.
+Jangan membuat validation framework baru.
+
+6. Jangan mengubah database schema kecuali ditemukan bug nyata yang memang membutuhkan perubahan.
+
+7. Tambahkan test hanya jika memang ada coverage gap nyata.
+Jangan membuat test duplikat.
+
+VERIFICATION:
+
+Jalankan:
+- targeted validation/mass-assignment tests
+- Domain tests
+- API tests
+- Typecheck
+- Format
+- Import boundary
+- Build
+- pnpm check
+
+Database migration boleh tetap BLOCKED jika Docker tidak tersedia.
+
+Jika ditemukan bug:
+AUDIT → FIX → TEST → FULL VERIFICATION
+
+Jika tidak ditemukan bug:
+jangan membuat perubahan dan jangan membuat empty commit.
+
+GIT:
+
+Jika ada perubahan valid dan semua verification PASS:
+- git status
+- git diff --stat
+- git diff
+- satu commit
+- git push
+
+Jika tidak ada perubahan:
+- jangan commit
+- jangan push
+
+Tetap di branch:
+backend-dev-recovery
+
+Jangan merge ke backend-dev.
+
+HASIL AKHIR:
+
+Laporkan singkat:
+- temuan
+- perubahan
+- validation
+- mass-assignment
+- abuse boundary
+- tests
+- build
+- commit/push jika ada
+- working tree
+
+Setelah selesai, berhenti.
 
 
 ```
