@@ -17,10 +17,55 @@
 
 
 ```
-# 
+# Prompt: Commit & Recovery Safety
 ```
 
+Sebelum mengerjakan task coding berikutnya, terapkan aturan wajib repository:
 
+1. SETIAP task yang selesai dan sudah tervalidasi WAJIB langsung dibuatkan git commit.
+2. Jangan menunggu task berikutnya untuk commit.
+3. Jangan melakukan reset, rebase, squash, amend, force-push, atau menghapus commit existing kecuali saya minta secara eksplisit.
+4. Commit harus dibuat setelah implementasi selesai dan validation/test yang relevan berhasil.
+5. Gunakan commit message yang jelas dan menggambarkan task yang baru selesai.
+6. Pastikan working tree bersih setelah commit.
+7. Setelah commit, tampilkan:
+   - commit hash
+   - commit message
+   - branch aktif
+   - git status --short
+   - ringkasan file yang berubah
+8. Sebelum memulai task baru, cek branch dan commit terakhir agar pekerjaan dilanjutkan dari state repository yang benar.
+9. Jika task gagal atau validation gagal, JANGAN membuat commit palsu. Perbaiki terlebih dahulu atau laporkan error.
+10. Jangan menghapus atau menimpa pekerjaan yang sudah ada di history.
+
+ATURAN RECOVERY VPS:
+- Anggap VPS dapat mati kapan saja.
+- Git commit adalah checkpoint utama pekerjaan.
+- Setiap milestone/task harus memiliki commit sendiri.
+- Jangan hanya mengandalkan working tree yang belum di-commit.
+- Jika VPS sebelumnya hilang, repository harus dapat dipulihkan berdasarkan commit/branch yang sudah tersedia di remote.
+- Sebelum coding, cek apakah commit terakhir sudah ada di remote.
+- Jika commit lokal belum ada di remote dan akses remote tersedia, push commit tersebut ke remote setelah validation berhasil.
+- Jika push tidak memungkinkan karena credential/network, tetap commit secara lokal dan tampilkan hash commit dengan jelas agar dapat direcovery jika filesystem VPS masih tersedia.
+- Jangan pernah menghapus commit yang sudah berhasil dibuat.
+
+WORKFLOW WAJIB:
+1. Audit state repository.
+2. Kerjakan SATU task yang diberikan.
+3. Jalankan validation yang relevan.
+4. Jika berhasil → git add → git commit.
+5. Verifikasi commit.
+6. Jika remote tersedia → push branch aktif ke remote.
+7. Tampilkan checkpoint akhir.
+8. Baru tunggu instruksi task berikutnya.
+
+PENTING:
+Jangan membuat perubahan di luar scope task.
+Jangan mengubah roadmap atau task berikutnya tanpa instruksi.
+Jangan membuat commit kosong.
+Jangan menggunakan force push.
+
+Sekarang lanjutkan task berikutnya sesuai roadmap yang tersedia di repository. Sebelum coding, audit terlebih dahulu state branch, commit terakhir, remote, dan working tree.
 
 ```
 # 
