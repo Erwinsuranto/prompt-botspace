@@ -25,7 +25,635 @@
 ```
 # 
 ```
+PROMPT: BotSpace — Persistence Adapter Wiring & Runtime Integration
 
+Kita melanjutkan project BotSpace dari checkpoint terakhir.
+
+Repository:
+ /root/botspace
+
+Branch:
+ backend-dev-recovery
+
+Remote:
+ https://github.com/zenolamee/botspace.git
+
+CHECKPOINT TERAKHIR
+
+Verification terakhir menunjukkan:
+
+- Authentication: PASS
+- Workspace authorization: PASS
+- Membership: PASS
+- Bot lifecycle: PASS
+- Migration: 31/31 PASS
+- PostgreSQL: PASS
+- Schema tables: 9 present
+- Migration history: PASS
+- Transaction smoke test: PASS
+- Migration idempotency: PASS
+- Typecheck: 11/11 PASS
+- Format: PASS
+- Import boundary: PASS
+- Secrets scan: PASS
+- Ownership check: PASS
+- Documentation links: PASS
+- Build: 11/11 successful
+- git diff --check: PASS
+
+Namun verification runtime menemukan:
+
+- PostgreSQL connection: tersedia
+- Migration sudah berjalan
+- Repository/database foundation sudah tersedia
+- Runtime production bootstrap masih belum sepenuhnya melakukan wiring persistence adapter
+- Workspace repository persistence belum sepenuhnya terhubung ke runtime
+- Membership repository persistence belum sepenuhnya terhubung ke runtime
+- Bot repository persistence belum sepenuhnya terhubung ke runtime
+- Beberapa integration/runtime test masih blocked karena adapter belum di-wire ke main runtime
+
+Git:
+
+- Branch: backend-dev-recovery
+- Working tree: DIRTY karena perubahan persistence yang sedang dikerjakan
+- Commit: JANGAN dibuat
+- Push: JANGAN dilakukan
+- USER AKAN COMMIT DAN PUSH SECARA MANUAL
+
+JANGAN:
+- reset
+- force push
+- rebase
+- merge
+- checkout branch lain
+- menghapus perubahan existing
+- membuat commit
+- melakukan push
+
+TUJUAN
+
+Selesaikan wiring persistence adapter dari PostgreSQL ke runtime BotSpace.
+
+Fokus:
+
+DATABASE
+→ REPOSITORY
+→ PERSISTENCE ADAPTER
+→ SERVICE
+→ RUNTIME BOOTSTRAP
+→ API
+→ INTEGRATION TEST
+
+Jangan membuat database system kedua.
+
+Jangan membuat repository system kedua.
+
+Gunakan abstraction persistence/repository yang sudah ada.
+
+1. AUDIT STRUKTUR PERSISTENCE
+
+Sebelum mengubah kode, audit repository aktual.
+
+Cari:
+
+- database client
+- PostgreSQL client
+- database connection
+- Prisma/Drizzle/ORM jika memang digunakan
+- repository interface
+- repository implementation
+- persistence adapter
+- workspace repository
+- membership repository
+- bot repository
+- session repository
+- user/account repository
+- dependency injection
+- application container
+- runtime bootstrap
+- API bootstrap
+- test bootstrap
+
+Pahami flow aktual:
+
+API
+→ service
+→ repository interface
+→ persistence adapter
+→ PostgreSQL
+
+Jangan membuat abstraction baru jika abstraction tersebut sudah tersedia.
+
+2. AUDIT EXISTING ADAPTER
+
+Cari apakah sudah ada:
+
+- WorkspaceRepository interface
+- WorkspaceRepository implementation
+- MembershipRepository interface
+- MembershipRepository implementation
+- BotRepository interface
+- BotRepository implementation
+- SessionRepository
+- UserRepository
+- Database adapter
+
+Jika sudah ada:
+
+GUNAKAN IMPLEMENTASI TERSEBUT.
+
+Jangan membuat repository duplicate hanya karena runtime belum menggunakannya.
+
+Jika interface sudah benar tetapi implementation belum selesai, lengkapi implementation minimal yang diperlukan.
+
+3. RUNTIME DEPENDENCY INJECTION
+
+Audit bagaimana application runtime mendapatkan dependency.
+
+Pastikan runtime production memiliki dependency yang benar:
+
+Authentication
+→ User/Session repository
+
+Workspace authorization
+→ Workspace repository
+→ Membership repository
+
+Bot lifecycle
+→ Bot repository
+
+Database:
+→ PostgreSQL adapter
+
+Jangan membuat singleton global baru jika project sudah memiliki dependency injection/container.
+
+Gunakan pattern yang sudah dipakai repository.
+
+4. WORKSPACE PERSISTENCE
+
+Pastikan operasi workspace yang memang sudah tersedia dapat menggunakan PostgreSQL repository.
+
+Audit:
+
+- create workspace
+- get workspace
+- list workspace
+- update workspace
+- delete workspace jika tersedia
+
+Pastikan authorization tetap berjalan sebelum repository mutation.
+
+Jangan melewati authorization hanya karena sekarang menggunakan database persistence.
+
+5. MEMBERSHIP PERSISTENCE
+
+Audit:
+
+- get membership
+- list membership
+- create membership jika tersedia
+- update membership jika tersedia
+- remove membership jika tersedia
+
+Pastikan query selalu memiliki workspace/user scope yang benar.
+
+Jangan menggunakan:
+
+findById(id)
+
+secara bebas jika authorization membutuhkan workspace/user context.
+
+Jangan mengizinkan cross-workspace membership access.
+
+6. BOT PERSISTENCE
+
+Audit:
+
+- create bot
+- get bot
+- list bot
+- update bot
+- delete bot
+- enable bot
+- disable bot
+
+Pastikan bot persistence tetap terhubung dengan:
+
+workspaceId
+owner/account relationship
+authentication context
+permission policy
+
+Jangan menerima ownerId atau workspaceId dari client sebagai sumber authorization.
+
+7. SESSION PERSISTENCE
+
+Audit session repository.
+
+Pastikan runtime menggunakan persistence adapter yang benar untuk:
+
+- create session
+- validate session
+- get current user
+- expire session
+- revoke session
+- logout
+
+Jangan membuat session system kedua.
+
+Jika session saat ini masih menggunakan in-memory storage sementara PostgreSQL adapter sudah tersedia, evaluasi apakah architecture memang mengharuskan persistence production.
+
+Jika memang harus PostgreSQL, wire adapter existing.
+
+8. PRODUCTION RUNTIME
+
+Cari file bootstrap utama.
+
+Contoh kemungkinan:
+
+- main.ts
+- server.ts
+- app.ts
+- bootstrap.ts
+- container.ts
+
+Gunakan file aktual repository.
+
+Pastikan production runtime tidak hanya melakukan:
+
+health check
+migration
+schema initialization
+
+tetapi juga benar-benar menghubungkan repository adapter ke application services.
+
+Jangan mengubah route contract.
+
+9. TEST RUNTIME
+
+Setelah wiring selesai, buat atau perbaiki integration test yang memang sudah didukung architecture.
+
+Minimal verifikasi:
+
+Authentication
+→ PostgreSQL session/user repository
+
+Workspace
+→ PostgreSQL workspace repository
+
+Membership
+→ PostgreSQL membership repository
+
+Bot
+→ PostgreSQL bot repository
+
+Authorization
+→ PostgreSQL-backed workspace/membership data
+
+Test harus membuktikan bahwa runtime benar-benar menggunakan persistence adapter.
+
+Jangan membuat test yang hanya melakukan mock jika tujuan task adalah membuktikan runtime persistence wiring.
+
+Gunakan integration test yang sesuai dengan infrastructure repository.
+
+10. DATABASE SAFETY
+
+Jangan melakukan perubahan destructive terhadap database.
+
+DILARANG:
+
+- DROP DATABASE
+- DROP TABLE
+- TRUNCATE
+- reset database
+- delete production data
+- destructive migration
+
+Migration yang sudah ada harus tetap dipertahankan.
+
+Jika migration baru benar-benar diperlukan:
+
+- jelaskan alasannya
+- buat migration minimal
+- jangan menghapus data
+- jalankan migration test
+- jalankan idempotency test
+
+Jangan membuat migration jika wiring dapat diselesaikan tanpa schema change.
+
+11. TRANSACTION SAFETY
+
+Audit mutation yang memang membutuhkan transaction.
+
+Minimal periksa:
+
+- workspace creation
+- membership creation
+- bot creation
+- bot deletion
+- child resource mutation
+
+Gunakan transaction abstraction yang sudah tersedia jika memang dibutuhkan.
+
+Jangan membuat transaction framework baru.
+
+12. ERROR HANDLING
+
+Gunakan error system existing.
+
+Pastikan database error tidak membocorkan:
+
+- connection string
+- password
+- DATABASE_URL
+- credential
+- secret
+- SQL internal detail pada production response
+
+Mapping error harus tetap konsisten:
+
+authentication
+→ authentication error
+
+authorization
+→ authorization error
+
+not found
+→ not found
+
+database failure
+→ internal/database error sesuai convention
+
+13. ENVIRONMENT SECURITY
+
+Audit database configuration.
+
+Pastikan:
+
+- DATABASE_URL tidak hardcoded
+- password tidak hardcoded
+- credential tidak masuk source code
+- secret tidak masuk test output
+- `.env` tidak diubah menjadi tracked file
+- runtime tidak mencetak DATABASE_URL
+
+Jangan mengubah production secret.
+
+14. TESTING
+
+Jalankan verification sebelum dan sesudah perubahan jika memungkinkan.
+
+Minimal:
+
+- domain tests
+- API tests
+- authentication tests
+- session tests
+- workspace tests
+- membership tests
+- bot tests
+- database migration tests
+- integration tests
+- typecheck
+- format
+- import boundary
+- lint jika tersedia
+- build
+
+Khusus database:
+
+- PostgreSQL connection
+- migration
+- schema validation
+- migration idempotency
+- transaction smoke test
+
+Jangan skip test existing.
+
+15. RUNTIME SMOKE TEST
+
+Setelah adapter selesai di-wire, lakukan smoke test runtime.
+
+Minimal pastikan:
+
+/health
+
+atau endpoint health yang memang tersedia:
+
+HTTP 200
+
+Kemudian endpoint runtime yang membutuhkan authentication dan persistence harus dapat mencapai repository layer tanpa:
+
+- "repository unavailable"
+- "adapter not wired"
+- "not implemented"
+- "persistence unavailable"
+
+Jangan mengklaim production ready jika runtime masih menggunakan stub untuk operasi yang seharusnya sudah persistent.
+
+16. JANGAN MEMBUAT FITUR BARU
+
+Jangan menambahkan:
+
+- UI baru
+- endpoint baru
+- authentication system baru
+- permission system baru
+- database schema besar
+- bot feature baru
+- deployment infrastructure baru
+
+Task ini hanya:
+
+PERSISTENCE ADAPTER
+→ RUNTIME WIRING
+→ DATABASE INTEGRATION
+→ TEST
+
+17. TYPESCRIPT QUALITY
+
+Pastikan:
+
+- tidak menambahkan any tanpa alasan
+- tidak menambahkan @ts-ignore
+- tidak ada unused import
+- tidak ada dead code
+- tidak ada duplicate repository
+- tidak ada duplicate adapter
+- tidak ada circular dependency baru
+- tidak ada hardcoded credential
+
+Ikuti architecture repository.
+
+18. BACKWARD COMPATIBILITY
+
+Jangan merusak API existing.
+
+Sebelum mengubah:
+
+- constructor
+- dependency injection
+- service signature
+- repository interface
+- bootstrap contract
+
+cari seluruh caller.
+
+Update caller dan test yang relevan.
+
+Jangan membuat breaking change tanpa alasan.
+
+19. README
+
+Jika wiring persistence memerlukan dokumentasi:
+
+UPDATE README.md yang sudah ada.
+
+JANGAN membuat README baru.
+
+Dokumentasikan singkat:
+
+- persistence architecture
+- PostgreSQL adapter
+- runtime wiring
+- test command
+
+20. VERIFICATION FINAL
+
+Setelah implementation selesai jalankan full verification.
+
+Minimal:
+
+- Domain: PASS
+- API: PASS
+- Auth/Session: PASS
+- Workspace: PASS
+- Membership: PASS
+- Bot: PASS
+- Database migration: PASS
+- PostgreSQL connection: PASS
+- Integration: PASS
+- Typecheck: PASS
+- Format: PASS
+- Import boundary: PASS
+- Build: PASS
+
+Jika ada failure:
+
+1. cari root cause
+2. perbaiki
+3. ulangi test terkait
+4. ulangi full verification
+
+Jangan skip test.
+
+21. GIT — SANGAT PENTING
+
+USER AKAN COMMIT DAN PUSH MANUAL.
+
+AI DILARANG:
+
+- git add
+- git commit
+- git push
+- git reset
+- git checkout
+- git clean
+- git rebase
+- git merge
+- force push
+
+Setelah selesai cukup jalankan:
+
+git status
+git diff --stat
+git diff --check
+
+Jika diperlukan untuk verification, boleh membaca:
+
+git log --oneline -3
+
+Tetapi JANGAN membuat commit.
+
+Working tree harus tetap berisi perubahan source code yang dibuat.
+
+22. HASIL AKHIR
+
+Tampilkan laporan:
+
+Implementation:
+- persistence adapter yang di-wire
+- runtime yang diperbaiki
+- repository yang sekarang benar-benar digunakan
+
+Database:
+- PostgreSQL: PASS/FAIL
+- Migration: PASS/FAIL
+- Transaction: PASS/FAIL
+
+Runtime:
+- Bootstrap: PASS/FAIL
+- Health: PASS/FAIL
+- Persistence integration: PASS/FAIL
+
+Tests:
+- Domain: ...
+- API: ...
+- Auth/Session: ...
+- Workspace: ...
+- Membership: ...
+- Bot: ...
+- Database: ...
+- Integration: ...
+- Typecheck: ...
+- Format: ...
+- Import boundary: ...
+- Build: ...
+
+Git:
+- Branch: backend-dev-recovery
+- Working tree: clean/dirty
+- Commit: NOT PERFORMED
+- Push: NOT PERFORMED — USER WILL PUSH MANUALLY
+
+FINAL DECISION:
+
+Jika semua verification PASS:
+
+PERSISTENCE ADAPTER WIRED — READY FOR MANUAL COMMIT/PUSH
+
+Jika masih ada blocker:
+
+PERSISTENCE WIRING BLOCKED
+
+Tampilkan blocker sebenarnya.
+
+Jangan mengklaim persistence sudah production-ready jika runtime masih menggunakan adapter/stub yang belum di-wire.
+
+23. PENTING
+
+Tujuan task ini bukan membuat fitur baru.
+
+Tujuannya memastikan persistence foundation yang sudah tersedia benar-benar digunakan oleh runtime.
+
+Alur:
+
+AUDIT
+→ DATABASE
+→ REPOSITORY
+→ ADAPTER
+→ DEPENDENCY INJECTION
+→ RUNTIME
+→ AUTH/WORKSPACE/BOT
+→ INTEGRATION TEST
+→ BUILD
+→ GIT DIFF CHECK
+
+STOP setelah verification selesai.
+
+JANGAN COMMIT.
+JANGAN PUSH.
+USER AKAN PUSH MANUAL.
 
 
 ```
