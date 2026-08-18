@@ -61,7 +61,257 @@
 ```
 # 
 ```
+PROMPT: BotSpace — API Abuse & Rate-Limit Boundary Audit
 
+Lanjutkan project BotSpace dari checkpoint yang SUDAH BERHASIL.
+
+Repository: /root/botspace
+Branch: backend-dev-recovery
+Checkpoint: 28d9438 — fix: secure bot resource authorization
+
+HASIL TERAKHIR:
+- Domain: PASS
+- API: PASS
+- Observability: PASS
+- Auth/Session: PASS
+- Workspace: PASS
+- Membership: PASS
+- Bot/Resource: PASS
+- Lifecycle: PASS
+- Validation: PASS
+- Mass-assignment: PASS
+- Abuse: PASS
+- Response/secret leakage: PASS
+- Typecheck: PASS
+- Format: PASS
+- Import boundary: PASS
+- Build: 11/11 successful
+- pnpm check: 44/44 successful
+- Working tree: clean
+- Tidak ada commit baru karena tidak ada perubahan valid
+
+JANGAN reset, force push, rebase sembarangan, merge ke backend-dev, atau menghapus checkpoint.
+
+TUJUAN
+
+Audit tahap berikutnya:
+
+API ABUSE
+→ RATE-LIMITING BOUNDARY
+→ RESOURCE ENUMERATION PROTECTION
+→ EXPENSIVE OPERATION PROTECTION
+→ REGRESSION TEST
+
+PENTING:
+Jangan membuat rate-limit framework baru jika repository belum memilikinya.
+Jangan menambahkan dependency besar hanya untuk task ini.
+Jika rate limiting memang belum tersedia, audit boundary dan dokumentasikan sebagai future scope.
+
+1. AUDIT
+
+Cari implementasi yang sudah ada untuk:
+
+- rate limit
+- throttling
+- request limits
+- abuse protection
+- pagination
+- expensive API operation
+- authentication abuse
+- bot creation abuse
+- resource enumeration
+- bulk operation
+
+Gunakan architecture repository aktual.
+
+2. IDENTIFIKASI ENDPOINT SENSITIF
+
+Audit endpoint yang berpotensi disalahgunakan:
+
+- login/authentication
+- session
+- bot creation
+- bot deletion
+- bot enable/disable
+- workspace creation
+- membership mutation
+- search/list resource
+- bulk operation
+- webhook/integration
+- endpoint yang menjalankan operasi mahal
+
+Jangan membuat endpoint baru.
+
+3. RATE-LIMIT BOUNDARY
+
+Jika project sudah memiliki rate-limit abstraction:
+
+- pastikan digunakan pada endpoint yang memang membutuhkan
+- jangan bypass melalui route alternatif
+- jangan menggunakan userId dari request sebagai identity
+- gunakan authentication context yang benar
+
+Jika belum ada rate limiter:
+
+JANGAN membuat framework baru.
+
+Dokumentasikan endpoint yang paling membutuhkan rate limiting sebagai future hardening scope.
+
+4. RESOURCE ENUMERATION
+
+Audit apakah attacker dapat melakukan enumeration melalui:
+
+- sequential ID
+- pagination
+- list endpoint
+- search endpoint
+- error response
+- timing/error difference
+
+Pastikan workspace authorization tetap diterapkan sebelum resource dibocorkan.
+
+Cross-workspace enumeration harus DENY.
+
+5. EXPENSIVE OPERATIONS
+
+Cari operasi yang berpotensi mahal:
+
+- bulk query
+- large list
+- search tanpa pagination
+- bot statistics
+- logs
+- analytics
+- export
+- webhook processing
+
+Jika sudah ada limit/pagination, pastikan tidak mudah dibypass.
+
+Jangan mengubah business behavior tanpa bukti masalah nyata.
+
+6. AUTHENTICATION ABUSE
+
+Audit:
+
+- repeated failed login
+- session creation abuse
+- repeated logout
+- invalid token requests
+
+Jika belum ada rate limiting infrastructure, jangan membuat sistem baru.
+
+Pastikan failure tetap aman dan tidak membocorkan credential atau identity.
+
+7. TEST
+
+Tambahkan test hanya jika memang ada behavior yang perlu diperbaiki.
+
+Minimal regression:
+
+- cross-workspace enumeration = DENY
+- unauthorized resource listing = DENY
+- unauthorized expensive operation = DENY
+- invalid authentication = DENY
+- existing abuse tests tetap PASS
+
+Jangan membuat test untuk fitur rate limit yang memang belum tersedia.
+
+8. SECURITY REGRESSION
+
+Pastikan tetap PASS:
+
+- Authentication
+- Session
+- Workspace
+- Membership
+- Ownership
+- Permission
+- Bot/Resource
+- Lifecycle
+- Validation
+- Mass-assignment
+- Abuse
+- Response/secret leakage
+
+9. VERIFICATION
+
+Jalankan verification repository:
+
+- Domain
+- API
+- Observability
+- Auth/Session
+- Workspace
+- Membership
+- Bot/Resource
+- Lifecycle
+- Validation
+- Mass-assignment
+- Abuse
+- Response/secret leakage
+- Typecheck
+- Format
+- Import boundary
+- Build
+- pnpm check
+
+Jika semua PASS tetapi tidak ada perubahan kode valid:
+
+JANGAN membuat empty commit.
+
+10. GIT
+
+Jika ada perubahan valid:
+
+git status
+git diff --stat
+git diff
+
+Buat SATU commit dengan message sesuai perubahan.
+
+Kemudian:
+
+git push
+
+Branch tetap:
+
+backend-dev-recovery
+
+Jika tidak ada perubahan valid:
+
+jangan commit dan jangan push.
+
+11. HASIL AKHIR
+
+Laporkan:
+
+Audit:
+- ...
+
+Abuse Protection:
+- ...
+
+Rate Limit:
+- existing / future scope
+
+Enumeration:
+- ...
+
+Tests:
+- ...
+
+Commit:
+- created / no valid changes
+
+Git:
+- push success / not needed / failed
+
+Working Tree:
+- clean / dirty
+
+Jangan mengklaim implementasi rate limiting jika framework tersebut memang belum ada.
+
+Selesaikan audit ini sampai verification selesai lalu berhenti.
 
 
 ```
