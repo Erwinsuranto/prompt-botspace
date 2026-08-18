@@ -11,10 +11,528 @@
 
 
 ```
-# 
+# Prompt: BotSpace — Final Production Readiness & Verification
 ```
 
+PROMPT: BotSpace — Final Production Readiness & Final Verification
 
+Kita melanjutkan project BotSpace dari checkpoint terakhir yang SUDAH BERHASIL.
+
+Repository:
+ /root/botspace
+
+Branch:
+ backend-dev-recovery
+
+Checkpoint terakhir:
+ ab4df16 — fix: harden bot credential reference integrity
+
+Status checkpoint:
+- Working tree: CLEAN
+- HEAD dan origin/backend-dev-recovery: SINKRON
+- Domain: 107 passed
+- API: 113 passed
+- Observability: 31 passed
+- Auth/Session: PASS
+- Workspace: PASS
+- Membership: PASS
+- Bot/Resource: PASS
+- Lifecycle: PASS
+- Validation: PASS
+- Mass-assignment: PASS
+- Abuse: PASS
+- Secret leakage: PASS
+- Typecheck: PASS
+- Format: PASS
+- Import boundary: PASS
+- Secrets scan: PASS
+- Build: 11/11 successful
+- pnpm check: 44/44 successful
+
+Database Migration:
+- STATUS: BLOCKED
+- Reason: Docker tidak tersedia di environment ini
+- Error: /bin/sh: 1: docker: not found
+
+PENTING:
+JANGAN install Docker hanya untuk verification ini.
+JANGAN mengubah source code hanya untuk menghilangkan blocker Docker.
+JANGAN membuat migration palsu.
+JANGAN mengklaim database migration PASS.
+Catat migration sebagai BLOCKED BY ENVIRONMENT jika masih tidak dapat dijalankan.
+
+Git:
+- branch: backend-dev-recovery
+- remote sudah sinkron
+- jangan reset
+- jangan force push
+- jangan rebase sembarangan
+- jangan checkout branch lain
+- jangan merge ke backend-dev
+
+==================================================
+TUJUAN FINAL
+==================================================
+
+Ini adalah tahap FINAL verification BotSpace.
+
+Jangan membuat fitur besar baru.
+
+Tujuan:
+
+AUDIT FINAL
+→ RUNTIME/CONFIGURATION SAFETY
+→ SECURITY REGRESSION
+→ API CONTRACT
+→ TEST
+→ TYPECHECK
+→ FORMAT
+→ BUILD
+→ GIT AUDIT
+→ COMMIT HANYA JIKA ADA PERBAIKAN NYATA
+→ PUSH
+→ FINAL REPORT
+
+Setelah tahap ini selesai dan semua verification yang tersedia PASS, berhenti.
+
+==================================================
+1. FINAL REPOSITORY AUDIT
+==================================================
+
+Baca struktur repository aktual.
+
+Audit:
+
+- packages/domain
+- services/api
+- infrastructure
+- database
+- bot/resource modules
+- configuration
+- scripts
+- tests
+- README.md
+
+Cari TODO/FIXME yang berkaitan dengan:
+
+- authentication
+- authorization
+- workspace isolation
+- membership
+- ownership
+- bot lifecycle
+- credential
+- secret leakage
+- resource access
+- database consistency
+
+Jangan memperbaiki TODO yang tidak relevan.
+
+Jangan membuat fitur baru.
+
+==================================================
+2. SECURITY REGRESSION
+==================================================
+
+Pastikan checkpoint sebelumnya tetap aman.
+
+Verifikasi kembali:
+
+Authentication
+→ Session
+→ Current User
+→ Workspace Authorization
+→ Membership
+→ Ownership
+→ Permission
+→ Bot Authorization
+→ Bot Lifecycle
+→ Child Resource Integrity
+→ Credential Security
+
+Pastikan tidak ada bypass melalui:
+
+- userId
+- accountId
+- workspaceId
+- botId
+- ownerId
+- membershipId
+- role
+- permission
+- status
+
+yang berasal langsung dari request.
+
+Authenticated identity harus tetap berasal dari auth/session context.
+
+==================================================
+3. API CONTRACT AUDIT
+==================================================
+
+Audit protected API yang sudah tersedia.
+
+Pastikan:
+
+- authentication tetap diwajibkan
+- workspace isolation tetap berlaku
+- permission tetap berlaku
+- input validation tetap aktif
+- response tidak membocorkan secret
+- error tidak membocorkan internal data
+- tidak ada endpoint yang secara tidak sengaja menjadi public
+
+Jangan membuat endpoint baru.
+
+Jangan mengubah API contract jika tidak ada bug nyata.
+
+==================================================
+4. BOT LIFECYCLE REGRESSION
+==================================================
+
+Pastikan lifecycle bot tetap konsisten.
+
+Audit operasi yang tersedia:
+
+- create
+- read
+- list
+- update
+- enable
+- disable
+- delete
+- configuration
+- credentials
+- child resources
+
+Pastikan:
+
+- cross-workspace access DENY
+- unauthorized mutation DENY
+- ownership spoof DENY
+- workspace spoof DENY
+- credential spoof DENY
+- invalid lifecycle transition ditangani sesuai architecture
+
+Jangan membuat state baru.
+
+==================================================
+5. SECRET / CREDENTIAL FINAL AUDIT
+==================================================
+
+Cari kemungkinan credential leakage melalui:
+
+- API response
+- error
+- logs
+- test output
+- debug output
+- serialization
+- audit data
+- configuration output
+
+Cari:
+
+- token
+- API key
+- password
+- session token
+- webhook secret
+- bot credential
+
+Pastikan tidak ada secret hardcoded.
+
+Jangan menampilkan secret selama verification.
+
+Jika menemukan kebocoran nyata, perbaiki minimal dan tambahkan regression test.
+
+==================================================
+6. DATABASE MIGRATION
+==================================================
+
+Coba verifikasi apakah environment saat ini menyediakan tool migration yang memang diperlukan.
+
+Jika Docker TIDAK tersedia:
+
+JANGAN:
+- install Docker
+- mengubah source code
+- membuat fake migration result
+- menghapus migration test
+- skip silently
+
+Laporkan:
+
+Database Migration:
+BLOCKED — Docker unavailable in verification environment.
+
+Jika ada migration command yang dapat diverifikasi TANPA Docker menggunakan tooling resmi repository, boleh jalankan.
+
+Jika tidak memungkinkan, jangan dipaksakan.
+
+==================================================
+7. FULL TEST
+==================================================
+
+Jalankan verification resmi repository.
+
+Minimal:
+
+- domain tests
+- API tests
+- authentication/session tests
+- workspace tests
+- membership tests
+- bot/resource tests
+- lifecycle tests
+- validation tests
+- abuse/security tests
+- secret leakage tests
+- typecheck
+- format
+- import boundary
+- lint jika tersedia
+- build
+
+Jangan skip test.
+
+Jangan menghapus test.
+
+Jika failure:
+
+1. identifikasi root cause
+2. perbaiki hanya jika failure disebabkan source code
+3. jalankan test terkait
+4. jalankan full verification kembali
+
+Jika failure hanya karena environment, jangan mengubah source code untuk memalsukan PASS.
+
+==================================================
+8. PACKAGE / DEPENDENCY AUDIT
+==================================================
+
+Periksa dependency yang digunakan project.
+
+Cari:
+
+- dependency tidak terpakai
+- package yang baru ditambahkan tanpa alasan
+- script yang rusak
+- duplicate dependency
+- configuration yang tidak konsisten
+
+Jangan melakukan upgrade dependency besar pada tahap final.
+
+Jangan mengubah lockfile tanpa kebutuhan.
+
+==================================================
+9. TYPESCRIPT / CODE QUALITY
+==================================================
+
+Pastikan:
+
+- tidak ada any baru tanpa alasan
+- tidak ada @ts-ignore baru
+- tidak ada unused import
+- tidak ada dead code
+- tidak ada duplicate security system
+- tidak ada duplicate validation
+- tidak ada circular dependency baru
+- tidak ada hardcoded secret
+- tidak ada debug code
+
+Jangan melakukan refactor besar hanya untuk style.
+
+==================================================
+10. README FINAL
+==================================================
+
+Gunakan README.md yang SUDAH ADA.
+
+Jika dokumentasi belum mencerminkan security architecture final, update secara singkat:
+
+- authentication
+- workspace isolation
+- membership/permission
+- bot authorization
+- bot lifecycle
+- credential security
+- verification command
+- database migration requirement
+
+Jangan membuat README baru.
+
+Jangan menambahkan dokumentasi yang tidak relevan.
+
+==================================================
+11. GIT AUDIT
+==================================================
+
+Setelah semua implementation selesai:
+
+git status
+git diff --stat
+git diff
+
+Pastikan tidak ada:
+
+- .env
+- API key
+- token
+- password
+- credential
+- logs
+- temporary files
+- build artifacts
+
+Jika TIDAK ADA perubahan source code yang diperlukan:
+
+JANGAN membuat empty commit.
+
+Jika README atau source code memang berubah karena task final ini:
+
+buat SATU commit.
+
+Gunakan commit message sesuai perubahan sebenarnya.
+
+Contoh:
+
+docs: finalize BotSpace security documentation
+
+atau:
+
+fix: finalize production security checks
+
+Pilih yang benar-benar sesuai.
+
+==================================================
+12. PUSH
+==================================================
+
+Jika ada commit baru:
+
+git push
+
+Pastikan branch:
+
+backend-dev-recovery
+
+Jangan:
+
+- force push
+- reset
+- rebase
+- ubah remote
+- merge ke backend-dev
+
+Jika tidak ada perubahan:
+
+tidak perlu membuat commit.
+
+Tetap pastikan HEAD sudah sinkron dengan origin.
+
+==================================================
+13. FINAL STATUS
+==================================================
+
+Tampilkan laporan FINAL secara jelas.
+
+Format:
+
+FINAL VERIFICATION
+
+Repository:
+- /root/botspace
+
+Branch:
+- backend-dev-recovery
+
+Security:
+- Authentication: PASS
+- Session: PASS
+- Workspace authorization: PASS
+- Membership: PASS
+- Ownership: PASS
+- Permission: PASS
+- Bot authorization: PASS
+- Bot lifecycle: PASS
+- Resource integrity: PASS
+- Credential security: PASS
+- Secret leakage: PASS
+
+Tests:
+- Domain: ...
+- API: ...
+- Observability: ...
+- Auth/Session: ...
+- Workspace: ...
+- Membership: ...
+- Bot/Resource: ...
+- Lifecycle: ...
+- Validation: ...
+- Abuse: ...
+- Secret scan: ...
+- Typecheck: ...
+- Format: ...
+- Import boundary: ...
+- Build: ...
+
+Database Migration:
+- PASS / BLOCKED
+- Jika BLOCKED: jelaskan "Docker tidak tersedia"
+
+Git:
+- HEAD: ...
+- Upstream: ...
+- Commit: ...
+- Push: success / not needed / failed
+
+Working Tree:
+- CLEAN / DIRTY
+
+FINAL DECISION:
+- READY
+atau
+- NOT READY
+
+Jangan menyatakan READY jika ada source-code failure yang belum diperbaiki.
+
+Database migration yang BLOCKED hanya karena Docker tidak tersedia TIDAK dianggap source-code failure.
+
+==================================================
+14. ATURAN TERAKHIR
+==================================================
+
+Jangan membuat fitur baru.
+
+Jangan memperbesar scope.
+
+Jangan mengulang security architecture.
+
+Jangan membuat authorization system kedua.
+
+Jangan install Docker.
+
+Jangan menyentuh production database.
+
+Jangan mengubah credential GitHub.
+
+Jangan force push.
+
+Fokus hanya pada final verification dan perbaikan kecil jika memang ditemukan bug nyata.
+
+Setelah:
+
+AUDIT
+→ TEST
+→ BUILD
+→ GIT CHECK
+→ PUSH jika diperlukan
+→ FINAL REPORT
+
+SELESAI.
+
+BERHENTI setelah final report.
 
 ```
 # Prompt: BotSpace — Final Security Audit & Release Readiness
