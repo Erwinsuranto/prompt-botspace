@@ -29,10 +29,159 @@
 
 
 ```
-# 
+# API Boundary & Abuse Hardening
 ```
 
+PROMPT: BotSpace — API Boundary & Abuse Hardening
 
+Lanjutkan project BotSpace dari checkpoint TERAKHIR yang SUDAH VALID.
+
+Repository: /root/botspace
+Branch: backend-dev-recovery
+
+JANGAN reset, force push, rebase sembarangan, checkout branch lain, merge ke backend-dev, atau menghapus checkpoint.
+
+HASIL VERIFICATION TERAKHIR:
+- Domain: 107 passed
+- API: 113 passed
+- Observability: 31 passed
+- Auth/Session: PASS
+- Workspace: PASS
+- Membership: PASS
+- Bot/Resource: PASS
+- Lifecycle: PASS
+- Validation: PASS
+- Mass-assignment: PASS
+- Abuse: PASS
+- Response/secret leakage: PASS
+- Typecheck: PASS
+- Format: PASS
+- Import boundary: PASS
+- Build: 11/11 successful
+- pnpm check: 44/44 successful
+- Working tree: clean
+
+Database migration integration:
+BLOCKED karena environment tidak memiliki Docker.
+Jangan menginstal Docker dan jangan mengubah source code hanya untuk mengatasi blocker environment tersebut.
+
+TUJUAN
+
+Karena security workspace, membership, authentication, bot authorization, lifecycle, credential integrity, dan mass-assignment sudah PASS, lakukan audit berikutnya pada API boundary dan abuse resistance.
+
+Fokus hanya pada masalah nyata yang ditemukan.
+
+AUDIT:
+
+1. API boundary
+- protected endpoint wajib authentication
+- workspace/resource endpoint wajib authorization
+- jangan percaya userId/workspaceId dari client
+- pastikan resource ID tidak dapat digunakan untuk IDOR
+
+2. Input abuse
+Audit:
+- pagination
+- limit
+- offset/cursor
+- filter
+- sorting
+- search
+- bulk/mass assignment
+- nested input
+- oversized input
+
+Pastikan endpoint tidak menerima nilai yang dapat menyebabkan unbounded query atau response.
+
+3. Pagination
+Pastikan list endpoint memakai bounded pagination jika architecture memang mendukungnya.
+
+Jangan membuat pagination system baru.
+
+4. Resource enumeration
+Pastikan user tidak dapat menggunakan list/detail endpoint untuk mengambil resource workspace lain.
+
+5. Error boundary
+Pastikan error:
+- tidak membocorkan secret
+- tidak membocorkan resource workspace lain
+- tidak membocorkan stack trace/internal detail production
+- mengikuti error convention yang sudah ada
+
+6. Logging
+Pastikan:
+- token/credential/password tidak masuk log
+- request body sensitif tidak dilog
+- error tidak membocorkan secret
+
+7. Regression
+Jangan merusak security yang sudah PASS.
+
+TEST minimal sesuai endpoint yang benar-benar tersedia:
+- unauthenticated → DENY
+- cross-workspace → DENY
+- invalid pagination → DENY/normalize sesuai convention
+- excessive limit → bounded/rejected
+- invalid filter → handled safely
+- unauthorized resource enumeration → DENY
+- secret leakage → PASS
+
+Jangan membuat endpoint baru.
+Jangan membuat security framework baru.
+Jangan membuat fitur besar.
+
+VERIFICATION:
+
+Jalankan:
+- targeted tests
+- domain tests
+- API tests
+- typecheck
+- format
+- import boundary
+- build
+- pnpm check
+
+Database migration boleh tetap BLOCKED jika hanya karena Docker tidak tersedia.
+Jangan menganggap blocker Docker sebagai source-code failure.
+
+Jika ada masalah nyata:
+AUDIT → FIX → TEST → FULL VERIFICATION
+
+Jika tidak ada masalah:
+jangan membuat perubahan hanya demi menghasilkan commit.
+
+GIT:
+
+Jika ada perubahan valid dan seluruh verification PASS:
+- git status
+- git diff --stat
+- git diff
+- buat SATU commit
+- git push
+
+Jika tidak ada perubahan:
+- jangan membuat empty commit
+- jangan push ulang
+
+Tetap di branch:
+backend-dev-recovery
+
+HASIL AKHIR:
+
+Laporkan:
+- temuan
+- perubahan
+- tests
+- build
+- database migration blocker jika masih ada
+- commit jika ada
+- push jika dilakukan
+- working tree
+
+Jangan mengklaim ada perubahan jika repository memang tidak berubah.
+
+Setelah selesai, berhenti.
 
 ```
 # Prompt berikutnya — Bot Lifecycle & Resource Integrity
