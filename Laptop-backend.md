@@ -31,7 +31,534 @@
 ```
 # 
 ```
+PROMPT: BotSpace — Complete Bot Lifecycle Contracts & Mutation Policies
 
+Lanjutkan project BotSpace dari hasil audit Bot Lifecycle terakhir.
+
+Repository:
+ /root/botspace
+
+Branch:
+ backend-dev-recovery
+
+STATUS TERAKHIR:
+- Authentication: VERIFIED
+- Workspace authorization: VERIFIED
+- Membership: VERIFIED
+- Ownership: VERIFIED
+- Permission policy: VERIFIED
+- Bot resource authorization: VERIFIED
+- Persistence foundation: VERIFIED
+- Migration: PASS
+- Typecheck: PASS
+- Build: PASS
+- Working tree: DIRTY
+- Commit: NOT PERFORMED
+- Push: NOT PERFORMED — USER WILL PUSH MANUALLY
+
+HASIL AUDIT TERAKHIR:
+
+Bot lifecycle saat ini hanya memiliki contract/operation yang benar-benar tersedia untuk:
+
+- create
+- get
+- list
+
+Operation berikut belum tersedia secara intentional:
+
+- update
+- delete
+- enable
+- disable
+- credential mutation
+
+Jangan mengklaim operation tersebut sudah aman/teruji sebelum contract dan policy-nya benar-benar tersedia.
+
+PENTING:
+- JANGAN commit.
+- JANGAN push.
+- User akan commit dan push manual.
+- Jangan reset.
+- Jangan force push.
+- Jangan rebase.
+- Jangan merge.
+- Jangan checkout branch lain.
+- Jangan menghapus perubahan persistence/lifecycle yang sudah ada.
+
+TUJUAN
+
+Sekarang audit dan, jika memang sesuai architecture, lengkapi contract/domain policy untuk operasi bot lifecycle yang belum tersedia.
+
+Alur:
+
+AUTHENTICATION
+→ CURRENT USER
+→ WORKSPACE ACCESS
+→ BOT AUTHORIZATION
+→ LIFECYCLE POLICY
+→ MUTATION CONTRACT
+→ REPOSITORY
+→ TEST
+
+Jangan membuat authorization system kedua.
+
+1. AUDIT CONTRACT AKTUAL
+
+Sebelum coding, cari seluruh contract yang sudah tersedia untuk Bot.
+
+Cari:
+
+- Bot entity/model
+- Bot repository interface
+- Bot service
+- Bot use case
+- Bot API route
+- DTO/schema
+- command/input type
+- output/result type
+- permission policy
+- authorization helper
+- status/state representation
+- credential representation
+- existing tests
+
+Tentukan secara jelas:
+
+SUPPORTED:
+- create
+- get
+- list
+
+UNSUPPORTED:
+- update
+- delete
+- enable
+- disable
+- credential mutation
+
+Jangan mengasumsikan operation yang belum ada.
+
+2. JANGAN MEMBUAT FITUR BESAR
+
+Fokus hanya pada contract dan policy yang memang dibutuhkan untuk lifecycle.
+
+Jangan membuat:
+
+- UI baru
+- dashboard baru
+- bot deployment system baru
+- webhook system baru
+- Telegram integration baru
+- credential provider baru
+- background worker baru
+- queue baru
+
+Jika repository belum memiliki infrastructure untuk operation tertentu, jangan membangun infrastructure besar hanya untuk task ini.
+
+3. BOT UPDATE CONTRACT
+
+Jika architecture repository memang mendukung update bot, buat contract minimal yang aman.
+
+Audit field yang boleh diubah.
+
+Pisahkan:
+
+CLIENT-CONTROLLED:
+- name
+- description
+- configuration
+- settings
+- field lain yang memang sudah menjadi bagian model
+
+SERVER-CONTROLLED:
+- id
+- workspaceId
+- ownerId
+- accountId
+- createdBy
+- createdAt
+- updatedAt
+- authorization metadata
+
+Jangan izinkan client mengubah server-controlled field.
+
+Jika update bot belum benar-benar dibutuhkan oleh model/domain saat ini, jangan memaksakannya.
+
+4. BOT DELETE CONTRACT
+
+Jika delete memang didukung architecture:
+
+buat contract/service policy yang jelas.
+
+Authorization wajib:
+
+Authentication
+→ Workspace Access
+→ Bot Access
+→ Delete Permission
+→ Delete
+
+Pastikan user workspace lain ditolak.
+
+Pastikan child resources tidak menjadi orphan secara tidak sengaja.
+
+Jika project menggunakan soft delete, pertahankan soft delete.
+
+Jangan mengubah hard delete menjadi soft delete atau sebaliknya tanpa bukti.
+
+5. BOT ENABLE / DISABLE POLICY
+
+Jika bot memiliki status yang memang mendukung active/inactive/disabled:
+
+audit state yang sebenarnya digunakan.
+
+Jangan membuat state baru.
+
+Buat policy yang jelas untuk:
+
+enable
+disable
+
+Authorization wajib dilakukan sebelum mutation.
+
+Jangan mengizinkan:
+
+user workspace A
+→ bot workspace B
+→ enable/disable
+
+6. CREDENTIAL MUTATION
+
+Jangan langsung membuat credential architecture baru.
+
+Audit credential model yang sudah ada.
+
+Jika credential mutation memang sudah memiliki repository/service support:
+
+pastikan policy-nya:
+
+- authenticated
+- workspace authorized
+- bot authorized
+- permission verified
+
+Credential tidak boleh digunakan sebagai sumber ownership.
+
+Credential tidak boleh menentukan workspace.
+
+Credential tidak boleh bocor ke response/log/error.
+
+Jika credential mutation belum didukung architecture, dokumentasikan sebagai UNSUPPORTED dan jangan membuat sistem baru.
+
+7. OWNERSHIP PROTECTION
+
+Pastikan update contract tidak dapat digunakan untuk:
+
+- mengubah workspaceId
+- mengubah ownerId
+- mengubah accountId
+- mengubah createdBy
+
+Tidak ada transfer ownership pada task ini.
+
+Jika transfer ownership belum menjadi fitur resmi, jangan membuatnya.
+
+8. PERMISSION POLICY
+
+Gunakan permission abstraction yang sudah ada.
+
+Jangan membuat permission system baru.
+
+Policy harus dapat membedakan minimal:
+
+- bot read
+- bot create
+- bot update
+- bot delete
+- bot status mutation
+- credential mutation
+
+Hanya tambahkan permission yang memang diperlukan dan konsisten dengan policy existing.
+
+Jangan menggunakan wildcard permission hanya untuk mempermudah implementation.
+
+9. API CONTRACT
+
+Jika API route untuk operation tersebut memang sudah ada:
+
+hubungkan ke contract/policy yang benar.
+
+Jika route belum ada:
+
+jangan otomatis membuat banyak endpoint.
+
+Prioritaskan domain/service contract terlebih dahulu.
+
+Buat API hanya jika architecture repository memang sudah memiliki pola route untuk operation lifecycle tersebut.
+
+10. REPOSITORY CONTRACT
+
+Audit repository.
+
+Jika method sudah tersedia:
+
+- gunakan method existing.
+
+Jika method belum tersedia tetapi mutation memang dibutuhkan oleh domain:
+
+tambahkan method minimal.
+
+Contoh konsep:
+
+updateBot
+deleteBot
+updateBotStatus
+
+Gunakan naming convention repository yang sudah ada.
+
+Jangan membuat repository kedua.
+
+11. INPUT VALIDATION
+
+Pastikan input contract memvalidasi:
+
+- botId
+- configuration
+- settings
+- status jika memang diperlukan
+
+Jangan menerima:
+
+- ownerId
+- workspaceId
+- accountId
+- createdBy
+
+sebagai authorization source.
+
+Jika field tersebut ada di request, harus diabaikan/ditolak sesuai convention existing.
+
+12. ERROR CONTRACT
+
+Gunakan error system existing.
+
+Bedakan:
+
+Unauthenticated
+→ authentication error
+
+Authenticated tetapi tidak punya workspace access
+→ authorization error
+
+Bot tidak ditemukan
+→ not found
+
+Invalid state
+→ domain/validation error
+
+Invalid input
+→ validation error
+
+Jangan membuat error system kedua.
+
+13. TEST CONTRACT
+
+Tambahkan test untuk contract/policy yang benar-benar dibuat.
+
+Minimal:
+
+Update:
+- authorized update PASS
+- unauthorized update DENY
+- cross-workspace update DENY
+- workspaceId spoof DENY
+- ownerId spoof DENY
+
+Delete:
+- authorized delete PASS
+- unauthorized delete DENY
+- cross-workspace delete DENY
+
+Status:
+- authorized enable PASS
+- unauthorized enable DENY
+- cross-workspace enable DENY
+- authorized disable PASS
+- unauthorized disable DENY
+- cross-workspace disable DENY
+
+Credential:
+- authorized mutation PASS jika contract memang tersedia
+- unauthorized mutation DENY
+- cross-workspace mutation DENY
+- secret tidak muncul pada output
+
+Jika operation tertentu tetap UNSUPPORTED karena architecture belum menyediakan foundation yang diperlukan:
+
+JANGAN membuat test palsu.
+
+Laporkan operation tersebut sebagai:
+
+UNSUPPORTED — CONTRACT NOT AVAILABLE
+
+14. REGRESSION
+
+Pastikan test lama tetap PASS:
+
+- authentication
+- session
+- workspace authorization
+- membership
+- ownership
+- permission
+- bot create
+- bot get
+- bot list
+- persistence
+- migration
+
+Jangan menghapus atau skip test existing.
+
+15. DATABASE SAFETY
+
+Jangan membuat migration baru kecuali contract baru benar-benar membutuhkan perubahan schema.
+
+Jangan:
+
+- reset database
+- truncate
+- delete production data
+- mengubah production database
+
+Jika schema sudah cukup, gunakan schema existing.
+
+16. CODE QUALITY
+
+Pastikan:
+
+- tidak ada any baru tanpa alasan
+- tidak ada @ts-ignore
+- tidak ada duplicate policy
+- tidak ada duplicate repository
+- tidak ada unused import
+- tidak ada dead code
+- tidak ada circular dependency baru
+- tidak ada hardcoded secret
+
+17. README
+
+Jika diperlukan:
+
+UPDATE README.md yang sudah ada.
+
+Jangan membuat README baru.
+
+Dokumentasikan singkat:
+
+- bot lifecycle contracts
+- supported operations
+- unsupported operations
+- authorization policy
+- test command
+
+18. VERIFICATION
+
+Setelah implementation:
+
+jalankan:
+
+- domain tests
+- API tests jika tersedia
+- authentication/session tests
+- workspace authorization tests
+- membership tests
+- bot tests
+- persistence tests
+- migration tests
+- typecheck
+- format
+- import boundary
+- lint jika tersedia
+- build
+
+Jika failure:
+
+1. cari root cause
+2. perbaiki
+3. ulangi test terkait
+4. ulangi full verification
+
+Jangan skip test.
+
+19. GIT
+
+JANGAN commit.
+
+JANGAN push.
+
+Setelah verification selesai hanya jalankan:
+
+git status
+git diff --stat
+git diff --check
+
+Pastikan semua perubahan tetap berada di working tree.
+
+20. FINAL REPORT
+
+Tampilkan:
+
+BOT LIFECYCLE CONTRACTS:
+- Create: SUPPORTED/...
+- Get: SUPPORTED/...
+- List: SUPPORTED/...
+- Update: SUPPORTED/UNSUPPORTED + alasan
+- Delete: SUPPORTED/UNSUPPORTED + alasan
+- Enable: SUPPORTED/UNSUPPORTED + alasan
+- Disable: SUPPORTED/UNSUPPORTED + alasan
+- Credential mutation: SUPPORTED/UNSUPPORTED + alasan
+
+POLICY:
+- Workspace authorization: ...
+- Bot authorization: ...
+- Permission: ...
+- Ownership protection: ...
+
+TESTS:
+- Domain: ...
+- API: ...
+- Auth/Session: ...
+- Workspace: ...
+- Membership: ...
+- Bot: ...
+- Persistence: ...
+- Migration: ...
+- Typecheck: ...
+- Format: ...
+- Import boundary: ...
+- Build: ...
+
+GIT:
+- Branch: backend-dev-recovery
+- Working tree: CLEAN/DIRTY
+- Commit: NOT PERFORMED
+- Push: NOT PERFORMED — USER WILL PUSH MANUALLY
+
+FINAL DECISION:
+
+Jika contract/policy yang tersedia sudah benar:
+
+BOT LIFECYCLE CONTRACTS VERIFIED — READY FOR MANUAL COMMIT/PUSH
+
+Jika masih ada operation yang memang belum didukung:
+
+BOT LIFECYCLE PARTIALLY VERIFIED
+
+dan tampilkan dengan jelas operation mana yang UNSUPPORTED serta alasan sebenarnya.
+
+Jangan mengklaim update/delete/enable/disable/credential mutation berhasil jika contract atau implementation-nya memang belum tersedia.
+
+Berhenti setelah laporan akhir.
 
 
 ```
