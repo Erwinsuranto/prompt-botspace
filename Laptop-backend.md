@@ -20,7 +20,360 @@
 # 
 ```
 
+PROMPT: BotSpace — Production Runtime Persistence Smoke Test
 
+Kita melanjutkan project BotSpace setelah checkpoint:
+
+PERSISTENCE ADAPTER WIRED — READY FOR MANUAL COMMIT/PUSH
+
+Repository:
+ /root/botspace
+
+Branch:
+ backend-dev-recovery
+
+Gunakan source code dan architecture yang sudah ada.
+
+CHECKPOINT TERAKHIR
+
+Persistence foundation sudah berhasil diverifikasi:
+
+- Workspace authorization: PASS
+- Membership: PASS
+- Bot: PASS
+- PostgreSQL connection: PASS
+- Migration: PASS
+- Schema: PASS
+- Migration idempotency: PASS
+- Transaction smoke test: PASS
+- Runtime startup: PASS
+- API process cleanup: PASS
+- Typecheck: PASS
+- Format: PASS
+- Import boundary: PASS
+- Secrets scan: PASS
+- Ownership check: PASS
+- Documentation links: PASS
+- Build: PASS
+- git diff --check: PASS
+- Persistence adapter wired: PASS
+
+PostgreSQL integration test juga sudah dijalankan secara eksplisit dengan database yang tersedia dan PASS.
+
+Git saat ini:
+- Branch: backend-dev-recovery
+- Working tree: DIRTY karena perubahan persistence
+- Commit: BELUM dibuat
+- Push: BELUM dilakukan
+
+PENTING:
+
+AI JANGAN melakukan:
+
+- git commit
+- git push
+- git reset
+- git clean
+- git checkout
+- git rebase
+- git merge
+- force push
+
+USER AKAN COMMIT DAN PUSH MANUAL.
+
+TUJUAN TAHAP INI
+
+Sekarang jangan membuat fitur baru.
+
+Lakukan FINAL PRODUCTION RUNTIME SMOKE TEST untuk memastikan persistence adapter yang baru di-wire benar-benar digunakan oleh runtime aplikasi, bukan hanya lulus test.
+
+Alur:
+
+DATABASE
+→ REPOSITORY
+→ PERSISTENCE ADAPTER
+→ SERVICE
+→ RUNTIME
+→ API
+→ AUTHORIZATION
+→ WORKSPACE
+→ MEMBERSHIP
+→ BOT
+→ DATABASE
+
+1. AUDIT RUNTIME BOOTSTRAP
+
+Cari bootstrap runtime aktual.
+
+Pastikan runtime production benar-benar membuat dan memasukkan:
+
+- PostgreSQL/database client
+- workspace repository
+- membership repository
+- bot repository
+- authentication/session repository jika tersedia
+- persistence adapter
+- service layer
+
+Pastikan tidak ada fallback diam-diam ke:
+
+- in-memory repository
+- mock repository
+- fake adapter
+- test adapter
+- temporary storage
+
+kecuali memang khusus untuk test environment.
+
+2. RUNTIME HEALTH
+
+Jalankan aplikasi dengan cara resmi repository.
+
+Verifikasi endpoint health/ready yang memang tersedia.
+
+Minimal:
+
+- process startup PASS
+- health endpoint PASS
+- ready endpoint PASS jika tersedia
+- graceful shutdown PASS
+- database connection PASS
+
+Jangan membuat endpoint health baru.
+
+3. AUTHENTICATION + PERSISTENCE
+
+Jika authentication/session runtime tersedia, lakukan smoke test:
+
+authenticated request
+→ current user
+→ session repository
+→ PostgreSQL
+
+Pastikan runtime tidak menggunakan mock/in-memory session ketika berjalan dalam production configuration.
+
+4. WORKSPACE RUNTIME
+
+Verifikasi:
+
+- authenticated user dapat mengambil workspace yang memang dia miliki
+- workspace repository benar-benar digunakan
+- workspace lain tetap ditolak
+
+Jangan hanya memeriksa unit test.
+
+Pastikan request benar-benar melewati runtime → service → repository → PostgreSQL.
+
+5. MEMBERSHIP RUNTIME
+
+Verifikasi:
+
+- membership lookup menggunakan persistence adapter
+- authorized member mendapatkan akses
+- user tanpa membership ditolak
+- cross-workspace access ditolak
+
+Pastikan authorization tetap berjalan sebelum mutation.
+
+6. BOT RUNTIME
+
+Verifikasi minimal operasi bot yang memang tersedia:
+
+- create
+- get
+- list
+- update
+- enable
+- disable
+- delete
+
+Tidak perlu membuat endpoint baru.
+
+Pastikan operasi tersebut menggunakan PostgreSQL-backed repository.
+
+7. PERSISTENCE ROUND TRIP
+
+Jika environment memungkinkan, lakukan smoke test sederhana:
+
+CREATE
+→ DATABASE
+
+READ
+→ DATABASE
+
+UPDATE
+→ DATABASE
+
+READ AGAIN
+→ DATABASE
+
+DELETE
+→ DATABASE
+
+READ AFTER DELETE
+→ expected not found/behavior sesuai architecture
+
+Jangan menggunakan data production.
+
+Gunakan test/temporary data yang aman.
+
+8. RESTART PERSISTENCE TEST
+
+Jika aman dan didukung environment:
+
+1. create test resource
+2. pastikan tersimpan
+3. restart runtime
+4. baca kembali resource tersebut
+
+Tujuan:
+
+membuktikan data tidak hanya berada di memory process.
+
+Jangan melakukan restart terhadap service production yang tidak boleh dihentikan tanpa kebutuhan.
+
+Jika environment tidak aman untuk restart, dokumentasikan sebagai NOT RUN.
+
+9. DATABASE SAFETY
+
+DILARANG:
+
+- DROP DATABASE
+- DROP TABLE
+- TRUNCATE
+- database reset
+- destructive migration
+- menghapus production data
+
+Jangan mengubah schema jika tidak diperlukan.
+
+10. SECRET SAFETY
+
+Pastikan runtime log tidak menampilkan:
+
+- DATABASE_URL
+- password
+- API key
+- bot token
+- session token
+- credential
+- secret
+
+Jalankan secrets scan yang tersedia.
+
+11. REGRESSION
+
+Pastikan checkpoint security sebelumnya tetap PASS:
+
+- authentication
+- session
+- workspace authorization
+- membership
+- ownership
+- permission policy
+- bot authorization
+- bot lifecycle
+
+Jangan melemahkan test existing.
+
+12. TESTING
+
+Jalankan verification resmi repository.
+
+Minimal:
+
+- domain tests
+- API tests
+- authentication/session tests
+- workspace tests
+- membership tests
+- bot tests
+- PostgreSQL integration tests
+- typecheck
+- format
+- import boundary
+- lint jika tersedia
+- build
+
+Jika PostgreSQL integration test memiliki opt-in environment variable:
+
+gunakan database yang memang tersedia dan jalankan test tersebut secara eksplisit.
+
+Jangan menganggap test PASS hanya karena default suite melakukan SKIP.
+
+13. GIT AUDIT
+
+Jangan commit.
+
+Jalankan hanya:
+
+git status
+git diff --stat
+git diff --check
+
+Pastikan perubahan hanya berasal dari persistence wiring task.
+
+Jangan menghapus perubahan source code.
+
+14. HASIL AKHIR
+
+Tampilkan laporan:
+
+Persistence:
+- Adapter wiring: PASS/FAIL
+- PostgreSQL: PASS/FAIL
+- Repository runtime: PASS/FAIL
+- Persistence round trip: PASS/FAIL
+- Restart persistence test: PASS/FAIL/NOT RUN
+
+Runtime:
+- Startup: PASS/FAIL
+- Health: PASS/FAIL
+- Shutdown: PASS/FAIL
+
+Security:
+- Authentication: PASS/FAIL
+- Workspace authorization: PASS/FAIL
+- Membership: PASS/FAIL
+- Bot authorization: PASS/FAIL
+- Secret scan: PASS/FAIL
+
+Tests:
+- Domain: ...
+- API: ...
+- Auth/Session: ...
+- Workspace: ...
+- Membership: ...
+- Bot: ...
+- PostgreSQL integration: ...
+- Typecheck: ...
+- Format: ...
+- Import boundary: ...
+- Build: ...
+
+Git:
+- Branch: backend-dev-recovery
+- Working tree: clean/dirty
+- Commit: NOT PERFORMED
+- Push: NOT PERFORMED — USER WILL PUSH MANUALLY
+
+FINAL DECISION:
+
+Jika semua verification PASS:
+
+PRODUCTION RUNTIME PERSISTENCE VERIFIED — READY FOR MANUAL COMMIT/PUSH
+
+Jika ada masalah:
+
+RUNTIME PERSISTENCE BLOCKED
+
+Tampilkan root cause sebenarnya.
+
+Jangan commit.
+Jangan push.
+Jangan membuat fitur baru.
+
+STOP setelah verification selesai.
 
 ```
 # 
