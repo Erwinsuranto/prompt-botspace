@@ -74,7 +74,651 @@
 # 
 ```
 
+PROMPT: BotSpace — API Data Exposure & Response Security Hardening
 
+Kita melanjutkan project BotSpace dari checkpoint TERBARU yang SUDAH BERHASIL secara lokal.
+
+Repository: /root/botspace
+Branch: backend-dev-recovery
+Remote: https://github.com/zenolamee/botspace.git
+
+Checkpoint terbaru:
+208d2fd — fix: harden api abuse boundaries
+
+Verification checkpoint:
+- Domain: 107 passed
+- API: 113 passed
+- Auth/Session: PASS
+- Workspace: PASS
+- Membership: PASS
+- Bot/Resource: PASS
+- Lifecycle: PASS
+- Validation: PASS
+- Mass-assignment: PASS
+- Abuse/pagination/body-limit: PASS
+- Typecheck: PASS
+- Format: PASS
+- Import boundary: PASS
+- Build: 11/11 successful
+- pnpm check: 44/44 successful
+- Working tree: clean
+
+Catatan Git:
+- branch: backend-dev-recovery
+- local HEAD: 208d2fd
+- upstream masih e961be8
+- push gagal hanya karena credential GitHub:
+  fatal: could not read Username for 'https://github.com': No such device or address
+- JANGAN reset commit 208d2fd.
+- JANGAN force push.
+- JANGAN rebase sembarangan.
+- JANGAN merge ke backend-dev.
+- Pertahankan semua commit lokal.
+
+TUJUAN
+
+Lanjutkan security hardening BotSpace dengan fokus pada API DATA EXPOSURE dan RESPONSE SECURITY.
+
+Security boundary berikut sudah diperbaiki:
+
+Authentication
+→ Session
+→ Workspace Authorization
+→ Membership
+→ Ownership
+→ Permission
+→ Bot Resource Authorization
+→ Input Validation
+→ Mass Assignment
+→ API Abuse Boundaries
+
+Sekarang audit apakah API dapat membocorkan data yang sebenarnya tidak boleh dikembalikan kepada client.
+
+Jangan membuat framework baru.
+Gunakan abstraction dan DTO yang sudah ada.
+
+1. AUDIT SELURUH API RESPONSE
+
+Audit endpoint API yang sudah tersedia.
+
+Cari response yang mengembalikan:
+
+- database entity langsung
+- ORM object langsung
+- user object
+- account object
+- workspace object
+- membership object
+- bot object
+- credential object
+- session object
+- integration object
+- configuration object
+- logs
+- statistics
+- internal metadata
+
+Pastikan response hanya mengembalikan field yang memang diperlukan client.
+
+Jangan melakukan redesign API besar-besaran.
+
+2. SECRET EXPOSURE
+
+Cari seluruh kemungkinan kebocoran:
+
+- password
+- password hash
+- session token
+- access token
+- refresh token
+- API key
+- bot token
+- webhook secret
+- integration secret
+- credential
+- encryption key
+- internal secret
+
+Pastikan secret tidak muncul pada:
+
+- list response
+- detail response
+- create response jika tidak diperlukan
+- update response
+- error response
+- logs
+- audit logs
+- debug output
+- test output
+
+Jika project memang memiliki behavior "show secret once", pertahankan behavior tersebut.
+
+Jangan mengubah secret architecture tanpa kebutuhan.
+
+3. USER DATA EXPOSURE
+
+Audit response user/account.
+
+Pastikan API tidak mengembalikan data internal yang tidak diperlukan seperti:
+
+- password hash
+- authentication metadata
+- internal session data
+- secret fields
+- internal database information
+
+Gunakan DTO/serializer yang sudah tersedia jika ada.
+
+Jangan mengembalikan database object mentah jika menyebabkan data leakage.
+
+4. WORKSPACE DATA EXPOSURE
+
+Audit workspace response.
+
+Pastikan user hanya menerima:
+
+- workspace yang memang dapat dia akses
+- membership yang memang boleh dia lihat
+- metadata yang memang diperlukan
+
+Jangan membocorkan:
+
+- member dari workspace lain
+- owner internal workspace lain
+- internal permission metadata
+- secret configuration
+- internal database fields
+
+Cross-workspace isolation harus tetap PASS.
+
+5. MEMBERSHIP RESPONSE
+
+Audit endpoint membership jika tersedia.
+
+Periksa:
+
+- list members
+- member detail
+- role
+- permission
+- membership metadata
+
+Pastikan user biasa tidak dapat melihat atau mengubah data membership yang seharusnya hanya dapat dilihat oleh administrator/owner.
+
+Jangan membuat permission baru.
+Gunakan policy yang sudah ada.
+
+6. BOT RESPONSE
+
+Audit:
+
+- bot list
+- bot detail
+- create bot
+- update bot
+- status response
+
+Pastikan bot response tidak membocorkan:
+
+- bot token
+- webhook secret
+- API credential
+- internal provider credential
+- private configuration
+- internal authorization metadata
+
+Bot list khususnya harus aman karena biasanya mengembalikan banyak resource sekaligus.
+
+7. CHILD RESOURCE RESPONSE
+
+Jika tersedia:
+
+- commands
+- flows
+- settings
+- integrations
+- webhooks
+- logs
+- statistics
+- analytics
+- credentials
+
+Audit response masing-masing.
+
+Pastikan child resource tetap mengikuti:
+
+Authentication
+→ Workspace Access
+→ Bot Access
+→ Permission
+→ Response Filtering
+
+Jangan hanya mengamankan endpoint tetapi membocorkan parent/child metadata melalui response.
+
+8. ERROR RESPONSE
+
+Audit seluruh API error.
+
+Pastikan production response tidak membocorkan:
+
+- stack trace
+- SQL query
+- database schema
+- filesystem path
+- environment variable
+- secret
+- token
+- internal service details
+- authorization internals
+
+Gunakan error system yang sudah ada.
+
+Jangan membuat error framework kedua.
+
+Pastikan error behavior tetap konsisten:
+
+Authentication failure
+→ authentication error
+
+Authorization failure
+→ authorization error
+
+Validation failure
+→ validation error
+
+Not found
+→ not found convention project
+
+9. ID ENUMERATION RESPONSE
+
+Audit response ketika resource tidak dapat diakses.
+
+Contoh:
+
+User A mencoba bot milik User B.
+
+Pastikan response tidak membocorkan informasi seperti:
+
+- bot exists
+- owner
+- workspace
+- status
+- configuration
+- timestamps
+
+Ikuti convention repository.
+
+Jangan mengubah semua endpoint menjadi 404 secara membabi buta.
+
+10. LIST RESPONSE
+
+Audit semua endpoint list/search.
+
+Pastikan response:
+
+- hanya berisi resource yang authorized
+- tidak mengandung hidden resource
+- tidak membocorkan jumlah resource workspace lain
+- pagination metadata tidak membocorkan data workspace lain
+- total count tidak berasal dari seluruh database jika seharusnya workspace-scoped
+
+Perhatikan terutama:
+
+- total
+- count
+- hasNext
+- cursor
+- pagination metadata
+
+11. FILTER DAN SORT
+
+Audit query/filter API.
+
+Pastikan user tidak dapat menggunakan filter untuk mendapatkan data workspace lain.
+
+Contoh:
+
+workspaceId
+ownerId
+userId
+accountId
+botId
+
+harus tetap tunduk pada authorization.
+
+Filter bukan security boundary.
+
+12. MASS-ASSIGNMENT REGRESSION
+
+Pastikan perubahan response tidak melemahkan protection yang sudah dibuat.
+
+Server-controlled field tetap server-controlled:
+
+- ownerId
+- workspaceId
+- accountId
+- userId
+- createdBy
+- permissions
+- role
+- createdAt
+- updatedAt
+
+Jangan mempercayai field tersebut dari request.
+
+13. LOGGING SECURITY
+
+Audit logging yang berkaitan dengan API.
+
+Pastikan log tidak mencetak:
+
+- Authorization header
+- session token
+- API key
+- bot token
+- password
+- webhook secret
+- request body yang berisi secret
+
+Jika ada logging yang terlalu verbose:
+
+- sanitasi field sensitif
+- gunakan abstraction logging yang sudah ada
+- jangan membuat logging framework baru
+
+14. SERIALIZATION / DTO
+
+Cari apakah project sudah memiliki:
+
+- DTO
+- serializer
+- mapper
+- response schema
+- presenter
+
+Jika ada, gunakan abstraction tersebut.
+
+Jangan membuat serializer kedua.
+
+Jika response masih menggunakan entity mentah dan memang menyebabkan security issue, lakukan perubahan minimal.
+
+15. API SECURITY REGRESSION
+
+Pastikan security checkpoint sebelumnya tetap PASS:
+
+- authentication
+- session
+- current user
+- workspace authorization
+- membership
+- ownership
+- permission
+- bot resource authorization
+- lifecycle
+- input validation
+- mass assignment
+- abuse boundaries
+
+Jangan melemahkan test existing.
+
+16. TESTING
+
+Tambahkan atau perbaiki test sesuai endpoint yang benar-benar tersedia.
+
+Minimal jika resource tersedia:
+
+User:
+- password/hash tidak muncul
+- session data tidak muncul
+
+Workspace:
+- cross-workspace data tidak muncul
+- internal permission metadata tidak bocor
+
+Membership:
+- unauthorized membership data tidak muncul
+- sensitive membership fields tidak bocor
+
+Bot:
+- bot token tidak muncul pada list
+- bot token tidak muncul pada detail jika tidak diperlukan
+- secret tidak muncul pada error
+- unauthorized bot tidak muncul pada list
+
+Child resources:
+- unauthorized resource tidak muncul
+- secret child configuration tidak bocor
+
+Errors:
+- stack trace tidak bocor
+- SQL/database detail tidak bocor
+- token tidak bocor
+- credential tidak bocor
+
+Pagination:
+- count/metadata tetap workspace-scoped
+
+17. TYPESCRIPT QUALITY
+
+Pastikan:
+
+- tidak menambahkan any tanpa alasan
+- tidak menambahkan @ts-ignore
+- tidak ada duplicate serializer
+- tidak ada duplicate error system
+- tidak ada unused import
+- tidak ada dead code
+- tidak ada circular dependency baru
+- tidak ada hardcoded secret
+
+18. BACKWARD COMPATIBILITY
+
+Jangan merusak API existing.
+
+Sebelum mengubah:
+
+- DTO
+- response shape
+- service signature
+- repository signature
+- serializer
+
+cari seluruh caller.
+
+Jika perubahan response memang diperlukan karena security, pastikan client/test yang terdampak diperbarui secara aman.
+
+Jangan membuat breaking change tanpa alasan.
+
+19. README
+
+Jika diperlukan, update README.md yang sudah ada.
+
+JANGAN membuat README baru.
+
+Dokumentasikan secara singkat:
+
+- API response security
+- secret handling
+- DTO/serialization
+- error security
+- test command
+
+20. VERIFICATION
+
+Setelah implementation:
+
+jalankan verification resmi repository.
+
+Minimal:
+
+- domain tests
+- API tests
+- authentication/session tests
+- workspace authorization tests
+- membership tests
+- bot/resource tests
+- lifecycle tests
+- validation tests
+- mass-assignment tests
+- abuse/pagination/body-limit tests
+- typecheck
+- format check
+- import boundary check
+- lint jika tersedia
+- build
+
+Pastikan:
+
+- tidak ada regression
+- semua security tests PASS
+- build PASS
+
+Jika gagal:
+
+1. cari root cause
+2. perbaiki
+3. jalankan test terkait
+4. jalankan full verification kembali
+
+Jangan skip test.
+Jangan menghapus test existing.
+
+21. GIT AUDIT
+
+Sebelum commit:
+
+git status
+git diff --stat
+git diff
+
+Pastikan hanya perubahan task ini.
+
+Jangan commit:
+
+- .env
+- API key
+- token
+- password
+- credential
+- logs
+- temporary files
+- build artifacts
+
+22. COMMIT
+
+Jika ada perubahan valid dan seluruh verification PASS:
+
+buat SATU commit.
+
+Gunakan commit message sesuai implementation aktual.
+
+Contoh:
+
+fix: harden api response security
+
+atau:
+
+fix: prevent sensitive api data exposure
+
+Jangan membuat empty commit jika tidak ada perubahan valid.
+
+23. PUSH
+
+Setelah commit:
+
+git push
+
+Branch tetap:
+
+backend-dev-recovery
+
+Jangan:
+
+- force push
+- reset
+- rebase sembarangan
+- ubah remote
+- merge ke backend-dev
+
+Jika push gagal karena credential GitHub:
+
+JANGAN mengubah source code.
+
+Pertahankan commit lokal dan laporkan error sebenarnya.
+
+24. HASIL AKHIR
+
+Tampilkan laporan:
+
+Implementation:
+- ...
+
+Response Security:
+- ...
+
+Secret Exposure:
+- ...
+
+Error Security:
+- ...
+
+Data Isolation:
+- ...
+
+Tests:
+- Domain: ...
+- API: ...
+- Auth/Session: ...
+- Workspace: ...
+- Membership: ...
+- Bot/Resource: ...
+- Lifecycle: ...
+- Validation: ...
+- Mass-assignment: ...
+- Abuse: ...
+- Typecheck: ...
+- Format: ...
+- Import boundary: ...
+- Build: ...
+
+Commit:
+- hash: ...
+- message: ...
+- atau "No new commit — no valid changes"
+
+Git:
+- branch: ...
+- push: success/failed/not needed
+
+Working Tree:
+- clean/dirty
+
+Jika ada failure, tampilkan error sebenarnya.
+
+Jangan mengklaim sukses jika verification, commit, atau push belum benar-benar berhasil.
+
+25. PENTING
+
+Jangan membuat fitur besar baru.
+
+Tahap ini hanya:
+
+AUDIT
+→ API RESPONSE SECURITY
+→ SECRET EXPOSURE
+→ ERROR SECURITY
+→ DTO/SERIALIZATION
+→ DATA ISOLATION
+→ REGRESSION TEST
+→ BUILD
+→ COMMIT
+→ PUSH
+
+Gunakan security abstraction yang sudah ada.
+
+Jangan membuat authorization system kedua.
+
+Selesaikan sampai push berhasil jika memang ada perubahan, lalu berhenti.
 
 ```
 # 
