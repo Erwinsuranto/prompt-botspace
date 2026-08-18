@@ -35,9 +35,289 @@
 
 
 ```
-# 
+# Prompt Final — PostgreSQL Migration & Final Production Verification
 ```
+PROMPT: BotSpace — FINAL PostgreSQL Migration & Production Verification
 
+Kita melanjutkan BotSpace dari kondisi FINAL.
+
+Repository:
+ /root/botspace
+
+Branch:
+ backend-dev-recovery
+
+Kondisi TERAKHIR:
+- Source code FINAL
+- Runtime health VERIFIED tanpa database
+- Typecheck: 11/11 successful
+- Format: PASS
+- Import boundary: PASS
+- Secrets scan: PASS
+- Build: 11/11 successful
+- Working tree: CLEAN
+- HEAD sama dengan origin/backend-dev-recovery
+- Push: NOT NEEDED
+- Tidak ada perubahan source code yang diperlukan
+
+STATUS YANG MASIH TERTUNDA:
+DATABASE MIGRATION
+
+Penyebab sebelumnya:
+- PostgreSQL dan/atau Docker environment resmi untuk migration belum tersedia
+- Migration belum boleh diklaim PASS tanpa benar-benar dijalankan
+
+TUJUAN:
+Selesaikan hanya database migration dan final runtime verification.
+
+JANGAN:
+- audit source code ulang
+- membuat fitur baru
+- refactor
+- mengubah authorization
+- mengubah authentication
+- mengubah bot lifecycle
+- membuat migration palsu
+- membuat database schema manual yang berbeda dari migration repository
+- reset database
+- drop database
+- menghapus data
+- force push
+- reset git
+- rebase
+- merge
+- membuat commit kosong
+
+1. IDENTIFIKASI DATABASE
+
+Baca repository aktual untuk menentukan:
+
+- database engine
+- migration tool
+- migration directory
+- migration command resmi
+- DATABASE_URL yang dibutuhkan
+- PostgreSQL version jika ditentukan repository
+- apakah Docker memang merupakan bagian official migration workflow
+
+Gunakan package.json, README.md, konfigurasi database, migration files, dan scripts repository sebagai sumber kebenaran.
+
+Jangan menebak command migration.
+
+2. CEK ENVIRONMENT
+
+Periksa tanpa menampilkan secret:
+
+- docker
+- docker compose
+- psql
+- PostgreSQL service
+- DATABASE_URL tersedia/tidak
+- koneksi database
+- migration tool
+
+Jika Docker tersedia:
+gunakan workflow migration resmi repository.
+
+Jika PostgreSQL tersedia tanpa Docker:
+gunakan workflow resmi repository yang memang mendukung koneksi PostgreSQL langsung.
+
+Jika PostgreSQL DAN Docker sama-sama tidak tersedia:
+JANGAN membuat workaround palsu.
+
+Laporkan:
+
+DATABASE MIGRATION:
+BLOCKED
+
+Reason:
+official PostgreSQL/migration environment unavailable.
+
+3. JIKA DATABASE TERSEDIA
+
+Jalankan migration resmi repository.
+
+Migration harus:
+
+- menggunakan migration files repository
+- non-destructive
+- tidak melakukan reset
+- tidak drop database
+- tidak menghapus production data
+- tidak membuat schema manual yang tidak tercatat
+
+4. VERIFIKASI MIGRATION
+
+Setelah migration selesai:
+
+verifikasi migration status.
+
+Pastikan:
+
+- seluruh migration yang diperlukan sudah applied
+- migration history konsisten
+- database schema tersedia
+- koneksi PostgreSQL berhasil
+
+Jangan mencetak DATABASE_URL, password, token, atau credential.
+
+5. DATABASE SMOKE TEST
+
+Jika migration PASS:
+
+jalankan smoke test database menggunakan command/test yang memang tersedia di repository.
+
+Verifikasi minimal:
+
+- database connection PASS
+- schema access PASS
+- repository query PASS
+- transaction/database operation PASS jika tersedia
+
+Jangan membuat data production secara sembarangan.
+
+6. APPLICATION RUNTIME
+
+Jika database sudah PASS:
+
+jalankan application menggunakan command resmi repository.
+
+Verifikasi:
+
+- application start PASS
+- database connection PASS
+- health endpoint PASS
+- readiness endpoint PASS jika tersedia
+
+Gunakan environment yang benar.
+
+Jangan mengubah source code hanya agar aplikasi bisa start.
+
+7. FINAL REGRESSION
+
+Karena source code sebelumnya sudah verified, jalankan verification final untuk memastikan migration tidak menyebabkan regression.
+
+Minimal:
+
+- domain tests
+- API tests
+- authentication/session tests
+- workspace authorization
+- membership/ownership
+- bot/resource authorization
+- typecheck
+- format
+- import boundary
+- build
+
+Gunakan command resmi repository.
+
+Jangan skip test.
+
+Jangan menghapus test.
+
+8. GIT FINAL CHECK
+
+Migration/environment operation tidak boleh menghasilkan perubahan source code yang tidak diperlukan.
+
+Jalankan:
+
+git status
+git log --oneline -3
+
+Pastikan:
+
+WORKING TREE:
+CLEAN
+
+Jika tidak ada source-code change:
+
+PUSH:
+NOT NEEDED
+
+Jangan membuat commit kosong.
+
+9. FINAL DECISION
+
+Jika semua berikut PASS:
+
+SOURCE CODE = PASS
+DATABASE MIGRATION = PASS
+DATABASE CONNECTION = PASS
+APPLICATION START = PASS
+HEALTH CHECK = PASS
+REGRESSION = PASS
+BUILD = PASS
+WORKING TREE = CLEAN
+
+maka tampilkan:
+
+FINAL STATUS:
+FULLY VERIFIED — READY FOR PRODUCTION
+
+Jika database migration tetap tidak dapat dijalankan karena environment:
+
+FINAL STATUS:
+READY FOR DEPLOYMENT — DATABASE MIGRATION PENDING
+
+Jika runtime/database gagal:
+
+FINAL STATUS:
+BLOCKED — DATABASE/RUNTIME VERIFICATION FAILED
+
+Jangan pernah menyatakan FULLY VERIFIED jika database migration belum benar-benar dijalankan.
+
+10. FINAL REPORT
+
+Tampilkan ringkas:
+
+DATABASE:
+- Engine: ...
+- Migration: PASS/BLOCKED
+- Migration status: ...
+- Database connection: PASS/BLOCKED
+
+RUNTIME:
+- Application start: PASS/BLOCKED
+- Health check: PASS/BLOCKED
+- Readiness: PASS/BLOCKED jika tersedia
+
+REGRESSION:
+- Domain: ...
+- API: ...
+- Auth/Session: ...
+- Workspace: ...
+- Membership: ...
+- Bot/Resource: ...
+- Typecheck: ...
+- Format: ...
+- Import boundary: ...
+- Build: ...
+
+GIT:
+- Branch: ...
+- HEAD: ...
+- Working tree: CLEAN/DIRTY
+- Push: NOT NEEDED
+
+FINAL STATUS:
+...
+
+PENTING:
+Jika PostgreSQL/Docker environment belum tersedia, berhenti setelah melaporkan BLOCKED.
+Jangan kembali melakukan audit source code.
+
+Target akhir:
+
+SOURCE CODE FINAL
+→ POSTGRESQL READY
+→ MIGRATION PASS
+→ DATABASE VERIFIED
+→ RUNTIME VERIFIED
+→ FULLY VERIFIED
+→ READY FOR PRODUCTION
+
+Selesaikan sampai final status lalu berhenti.
 
 
 ```
