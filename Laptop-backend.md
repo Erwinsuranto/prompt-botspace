@@ -85,7 +85,662 @@
 ```
 # 
 ```
+PROMPT: BotSpace — API Input Validation & Privilege Escalation Hardening
 
+Kita melanjutkan project BotSpace dari checkpoint yang SUDAH BERHASIL.
+
+Repository: /root/botspace
+Branch: backend-dev-recovery
+Remote: https://github.com/zenolamee/botspace.git
+
+Checkpoint terakhir:
+2947d34 — fix: harden bot lifecycle integrity
+
+Verification terakhir:
+- Format check: PASS
+- Import boundary check: PASS
+- Build: 11 tasks successful
+- Runtime/integration/webhook: not applicable, no implementation exists
+- Tidak ada perubahan baru yang valid pada tahap runtime/integration/webhook
+- Tidak membuat empty commit
+- Working tree: clean
+- HEAD tetap 2947d34
+
+JANGAN reset, force push, rebase sembarangan, checkout branch lain, merge ke backend-dev, atau menghapus checkpoint yang sudah ada.
+
+TUJUAN
+
+Lanjutkan BotSpace ke tahap berikutnya dengan fokus pada API INPUT VALIDATION dan PRIVILEGE ESCALATION.
+
+Security sebelumnya sudah mencakup:
+
+- authentication
+- session security
+- current user identity
+- workspace authorization
+- workspace membership
+- ownership
+- permission policy
+- bot resource authorization
+- bot lifecycle integrity
+
+Sekarang audit seluruh input API untuk memastikan client tidak dapat memalsukan field server-controlled atau menaikkan privilege melalui request body, query, params, atau DTO.
+
+Fokus:
+
+AUTHENTICATION
+→ WORKSPACE AUTHORIZATION
+→ RESOURCE AUTHORIZATION
+→ INPUT VALIDATION
+→ MASS ASSIGNMENT PROTECTION
+→ PRIVILEGE ESCALATION PROTECTION
+→ TEST
+→ BUILD
+→ COMMIT
+→ PUSH
+
+Jangan membuat validation framework baru.
+Jangan membuat authorization system kedua.
+
+1. AUDIT INPUT API
+
+Audit seluruh API endpoint yang sudah tersedia.
+
+Cari:
+
+- request body
+- query parameters
+- route parameters
+- DTO
+- schema validation
+- create input
+- update input
+- patch input
+- workspace input
+- bot input
+- membership input
+- permission input
+- role input
+- status input
+- configuration input
+
+Gunakan struktur repository aktual sebagai sumber kebenaran.
+
+Jangan membuat endpoint baru.
+
+2. SERVER-CONTROLLED FIELD
+
+Cari field yang seharusnya ditentukan backend, bukan client.
+
+Minimal audit:
+
+- id
+- userId
+- accountId
+- workspaceId
+- ownerId
+- createdBy
+- createdAt
+- updatedAt
+- role
+- permissions
+- membershipId
+- botId
+- status
+- credentialId
+- integrationId
+
+Pastikan endpoint hanya menerima field yang memang boleh diubah oleh client.
+
+3. MASS ASSIGNMENT
+
+Cari pola seperti:
+
+request.body langsung digunakan untuk create/update
+
+atau:
+
+spread request body
+
+atau:
+
+Object.assign entity dengan input client
+
+atau pola equivalent.
+
+Pastikan client tidak dapat mengirim field privilege tambahan.
+
+Contoh request berbahaya:
+
+workspaceId: workspace-B
+ownerId: user-B
+role: owner
+permissions: ["*"]
+createdBy: user-B
+accountId: account-B
+
+Backend tidak boleh mempercayai field tersebut hanya karena format request valid.
+
+Gunakan explicit field mapping atau schema yang sudah digunakan repository jika diperlukan.
+
+4. WORKSPACE ID SPOOFING
+
+Test:
+
+Authenticated User A
+memiliki workspace-A.
+
+Client mengirim:
+
+workspaceId = workspace-B
+
+Pastikan backend tetap menolak jika User A tidak memiliki akses workspace-B.
+
+Jangan hanya memvalidasi bahwa workspace-B ada.
+
+Authorization harus tetap dilakukan setelah validation.
+
+5. USER ID SPOOFING
+
+Test:
+
+Session user = user-A
+
+Request body:
+
+userId = user-B
+
+Pastikan operasi tetap berjalan atas identity user-A jika memang operasi tersebut menggunakan current user.
+
+Client tidak boleh mengubah authenticated identity melalui request body.
+
+6. ACCOUNT ID SPOOFING
+
+Jika accountId digunakan:
+
+Session:
+account-A
+
+Request:
+accountId = account-B
+
+Pastikan account-B tidak dapat digunakan untuk mengambil atau mengubah resource account-B tanpa authorization.
+
+Gunakan authentication context dan workspace relationship yang sudah ada.
+
+7. OWNER ID SPOOFING
+
+Cari seluruh create/update endpoint yang menerima ownerId.
+
+Pastikan user tidak dapat:
+
+- menjadi owner resource lain
+- mengganti owner secara ilegal
+- membuat resource atas nama user lain
+- mengubah ownership melalui update biasa
+
+Jika ownership transfer memang belum menjadi fitur resmi, jangan membuat fitur tersebut.
+
+Cegah privilege escalation saja.
+
+8. ROLE SPOOFING
+
+Audit semua input:
+
+role
+
+Jika client mengirim:
+
+role: owner
+
+atau role privilege tinggi lainnya,
+
+backend harus tetap menggunakan policy yang benar.
+
+Pastikan member biasa tidak dapat menaikkan role dirinya sendiri melalui request.
+
+Tambahkan regression test.
+
+9. PERMISSION SPOOFING
+
+Audit input:
+
+permissions
+
+Pastikan client tidak dapat mengirim:
+
+permissions: ["*"]
+
+atau permission tingkat tinggi lainnya untuk menaikkan akses dirinya sendiri.
+
+Permission harus ditentukan berdasarkan policy dan authorization yang sudah ada.
+
+Jangan membuat permission system kedua.
+
+10. STATUS SPOOFING
+
+Audit field:
+
+status
+
+enabled
+disabled
+active
+inactive
+
+dan enum status lain yang benar-benar tersedia.
+
+Pastikan client tidak dapat mengubah status server-controlled melalui endpoint biasa jika status tersebut memang harus diubah melalui operation khusus.
+
+Jangan mengubah business behavior tanpa bukti dari architecture.
+
+11. ID SPOOFING
+
+Audit seluruh endpoint dengan:
+
+:id
+:botId
+:workspaceId
+:memberId
+:integrationId
+:commandId
+:flowId
+
+Pastikan ID hanya digunakan setelah authorization terhadap resource terkait.
+
+Jangan mengandalkan validation sebagai pengganti authorization.
+
+Validation menjawab:
+
+"Apakah format input benar?"
+
+Authorization menjawab:
+
+"Apakah user boleh menggunakan resource ini?"
+
+Keduanya harus tetap terpisah.
+
+12. CREATE INPUT
+
+Audit semua create operation.
+
+Pastikan backend sendiri menentukan:
+
+- owner
+- creator
+- workspace relation
+- account relation
+- timestamps
+- internal status
+- internal metadata
+
+Client hanya boleh menentukan field bisnis yang memang diperbolehkan.
+
+13. UPDATE INPUT
+
+Audit semua update/patch operation.
+
+Pastikan update tidak memungkinkan client mengubah:
+
+- ownership
+- workspace
+- account
+- creator
+- privilege
+- permission
+- role
+
+kecuali fitur tersebut memang secara eksplisit tersedia dan sudah dilindungi authorization.
+
+14. DELETE INPUT
+
+Audit delete endpoint.
+
+Pastikan delete hanya menggunakan identifier yang diperlukan dan authorization tetap dilakukan.
+
+Jangan menerima field privilege tambahan yang tidak diperlukan.
+
+15. API RESPONSE
+
+Audit response DTO.
+
+Pastikan response tidak mengembalikan:
+
+- password
+- token
+- secret
+- credential
+- internal permission metadata
+- data workspace lain
+- data account lain
+
+Gunakan DTO/schema yang sudah ada.
+
+Jangan mengembalikan database object mentah jika menyebabkan secret leakage.
+
+16. VALIDATION ERROR
+
+Pastikan invalid input menghasilkan error sesuai convention project.
+
+Contoh:
+
+invalid ID
+→ validation error
+
+invalid enum
+→ validation error
+
+invalid permission
+→ validation error
+
+unauthorized resource
+→ authorization error
+
+resource tidak ada
+→ not found sesuai convention
+
+Jangan membocorkan data workspace lain melalui validation/error response.
+
+17. ZOD/SCHEMA/VALIDATOR
+
+Jika repository sudah menggunakan validation library:
+
+gunakan library yang sudah ada.
+
+Audit schema agar:
+
+- unknown privilege fields tidak lolos jika memang harus ditolak
+- field server-controlled tidak dapat diubah
+- enum valid
+- ID valid
+- string/number/boolean sesuai type
+- required field benar
+- optional field benar
+
+Jangan menambahkan validation library baru tanpa kebutuhan.
+
+18. QUERY INPUT
+
+Audit query parameters.
+
+Cari kemungkinan:
+
+?userId=
+?accountId=
+?workspaceId=
+?ownerId=
+
+Pastikan parameter tersebut tidak dapat digunakan untuk mengganti current user atau authorization scope.
+
+Jika query parameter memang diperlukan untuk filtering, pastikan filtering tetap dibatasi oleh authorization.
+
+19. REGRESSION TEST
+
+Tambahkan/perbaiki test untuk:
+
+Authentication:
+- unauthenticated request DENY
+
+Identity:
+- spoofed userId DENY
+- spoofed accountId DENY
+
+Workspace:
+- spoofed workspaceId DENY
+- cross-workspace resource DENY
+
+Ownership:
+- spoofed ownerId DENY
+- unauthorized ownership modification DENY
+
+Role:
+- self role escalation DENY
+- unauthorized role escalation DENY
+
+Permission:
+- self permission escalation DENY
+- wildcard permission spoof DENY
+
+Mass assignment:
+- protected fields tidak dapat diubah
+- server-controlled fields tetap berasal dari server
+
+Status:
+- unauthorized status mutation DENY
+
+Validation:
+- invalid ID
+- invalid enum
+- malformed body
+- unknown/protected field sesuai convention
+
+20. REGRESSION SECURITY
+
+Pastikan semua checkpoint sebelumnya tetap PASS:
+
+- authentication
+- session
+- workspace authorization
+- membership
+- ownership
+- permission policy
+- bot authorization
+- bot lifecycle integrity
+
+Jangan melemahkan test existing.
+
+21. CODE QUALITY
+
+Pastikan:
+
+- tidak ada any baru tanpa alasan
+- tidak ada @ts-ignore baru
+- tidak ada duplicate validator
+- tidak ada duplicate authorization
+- tidak ada unused import
+- tidak ada dead code
+- tidak ada hardcoded secret
+- tidak ada circular dependency baru
+
+Ikuti architecture repository.
+
+22. BACKWARD COMPATIBILITY
+
+Sebelum mengubah DTO/schema/function signature:
+
+- cari seluruh caller
+- update caller yang relevan
+- update test
+- jalankan typecheck
+
+Jangan membuat breaking change tanpa alasan.
+
+23. README
+
+Jika diperlukan, update README.md yang sudah ada.
+
+Jangan membuat README baru.
+
+Dokumentasikan secara singkat:
+
+- API validation
+- protected fields
+- authorization boundary
+- cara menjalankan test
+
+24. VERIFICATION
+
+Setelah implementation:
+
+jalankan verification resmi repository.
+
+Minimal:
+
+- domain tests
+- API tests
+- authentication/session tests
+- workspace authorization tests
+- membership tests
+- bot/resource tests
+- lifecycle tests
+- input validation tests
+- typecheck
+- format check
+- import boundary check
+- lint jika tersedia
+- build
+
+Jika gagal:
+
+1. identifikasi root cause
+2. perbaiki
+3. jalankan test terkait
+4. jalankan full verification kembali
+
+Jangan skip test.
+
+Jangan menghapus test existing.
+
+25. GIT AUDIT
+
+Sebelum commit:
+
+git status
+git diff --stat
+git diff
+
+Pastikan hanya perubahan task ini.
+
+Jangan commit:
+
+- .env
+- API key
+- token
+- credential
+- log
+- temporary file
+- build artifact
+
+26. COMMIT
+
+Jika ada perubahan valid dan seluruh verification PASS:
+
+buat SATU commit.
+
+Gunakan commit message sesuai perubahan aktual.
+
+Contoh:
+
+fix: harden api input validation
+
+atau:
+
+fix: prevent api privilege escalation
+
+Pilih yang paling sesuai dengan implementation sebenarnya.
+
+Jika audit menemukan tidak ada perubahan valid yang diperlukan:
+
+JANGAN membuat empty commit.
+
+Tetap tampilkan hasil audit dan checkpoint aktif.
+
+27. PUSH
+
+Jika commit baru dibuat:
+
+git push
+
+Branch tetap:
+
+backend-dev-recovery
+
+Jangan:
+
+- force push
+- ubah remote
+- merge ke backend-dev
+- reset checkpoint
+- rebase sembarangan
+
+Jika push gagal karena credential GitHub:
+
+JANGAN mengubah source code lagi.
+
+Pertahankan commit lokal dan tampilkan error sebenarnya.
+
+28. HASIL AKHIR
+
+Tampilkan laporan:
+
+Implementation:
+- ...
+
+Input Validation:
+- ...
+
+Privilege Escalation:
+- ...
+
+Mass Assignment:
+- ...
+
+Security:
+- ...
+
+Tests:
+- Domain: ...
+- API: ...
+- Auth/Session: ...
+- Workspace: ...
+- Membership: ...
+- Bot/Resource: ...
+- Lifecycle: ...
+- Validation: ...
+- Typecheck: ...
+- Format: ...
+- Import boundary: ...
+- Build: ...
+
+Commit:
+- hash: ...
+- message: ...
+- atau "No new commit — no valid changes"
+
+Git:
+- branch: ...
+- push: success/failed/not needed
+
+Working Tree:
+- clean/dirty
+
+Jika ada failure, tampilkan error sebenarnya.
+
+Jangan mengklaim sukses jika verification, commit, atau push belum benar-benar berhasil.
+
+29. PENTING
+
+Jangan membuat fitur besar baru.
+
+Tahap ini hanya fokus:
+
+AUDIT
+→ API INPUT VALIDATION
+→ MASS ASSIGNMENT
+→ ID SPOOFING
+→ PRIVILEGE ESCALATION
+→ REGRESSION TEST
+→ BUILD
+→ COMMIT
+→ PUSH
+
+Gunakan security abstraction yang sudah ada.
+
+Jangan membuat authorization system kedua.
+
+Jangan mengubah arsitektur BotSpace secara besar-besaran.
+
+Selesaikan sampai push berhasil jika memang ada perubahan, lalu berhenti.
 
 
 ```
