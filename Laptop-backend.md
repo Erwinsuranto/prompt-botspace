@@ -59,9 +59,419 @@
 
 
 ```
-# 
+# Prompt berikutnya — Final Deployment Readiness
 ```
+PROMPT: BotSpace — Final Deployment Readiness & Runtime Verification
 
+Kita melanjutkan project BotSpace setelah SOURCE-CODE FINAL VERIFICATION.
+
+Repository:
+/root/botspace
+
+Branch:
+backend-dev-recovery
+
+Kondisi terakhir:
+- Source-code final verification: PASS
+- Tests: PASS
+- Build: PASS
+- Security checks: PASS
+- Working tree: CLEAN
+- Git checkpoint sudah sinkron dengan origin
+- Production readiness: READY FOR PRODUCTION
+
+Satu-satunya blocker sebelumnya:
+
+DATABASE MIGRATION:
+BLOCKED — Docker unavailable in current environment
+
+PENTING:
+- Jangan menggunakan Kiro.
+- Jangan membuat fitur baru.
+- Jangan melakukan refactor besar.
+- Jangan mengubah security architecture.
+- Jangan membuat commit kosong.
+- Jangan force push.
+- Jangan reset.
+- Jangan rebase.
+- Jangan merge ke backend-dev.
+- Jangan mengubah credential GitHub.
+- Jangan mengubah production database secara destruktif.
+- Jangan membuat fake migration success.
+
+TUJUAN TAHAP INI:
+
+FINAL RUNTIME + DEPLOYMENT READINESS
+
+Alur:
+
+SOURCE CODE FINAL
+→ ENVIRONMENT CHECK
+→ APPLICATION STARTUP
+→ HEALTH CHECK
+→ API SMOKE TEST
+→ PRODUCTION CONFIG AUDIT
+→ DATABASE MIGRATION READINESS
+→ FINAL REPORT
+
+==================================================
+1. GIT CHECKPOINT
+==================================================
+
+Periksa:
+
+git status
+git branch --show-current
+git log --oneline -5
+git remote -v
+
+Pastikan:
+
+- branch = backend-dev-recovery
+- working tree = CLEAN
+- tidak ada perubahan lokal
+- remote tidak berubah
+
+Jika clean:
+
+JANGAN membuat commit.
+
+JANGAN push ulang tanpa perubahan.
+
+==================================================
+2. ENVIRONMENT AUDIT
+==================================================
+
+Periksa environment yang dibutuhkan aplikasi.
+
+Audit:
+
+- Node.js
+- pnpm
+- environment configuration
+- PORT
+- HOST
+- DATABASE configuration
+- authentication configuration
+- required API configuration
+- production mode configuration
+
+JANGAN menampilkan secret.
+
+Hanya tampilkan:
+
+PRESENT
+atau
+MISSING
+
+Jangan menampilkan:
+
+- API key
+- token
+- password
+- session secret
+- database password
+- private key
+
+==================================================
+3. PRODUCTION CONFIGURATION
+==================================================
+
+Audit konfigurasi production berdasarkan source code aktual.
+
+Pastikan:
+
+- production mode tersedia
+- PORT dapat dikonfigurasi
+- database configuration tersedia
+- authentication configuration tersedia
+- CORS sesuai architecture
+- session configuration sesuai architecture
+- error handling production aman
+- logging tidak membocorkan secret
+- health endpoint tersedia jika memang sudah ada
+
+Jangan membuat configuration baru kecuali benar-benar diperlukan.
+
+==================================================
+4. APPLICATION STARTUP
+==================================================
+
+Cari command startup resmi repository.
+
+Jangan menebak command jika package.json atau dokumentasi sudah menyediakan command.
+
+Jalankan startup secara aman.
+
+Tujuan:
+
+memastikan aplikasi dapat melakukan:
+
+- module loading
+- configuration loading
+- route registration
+- service initialization
+
+Jika startup membutuhkan database yang belum tersedia:
+
+jangan membuat fake database.
+
+Laporkan:
+
+STARTUP BLOCKED BY DATABASE
+
+jika memang demikian.
+
+==================================================
+5. HEALTH CHECK
+==================================================
+
+Jika health endpoint sudah tersedia:
+
+jalankan endpoint tersebut.
+
+Gunakan PORT aktual dari konfigurasi.
+
+Pastikan:
+
+- HTTP response valid
+- status sesuai
+- tidak ada secret leakage
+- process benar-benar berjalan
+
+Jika health endpoint belum tersedia:
+
+jangan membuat endpoint baru.
+
+Laporkan:
+
+Health endpoint: NOT AVAILABLE
+
+==================================================
+6. API SMOKE TEST
+==================================================
+
+Jika aplikasi berhasil start dan test environment tersedia:
+
+jalankan smoke test minimal.
+
+Test:
+
+Authentication:
+- unauthenticated protected request → DENY
+
+Workspace:
+- authenticated valid workspace → ALLOW
+- cross-workspace → DENY
+
+Bot:
+- authorized bot access → ALLOW
+- unauthorized bot access → DENY
+
+Jangan menggunakan production credentials.
+
+Jangan membuat data production.
+
+Gunakan test/dev environment jika tersedia.
+
+==================================================
+7. DATABASE MIGRATION
+==================================================
+
+Audit migration source code dan command.
+
+Cari:
+
+- migration files
+- migration command
+- database schema
+- migration documentation
+
+Jangan menjalankan migration terhadap production database dari tahap ini.
+
+Jika Docker masih tidak tersedia:
+
+DATABASE MIGRATION:
+BLOCKED
+
+Reason:
+Docker unavailable in current environment.
+
+Jangan mengubah source code untuk menghilangkan blocker.
+
+Jangan membuat fake PASS.
+
+Jika Docker tersedia dan repository menyediakan test migration environment:
+
+jalankan migration verification secara aman pada environment non-production.
+
+==================================================
+8. PRODUCTION SECURITY FINAL CHECK
+==================================================
+
+Pastikan tidak ada:
+
+- secret di source code
+- secret di git diff
+- credential di logs
+- token di API response
+- password di error response
+- production .env masuk Git
+- temporary files masuk repository
+
+Jangan menampilkan nilai secret.
+
+==================================================
+9. BUILD FINAL
+==================================================
+
+Jalankan verification build resmi repository.
+
+Minimal:
+
+- typecheck
+- tests
+- format
+- import boundary
+- build
+
+Jangan skip test.
+
+Jika semuanya sudah PASS dan tidak ada perubahan source code:
+
+jangan commit ulang.
+
+==================================================
+10. FINAL GIT CHECK
+==================================================
+
+Jalankan:
+
+git status
+git diff --stat
+git log --oneline -3
+
+Expected:
+
+Working tree:
+CLEAN
+
+Jika clean:
+
+NO NEW COMMIT REQUIRED
+
+==================================================
+11. FINAL DECISION
+==================================================
+
+Gunakan salah satu:
+
+READY FOR DEPLOYMENT
+
+atau:
+
+READY FOR DEPLOYMENT — DATABASE MIGRATION PENDING
+
+atau:
+
+NOT READY
+
+Jika hanya Docker yang menjadi blocker migration, gunakan:
+
+READY FOR DEPLOYMENT — DATABASE MIGRATION PENDING
+
+Jangan menyebut source code gagal.
+
+==================================================
+12. FINAL REPORT
+==================================================
+
+Tampilkan:
+
+FINAL BOTSPACE DEPLOYMENT READINESS
+
+Repository:
+- /root/botspace
+
+Branch:
+- ...
+
+Commit:
+- ...
+
+Source Code:
+- PASS
+
+Tests:
+- PASS
+
+Build:
+- PASS
+
+Security:
+- PASS
+
+Working Tree:
+- CLEAN
+
+Startup:
+- PASS / BLOCKED
+
+Health:
+- PASS / BLOCKED / NOT AVAILABLE
+
+API Smoke:
+- PASS / BLOCKED
+
+Database Migration:
+- PASS / BLOCKED
+
+Migration Blocker:
+- Docker unavailable jika memang masih terjadi
+
+Git:
+- checkpoint synchronized
+
+FINAL DECISION:
+READY FOR DEPLOYMENT
+
+Jika migration masih blocked:
+
+READY FOR DEPLOYMENT
+DATABASE MIGRATION PENDING DOCKER ENVIRONMENT
+
+==================================================
+13. STOP CONDITION
+==================================================
+
+Jika:
+
+- source code PASS
+- tests PASS
+- build PASS
+- security PASS
+- working tree CLEAN
+- Git checkpoint aman
+
+maka JANGAN melakukan coding tambahan.
+
+JANGAN membuat commit kosong.
+
+JANGAN mengulang security hardening.
+
+JANGAN membuat fitur baru.
+
+Nyatakan project:
+
+BOTSPACE SOURCE CODE FINAL
+PRODUCTION READY
+DEPLOYMENT READY
+
+Jika Docker belum tersedia, catat:
+
+DATABASE MIGRATION PENDING DOCKER
+
+Kemudian STOP.
 
 
 ```
