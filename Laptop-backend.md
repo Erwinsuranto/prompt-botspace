@@ -1,14 +1,399 @@
+# 
+```
 
 
 
+```
+# 
+```
 
 
 
+```
+# 
+```
+
+
+
+```
 
 # 
 ```
 
 
+
+```
+# 
+```
+
+
+
+```
+# 
+```
+
+
+
+```
+# 
+```
+
+
+
+```
+
+# 
+```
+
+
+
+```
+# 
+```
+
+
+
+```
+# 
+```
+
+
+
+```
+# 
+```
+
+PROMPT: BotSpace — Manual Deployment & Production Smoke Test
+
+Kita melanjutkan BotSpace dari checkpoint terakhir yang SUDAH BERHASIL.
+
+Repository:
+/root/botspace
+
+Branch:
+backend-dev-recovery
+
+Kondisi terakhir:
+
+- Domain: 107 passed
+- API: 113 passed
+- pnpm check: 44/44 successful
+- Typecheck: 11/11 successful
+- Format: PASS
+- Import boundary: PASS
+- Secrets scan: PASS
+- Ownership check: PASS
+- Documentation links: PASS
+- Build: 11/11 successful
+- Database migration test: 31 passed, 0 failed
+- PostgreSQL 16: PASS
+- Migration 0001 through 0003: PASS
+- Migration history: PASS
+- Schema tables: 9 present
+- Constraints/FKs/indexes/triggers: PASS
+- Transaction smoke test: PASS
+- Migration idempotency: PASS
+- Working tree: CLEAN
+- Source code final
+- Tidak ada perubahan source code pada verification terakhir
+
+STATUS:
+READY FOR DEPLOYMENT — ENVIRONMENT VERIFICATION COMPLETE FOR AVAILABLE RUNTIME
+
+PENTING:
+
+- JANGAN audit source code ulang.
+- JANGAN membuat fitur baru.
+- JANGAN mengubah architecture.
+- JANGAN membuat commit baru jika tidak ada perubahan.
+- JANGAN melakukan git push.
+- USER AKAN PUSH MANUAL.
+- JANGAN force push.
+- JANGAN reset.
+- JANGAN rebase.
+- JANGAN merge ke backend-dev.
+- JANGAN mengubah remote Git.
+- Jangan mengubah production database secara destructive.
+- Jangan mencetak secret, API key, password, token, bot token, atau DATABASE_URL.
+
+TUJUAN TAHAP INI:
+
+Sekarang lanjut dari audit/verifikasi source code menuju:
+
+MANUAL PUSH
+→ DEPLOYMENT
+→ DATABASE MIGRATION
+→ APPLICATION START
+→ HEALTH CHECK
+→ API SMOKE TEST
+→ AUTH SMOKE TEST
+→ WORKSPACE SMOKE TEST
+→ BOT SMOKE TEST
+→ RUNTIME LOG CHECK
+→ FINAL PRODUCTION READINESS
+
+1. GIT CHECK ONLY
+
+Periksa:
+
+git status
+git branch --show-current
+git log --oneline -3
+
+Jangan push.
+
+Jika working tree clean, jangan membuat commit.
+
+2. DEPLOYMENT DISCOVERY
+
+Baca README.md dan package scripts untuk menemukan command deployment resmi repository.
+
+Cari:
+
+- production start command
+- Docker configuration
+- docker-compose jika tersedia
+- migration command
+- health endpoint
+- readiness endpoint
+- environment requirements
+
+Gunakan konfigurasi resmi repository.
+
+Jangan membuat deployment method baru.
+
+3. DATABASE MIGRATION
+
+Jika environment deployment menyediakan PostgreSQL resmi:
+
+jalankan migration resmi repository.
+
+Verifikasi:
+
+- migration berhasil
+- migration tidak destructive
+- migration idempotent
+- schema sesuai migration
+- application dapat connect ke database
+
+Jika PostgreSQL/Docker belum tersedia:
+
+JANGAN membuat fake PASS.
+
+Laporkan:
+
+DATABASE ENVIRONMENT NOT AVAILABLE
+
+Lanjutkan hanya verification yang memang dapat dilakukan.
+
+4. APPLICATION START
+
+Jalankan production/runtime start command resmi repository.
+
+Pastikan:
+
+- application berhasil start
+- process tetap hidup
+- tidak crash
+- database connection berhasil
+- environment validation berhasil
+- tidak ada runtime exception
+
+Jangan mengubah source code hanya untuk melewati environment problem.
+
+5. HEALTH CHECK
+
+Gunakan health endpoint yang memang tersedia.
+
+Verifikasi:
+
+- HTTP status
+- response
+- application process
+- database readiness jika memang termasuk health check
+
+Jika readiness endpoint tersedia, uji juga.
+
+Jangan membuat endpoint baru.
+
+6. AUTHENTICATION SMOKE TEST
+
+Jika environment test memungkinkan:
+
+- unauthenticated protected request → DENY
+- valid authenticated request → PASS
+- invalid session → DENY
+- expired/revoked session → DENY jika dapat diuji
+
+Jangan mencetak credential.
+
+7. WORKSPACE SMOKE TEST
+
+Verifikasi workspace isolation.
+
+User A:
+workspace-A
+
+User B:
+workspace-B
+
+User A:
+workspace-A → PASS
+workspace-B → DENY
+
+User B:
+workspace-B → PASS
+workspace-A → DENY
+
+Pastikan cross-workspace isolation tetap aktif.
+
+8. BOT SMOKE TEST
+
+Jika test fixture atau environment aman tersedia:
+
+- authorized bot GET → PASS
+- unauthorized bot GET → DENY
+- authorized update → PASS sesuai permission
+- cross-workspace update → DENY
+- unauthorized delete → DENY
+- bot status operation mengikuti permission
+
+Jangan menghapus bot production.
+
+Jangan mengubah credential production.
+
+Gunakan test data jika tersedia.
+
+9. API ERROR SMOKE TEST
+
+Pastikan:
+
+- unauthorized → proper error
+- invalid resource → proper error
+- invalid request → proper validation error
+- tidak ada secret dalam response
+- tidak ada production stack trace
+- tidak ada credential leakage
+
+10. RUNTIME LOG CHECK
+
+Periksa startup/runtime log.
+
+Pastikan tidak ada:
+
+- password
+- API key
+- session token
+- bot token
+- DATABASE_URL
+- credential
+- secret
+
+Jika ditemukan secret leakage:
+
+STOP.
+
+Laporkan error sebenarnya.
+
+Jangan menghapus atau menyembunyikan log secara sembarangan.
+
+11. PROCESS CHECK
+
+Periksa:
+
+- application process
+- listening port
+- duplicate application process
+- crash loop
+- unexpected process yang terkait deployment
+
+Jangan mematikan service lain yang tidak terkait BotSpace.
+
+12. FINAL GIT CHECK
+
+Setelah verification selesai:
+
+git status
+git log --oneline -3
+
+Jika source code tetap tidak berubah:
+
+- commit: NOT NEEDED
+- push: NOT PERFORMED — USER WILL PUSH MANUALLY
+
+Jika ternyata ada perubahan yang benar-benar diperlukan:
+
+STOP sebelum commit atau push dan laporkan perubahan tersebut.
+
+13. FINAL DECISION
+
+Gunakan hanya salah satu status berikut:
+
+PRODUCTION READY
+
+atau
+
+READY FOR DEPLOYMENT — ENVIRONMENT BLOCKER
+
+atau
+
+BLOCKED — RUNTIME ERROR
+
+atau
+
+BLOCKED — DATABASE ERROR
+
+Jangan menyebut PRODUCTION READY jika application runtime belum berhasil diverifikasi.
+
+14. FINAL REPORT
+
+Tampilkan laporan ringkas:
+
+Deployment:
+- Method: ...
+- Status: PASS/BLOCKED
+
+Database:
+- PostgreSQL: ...
+- Migration: ...
+
+Runtime:
+- Startup: ...
+- Health: ...
+- Readiness: ...
+- Process: ...
+
+Security:
+- Authentication: ...
+- Workspace isolation: ...
+- Bot authorization: ...
+- Secret leakage: ...
+
+Smoke Test:
+- API: ...
+- Workspace: ...
+- Bot: ...
+
+Git:
+- Branch: ...
+- Working tree: CLEAN/DIRTY
+- Commit: NOT NEEDED
+- Push: NOT PERFORMED — USER WILL PUSH MANUALLY
+
+FINAL DECISION:
+...
+
+PENTING:
+
+Jangan mengklaim PASS jika verification sebenarnya gagal.
+
+Jangan membuat perubahan source code untuk memalsukan hasil PASS.
+
+Jangan commit.
+
+Jangan push.
+
+Selesaikan deployment/runtime verification ini lalu berhenti.
 
 ```
 # 
