@@ -47,10 +47,330 @@
 
 
 ```
-# 
+# Prompt: BotSpace — Final Production Deployment & Database Migration
 ```
 
+PROMPT: BotSpace — Final Production Deployment & Database Migration
 
+Kita melanjutkan project BotSpace dari checkpoint terakhir.
+
+Repository:
+ /root/botspace
+
+Branch:
+ backend-dev-recovery
+
+Remote:
+ https://github.com/zenolamee/botspace.git
+
+STATUS TERAKHIR:
+
+Source code:
+- FINAL
+- Production readiness: READY
+- Working tree: CLEAN
+- Git checkpoint sudah aman
+- Security verification sudah PASS
+- Domain tests PASS
+- API tests PASS
+- Typecheck PASS
+- Format PASS
+- Import boundary PASS
+- Build 11/11 PASS
+
+Satu-satunya blocker yang tersisa:
+
+DATABASE MIGRATION:
+BLOCKED — Docker tidak tersedia pada environment saat verification.
+
+PENTING:
+
+JANGAN melakukan audit source code lagi.
+JANGAN mengulang security hardening yang sudah selesai.
+JANGAN membuat fitur baru.
+JANGAN reset.
+JANGAN force push.
+JANGAN rebase sembarangan.
+JANGAN merge ke backend-dev.
+JANGAN menghapus checkpoint yang sudah ada.
+
+TUJUAN FINAL
+
+Selesaikan BotSpace sampai benar-benar siap dijalankan di environment deployment.
+
+Alur:
+
+CHECK ENVIRONMENT
+→ DATABASE MIGRATION
+→ DATABASE VERIFICATION
+→ APPLICATION START
+→ RUNTIME HEALTH CHECK
+→ FINAL TEST
+→ GIT STATUS
+→ FINAL REPORT
+
+1. CEK ENVIRONMENT
+
+Periksa environment aktual:
+
+- Node.js version
+- pnpm version
+- database yang digunakan project
+- DATABASE_URL / environment variable yang relevan
+- migration command resmi repository
+- package scripts
+- apakah Docker tersedia
+- apakah database service tersedia
+
+JANGAN mengubah source code hanya karena Docker tidak tersedia.
+
+Gunakan package.json dan README sebagai sumber kebenaran untuk command migration.
+
+2. DATABASE MIGRATION
+
+Cari migration system yang benar-benar digunakan project.
+
+Jangan membuat migration baru jika tidak diperlukan.
+
+Jika Docker tersedia:
+
+- jalankan migration menggunakan workflow resmi repository
+- jangan menghapus database
+- jangan reset database production
+- jangan menggunakan destructive migration
+- jangan menjalankan db reset kecuali repository secara eksplisit membutuhkan database disposable untuk test
+
+Jika Docker TIDAK tersedia:
+
+- jangan menginstal Docker secara otomatis
+- jangan mengubah konfigurasi VPS
+- jangan mengubah system service
+- jangan mengubah production environment
+- jangan membuat workaround palsu
+
+Sebaliknya:
+
+- tentukan command migration yang sebenarnya
+- tentukan dependency environment yang hilang
+- verifikasi apakah migration dapat dijalankan tanpa Docker menggunakan database yang memang tersedia
+- jika benar-benar tidak dapat dijalankan, laporkan blocker secara eksplisit
+
+3. DATABASE SAFETY
+
+Sebelum migration:
+
+- pastikan target database diketahui
+- jangan menyentuh production database tanpa konfigurasi yang memang disediakan
+- jangan menghapus data
+- jangan drop schema
+- jangan reset database
+- jangan melakukan destructive operation
+
+Migration harus aman dan reproducible.
+
+4. SETELAH MIGRATION BERHASIL
+
+Verifikasi:
+
+- migration status
+- database schema tersedia
+- tabel/struktur penting tersedia
+- application database connection berhasil
+
+Gunakan command resmi repository jika tersedia.
+
+Jangan membuat script database baru hanya untuk verification.
+
+5. START APPLICATION
+
+Cari command resmi untuk menjalankan BotSpace.
+
+Gunakan package scripts yang sudah ada.
+
+Jangan mengubah source code hanya agar aplikasi bisa start.
+
+Jika environment variable wajib belum tersedia:
+
+- identifikasi variable yang hilang
+- jangan mencetak secret ke terminal/report
+- jangan membuat secret palsu
+- jangan menebak API key
+
+6. RUNTIME HEALTH CHECK
+
+Jika aplikasi berhasil start:
+
+uji health endpoint atau endpoint resmi yang memang tersedia.
+
+Minimal verifikasi:
+
+- application process hidup
+- database connection berhasil
+- API dapat menerima request
+- authentication boundary tetap aktif
+- workspace authorization tetap aktif
+- bot resource authorization tetap aktif
+
+Jangan melakukan destructive API request.
+
+7. REGRESSION
+
+Jalankan verification final:
+
+- domain tests
+- API tests
+- authentication/session tests
+- workspace authorization tests
+- membership tests
+- bot/resource tests
+- typecheck
+- format
+- import boundary
+- build
+
+Jangan skip test.
+
+Jangan menghapus test.
+
+Jika failure terjadi, cari root cause sebenarnya.
+
+8. SOURCE CODE FREEZE
+
+Setelah source-code verification PASS:
+
+JANGAN melakukan refactor baru.
+
+JANGAN menambahkan fitur.
+
+JANGAN mengubah architecture.
+
+JANGAN mengubah security policy yang sudah selesai.
+
+Jika migration/runtime gagal karena environment, jangan mengubah source code untuk menyembunyikan failure.
+
+9. GIT FINAL CHECK
+
+Jalankan:
+
+git status
+git diff --stat
+git log --oneline -5
+
+Pastikan:
+
+- working tree clean
+- tidak ada file secret
+- tidak ada temporary file
+- tidak ada build artifact
+- tidak ada perubahan source code yang tidak diperlukan
+
+Jika tidak ada perubahan source code:
+
+JANGAN membuat empty commit.
+
+Jika migration hanya dilakukan pada environment dan tidak mengubah repository:
+
+JANGAN membuat commit.
+
+10. PUSH
+
+Jika ada commit source-code yang memang belum dipush:
+
+git push
+
+Branch tetap:
+
+backend-dev-recovery
+
+Jangan force push.
+
+Jangan mengubah remote.
+
+Jangan merge.
+
+Jika GitHub authentication gagal:
+
+- jangan mengubah source code
+- jangan membuat commit kosong
+- pertahankan commit lokal
+- laporkan error sebenarnya
+
+11. FINAL DECISION
+
+Jika:
+
+SOURCE CODE PASS
++ TEST PASS
++ BUILD PASS
++ DATABASE MIGRATION PASS
++ DATABASE CONNECTION PASS
++ RUNTIME HEALTH PASS
+
+maka status:
+
+READY FOR PRODUCTION
+
+Jika database migration masih tidak dapat dijalankan karena Docker/environment:
+
+status:
+
+SOURCE CODE FINAL
+DEPLOYMENT READY
+DATABASE MIGRATION BLOCKED BY ENVIRONMENT
+
+Jangan menyebut project "fully production verified" jika migration atau runtime belum berhasil.
+
+12. FINAL REPORT
+
+Tampilkan laporan ringkas:
+
+SOURCE CODE:
+- Status: ...
+
+DATABASE:
+- Database: ...
+- Migration: PASS/BLOCKED
+- Reason: ...
+
+RUNTIME:
+- Application start: PASS/BLOCKED
+- Database connection: PASS/BLOCKED
+- Health check: PASS/BLOCKED
+
+TESTS:
+- Domain: ...
+- API: ...
+- Auth/Session: ...
+- Workspace: ...
+- Membership: ...
+- Bot/Resource: ...
+- Typecheck: ...
+- Format: ...
+- Import boundary: ...
+- Build: ...
+
+GIT:
+- Branch: ...
+- HEAD: ...
+- Working tree: CLEAN/DIRTY
+- Push: SUCCESS/FAILED/NOT NEEDED
+
+FINAL STATUS:
+- READY FOR PRODUCTION
+atau
+- READY FOR DEPLOYMENT — DATABASE MIGRATION PENDING
+atau
+- BLOCKED — [alasan sebenarnya]
+
+PENTING:
+
+Jangan mengklaim migration berhasil jika Docker/database tidak benar-benar menjalankannya.
+
+Jangan mengklaim runtime sehat jika aplikasi belum benar-benar berhasil start.
+
+Jangan mengubah source code hanya untuk membuat laporan terlihat PASS.
+
+Selesaikan verification final dan berhenti.
 
 ```
 # 
