@@ -77,9 +77,428 @@
 
 
 ```
-# 
+# Prompt: BotSpace — Final Production Readiness Verification
 ```
+PROMPT: BotSpace — Final Production Readiness Verification
 
+Kita melanjutkan project BotSpace setelah tahap Bot Lifecycle & Resource Integrity.
+
+Repository:
+ /root/botspace
+
+Branch:
+ backend-dev-recovery
+
+Checkpoint terbaru:
+ d24aeed5d2151484449d94c72609e6f26b332d9c
+
+Commit:
+ docs: finalize product verification guidance
+
+Kondisi verification terakhir:
+
+- Domain: 107 passed
+- API: 113 passed
+- Full repository tests: 11 packages passed
+- pnpm check: 44/44 passed
+- Typecheck: 11/11 passed
+- Format: PASS
+- Import boundary: PASS
+- Secrets scan: PASS
+- Ownership check: PASS
+- Documentation links: PASS
+- Build: 11/11 passed
+- Working tree: CLEAN
+
+Database migration:
+- BLOCKED
+- Penyebab: environment tidak memiliki Docker
+- Error: `/bin/sh: 1: docker: not found`
+
+PENTING:
+Database migration BLOCKED karena Docker tidak tersedia di environment.
+JANGAN mengubah source code hanya untuk mengakali blocker Docker.
+JANGAN membuat fake migration result.
+JANGAN menghapus migration test.
+JANGAN mengganti migration behavior hanya agar verification terlihat PASS.
+
+Jangan reset.
+Jangan force push.
+Jangan rebase sembarangan.
+Jangan checkout branch lain.
+Jangan merge ke backend-dev.
+Jangan membuat authentication/authorization system baru.
+Jangan menggunakan Kiro.
+
+==================================================
+TUJUAN
+==================================================
+
+Ini adalah FINAL PRODUCTION READINESS VERIFICATION.
+
+Tujuan:
+
+AUDIT FINAL
+→ SECURITY REGRESSION
+→ TEST
+→ TYPECHECK
+→ BUILD
+→ SECRET SCAN
+→ GIT AUDIT
+→ PUSH
+→ FINAL REPORT
+
+Jangan menambahkan fitur besar baru.
+
+==================================================
+1. AUDIT FINAL SOURCE CODE
+==================================================
+
+Audit perubahan dari checkpoint sebelumnya.
+
+Pastikan perubahan hanya berkaitan dengan:
+
+- authentication
+- session
+- workspace authorization
+- workspace membership
+- ownership
+- permission
+- bot authorization
+- bot lifecycle
+- resource integrity
+- credential security
+- documentation/verification
+
+Cari kembali:
+
+- TODO security
+- FIXME security
+- debug code
+- console.log sensitif
+- hardcoded secret
+- token
+- password
+- API key
+- credential
+- @ts-ignore baru
+- any baru yang tidak diperlukan
+- dead code
+- duplicate authorization system
+
+Jangan melakukan refactor besar jika tidak ada bug nyata.
+
+==================================================
+2. SECURITY REGRESSION
+==================================================
+
+Pastikan seluruh security boundary tetap aktif:
+
+Authentication
+→ Current User
+→ Account
+→ Workspace
+→ Membership
+→ Role/Permission
+→ Bot
+→ Child Resource
+
+Pastikan tidak ada jalur yang dapat melewati:
+
+- authentication
+- workspace authorization
+- membership
+- permission
+- ownership
+
+Audit kembali kemungkinan IDOR:
+
+- workspaceId
+- botId
+- membershipId
+- commandId
+- flowId
+- integrationId
+- webhookId
+- credentialId
+- resource ID lainnya
+
+User dari workspace A tidak boleh mengakses resource workspace B hanya dengan mengetahui ID.
+
+==================================================
+3. CREDENTIAL SECURITY
+==================================================
+
+Pastikan tidak ada:
+
+- password
+- bot token
+- API key
+- session token
+- refresh token
+- webhook secret
+- integration secret
+
+yang masuk ke:
+
+- response
+- logs
+- errors
+- test output
+- git diff
+- repository
+
+Jalankan secrets scan yang tersedia.
+
+Jangan menampilkan secret pada final report.
+
+==================================================
+4. TEST FINAL
+==================================================
+
+Jalankan verification resmi repository.
+
+Minimal:
+
+- Domain tests
+- API tests
+- Authentication/session tests
+- Workspace authorization tests
+- Membership tests
+- Bot/resource tests
+- Typecheck
+- Format
+- Import boundary
+- Secrets scan
+- Build
+
+Jika command repository memiliki full verification command, gunakan command tersebut.
+
+JANGAN skip test.
+
+JANGAN menghapus test.
+
+Jika test gagal:
+
+- identifikasi root cause
+- perbaiki hanya jika failure berasal dari source code
+- jalankan ulang test
+- ulangi full verification
+
+==================================================
+5. DATABASE MIGRATION
+==================================================
+
+Jalankan migration verification HANYA jika environment menyediakan Docker.
+
+Pertama cek:
+
+docker --version
+
+Jika Docker tersedia:
+
+- jalankan migration test resmi repository
+- pastikan migration PASS
+
+Jika Docker tidak tersedia:
+
+JANGAN install Docker.
+JANGAN mengubah source code.
+JANGAN membuat workaround.
+JANGAN mengklaim migration PASS.
+
+Catat secara eksplisit:
+
+Database migration:
+BLOCKED — Docker unavailable
+
+Source-code verification tetap dianggap valid jika seluruh verification lain PASS.
+
+==================================================
+6. BUILD FINAL
+==================================================
+
+Jalankan full build.
+
+Pastikan:
+
+- semua package berhasil build
+- tidak ada TypeScript error
+- tidak ada syntax error
+- tidak ada import boundary violation
+- tidak ada missing dependency
+
+Expected:
+
+Build: PASS
+
+==================================================
+7. GIT AUDIT
+==================================================
+
+Jalankan:
+
+git status
+git diff --stat
+git diff
+git log --oneline -5
+git branch --show-current
+git remote -v
+
+Pastikan:
+
+- branch = backend-dev-recovery
+- working tree clean
+- tidak ada secret
+- tidak ada temporary file
+- tidak ada build artifact
+- tidak ada perubahan tidak sengaja
+
+JANGAN mengubah remote.
+
+==================================================
+8. COMMIT
+==================================================
+
+Jika source code sudah clean dan tidak ada perubahan baru:
+
+JANGAN membuat empty commit.
+
+Pertahankan checkpoint:
+
+d24aeed5d2151484449d94c72609e6f26b332d9c
+
+Jika ternyata ada perubahan source code kecil yang memang diperlukan dari verification final:
+
+- review diff
+- test ulang
+- buat SATU commit
+- gunakan message sesuai perubahan sebenarnya
+
+Jangan membuat commit hanya untuk membuat aktivitas terlihat.
+
+==================================================
+9. PUSH
+==================================================
+
+Pastikan checkpoint terbaru sudah berada di remote.
+
+Jalankan:
+
+git fetch origin
+git status
+git push
+
+Jika sudah up-to-date:
+
+jangan membuat commit kosong.
+
+Jika push gagal karena GitHub authentication:
+
+JANGAN mengubah source code.
+
+Laporkan error sebenarnya.
+
+Jangan force push.
+
+==================================================
+10. FINAL DECISION
+==================================================
+
+Tentukan status berdasarkan fakta.
+
+READY FOR PRODUCTION:
+jika:
+
+- security regression PASS
+- tests PASS
+- typecheck PASS
+- format PASS
+- import boundary PASS
+- secrets scan PASS
+- build PASS
+- working tree CLEAN
+- checkpoint aman
+- push berhasil atau remote sudah up-to-date
+
+Database migration boleh tetap:
+
+BLOCKED — Docker unavailable
+
+selama blocker tersebut hanya environment limitation dan bukan source-code failure.
+
+NOT READY:
+jika ada source-code/test/build/security failure.
+
+Jangan menyatakan READY jika ada source-code failure.
+
+==================================================
+11. FINAL REPORT
+==================================================
+
+Tampilkan laporan singkat:
+
+FINAL DECISION:
+- READY / NOT READY
+
+Source Code:
+- Audit: PASS/FAIL
+- Security regression: PASS/FAIL
+- Credential security: PASS/FAIL
+
+Tests:
+- Domain: ...
+- API: ...
+- Auth/Session: ...
+- Workspace: ...
+- Membership: ...
+- Bot/Resource: ...
+- Typecheck: ...
+- Format: ...
+- Import boundary: ...
+- Secrets scan: ...
+- Build: ...
+
+Database:
+- Migration: PASS / BLOCKED
+- Reason jika BLOCKED: Docker unavailable
+
+Git:
+- Branch: ...
+- HEAD: ...
+- Working tree: CLEAN/DIRTY
+- Remote: ...
+- Push: SUCCESS / UP-TO-DATE / FAILED
+
+Final:
+- Production readiness: ...
+
+Jika migration masih BLOCKED karena Docker tidak tersedia, tulis dengan jelas bahwa itu adalah ENVIRONMENT BLOCKER, bukan source-code failure.
+
+Jangan mengklaim migration berhasil jika Docker tidak tersedia.
+
+==================================================
+PENTING
+==================================================
+
+Ini adalah tahap final.
+
+Jangan menambahkan fitur baru.
+Jangan refactor besar.
+Jangan membuat sistem security baru.
+Jangan mengubah database migration hanya karena Docker tidak tersedia.
+
+Fokus:
+
+FINAL AUDIT
+→ SECURITY REGRESSION
+→ TEST
+→ BUILD
+→ GIT
+→ PUSH
+→ FINAL DECISION
+
+Setelah final report selesai, berhenti.
 
 
 ```
