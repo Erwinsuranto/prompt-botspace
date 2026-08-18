@@ -119,6 +119,486 @@
 ```
 
 
+PROMPT: BotSpace — Workspace Membership & Ownership Enforcement
+
+Kita melanjutkan project BotSpace setelah checkpoint authorization terakhir yang SUDAH BERHASIL.
+
+Kondisi saat ini:
+
+Repository: /root/botspace
+Branch: backend-dev-recovery
+Remote: https://github.com/zenolamee/botspace.git
+Checkpoint terakhir yang sudah dipush: c4c66ff
+Commit: fix: enforce workspace authorization
+
+Verification sebelumnya:
+
+* Build: 11 packages successful
+* pnpm check: 44 tasks successful
+* Format check: PASS
+* Import boundary check: PASS
+* Working tree: clean
+* Push: berhasil
+
+JANGAN reset, force push, rebase sembarangan, checkout branch lain, atau menghapus checkpoint c4c66ff.
+
+TUJUAN
+
+Lanjutkan BotSpace ke tahap berikutnya dengan fokus pada WORKSPACE MEMBERSHIP dan OWNERSHIP.
+
+Permission policy sudah diperbaiki pada tahap sebelumnya. Sekarang pastikan model membership workspace benar-benar aman dan konsisten sehingga akses workspace tidak hanya bergantung pada owner/user ID sederhana.
+
+Arsitektur yang harus dipertahankan:
+
+* satu account website dapat memiliki beberapa Telegram account/workspace
+* setiap Telegram account memiliki workspace sendiri
+* bot dibuat di dalam workspace
+* workspace memiliki owner/membership
+* akses resource mengikuti membership dan permission
+* backend adalah sumber kebenaran authorization
+* frontend tidak boleh menjadi security boundary
+
+1. AUDIT TERLEBIH DAHULU
+
+Sebelum mengubah kode, audit implementasi yang sudah ada.
+
+Cari:
+
+* Workspace entity/model
+* Workspace repository
+* Workspace service
+* Workspace API routes
+* Workspace membership
+* Workspace owner
+* user/account relationship
+* bot → workspace relationship
+* permission policy
+* authorization middleware/service
+* database schema dan migration terkait workspace
+* test workspace yang sudah ada
+
+Gunakan struktur repository aktual sebagai sumber kebenaran.
+
+Jangan membuat sistem membership baru jika repository sudah memilikinya.
+
+2. TENTUKAN MODEL AKSES YANG SUDAH ADA
+
+Pahami apakah project saat ini menggunakan:
+
+* ownerId
+* userId
+* accountId
+* membership table
+* workspace members
+* roles
+* permission
+* kombinasi beberapa mekanisme tersebut
+
+Jangan mengganti model yang sudah benar.
+
+Jika membership sudah ada tetapi enforcement belum lengkap, perbaiki enforcement.
+
+Jika owner adalah special membership, pastikan behavior tersebut konsisten.
+
+3. WORKSPACE OWNER
+
+Pastikan owner workspace memiliki akses sesuai permission yang memang dimaksudkan oleh arsitektur.
+
+Minimal audit:
+
+* owner dapat melihat workspace
+* owner dapat mengubah workspace
+* owner dapat mengelola resource workspace
+* owner dapat mengelola membership jika fitur tersebut memang tersedia
+* owner tidak dapat kehilangan akses secara tidak sengaja
+* owner tidak dapat dihapus dari workspace dengan cara yang membuat workspace kehilangan owner, kecuali arsitektur memang secara eksplisit mendukung transfer ownership
+
+Jangan menambahkan transfer ownership jika fitur tersebut belum menjadi bagian scope.
+
+4. WORKSPACE MEMBER
+
+Jika project mendukung membership:
+
+Pastikan member hanya mendapatkan akses sesuai permission/role mereka.
+
+Test minimal:
+
+* member dengan permission valid dapat melakukan operasi yang diizinkan
+* member tanpa permission ditolak
+* member tidak dapat mengakses workspace lain
+* member tidak dapat mengubah permission dirinya sendiri tanpa hak yang sesuai
+* member tidak dapat mengubah owner workspace tanpa authorization
+
+Jangan memberikan akses penuh kepada semua member hanya karena mereka terdaftar dalam workspace.
+
+5. CROSS-WORKSPACE ISOLATION
+
+Pastikan membership Workspace A tidak memberikan akses ke Workspace B.
+
+Test skenario:
+
+User A:
+workspace-A
+
+User B:
+workspace-B
+
+User A tidak boleh:
+
+* membaca workspace-B
+* membaca member workspace-B
+* menambah/menghapus member workspace-B
+* mengubah role workspace-B
+* mengubah bot workspace-B
+* menghapus resource workspace-B
+
+meskipun ID workspace atau resource diketahui.
+
+6. MEMBERSHIP API
+
+Audit endpoint yang berkaitan dengan membership.
+
+Jika endpoint tersedia, periksa:
+
+* list members
+* get member
+* add member
+* remove member
+* update member role
+* update member permission
+* leave workspace
+
+Pastikan setiap endpoint melakukan authorization terhadap workspace yang benar.
+
+Jangan membuat endpoint baru jika fitur tersebut belum ada.
+
+Jika endpoint belum tersedia tetapi domain/service sudah mendukung membership, jangan memperluas scope menjadi pembuatan UI/API baru tanpa kebutuhan.
+
+Fokus pada security dan correctness dari implementasi yang sudah ada.
+
+7. SELF-MODIFICATION
+
+Periksa apakah user dapat memodifikasi membership dirinya sendiri.
+
+Contoh yang harus diperhatikan:
+
+* member menaikkan role dirinya sendiri
+* member memberikan permission tambahan kepada dirinya sendiri
+* member menghapus restriction dirinya sendiri
+* member mengubah ownerId
+
+Semua harus ditolak jika user tidak memiliki permission yang sesuai.
+
+Jangan mempercayai role atau permission dari request body.
+
+Contoh request berbahaya:
+
+role: owner
+
+atau:
+
+permissions: ["*"]
+
+Backend harus menentukan authorization berdasarkan data yang tersimpan dan policy yang sebenarnya.
+
+8. OWNER PROTECTION
+
+Pastikan operasi membership tidak dapat menghasilkan workspace tanpa owner.
+
+Test minimal:
+
+* tidak dapat menghapus satu-satunya owner tanpa replacement mechanism yang memang sudah tersedia
+* member biasa tidak dapat menghapus owner
+* member biasa tidak dapat mengganti owner
+* user dari workspace lain tidak dapat memodifikasi owner
+
+Jangan membuat mekanisme transfer ownership baru pada task ini.
+
+Jika behavior yang dibutuhkan belum didukung arsitektur, dokumentasikan sebagai limitation daripada membuat fitur besar di luar scope.
+
+9. AUTHORIZATION ORDER
+
+Pastikan urutan pemeriksaan aman:
+
+Authentication
+→ resolve current user/account
+→ resolve workspace
+→ verify membership/ownership
+→ verify permission
+→ execute operation
+
+Jangan melakukan mutation terlebih dahulu baru memeriksa permission.
+
+Jangan mengambil resource workspace lain lalu menggunakan data tersebut untuk menentukan authorization jika pola repository memungkinkan query langsung dengan workspace scope.
+
+10. DATABASE / REPOSITORY SAFETY
+
+Audit query membership dan workspace.
+
+Cari pola seperti:
+
+findById(id)
+
+atau query berdasarkan ID saja pada resource yang seharusnya workspace-scoped.
+
+Jika repository mendukung:
+
+* workspaceId
+* userId
+* membershipId
+
+gunakan scope tersebut dengan benar.
+
+Jangan mengubah database schema kecuali memang diperlukan untuk memperbaiki bug nyata yang ditemukan.
+
+Jika migration benar-benar diperlukan:
+
+* buat migration yang aman
+* jangan menghapus data
+* jangan mengubah production database
+* test migration
+* dokumentasikan perubahan
+
+11. TESTING
+
+Tambahkan atau perbaiki test untuk:
+
+Workspace owner:
+
+* owner access PASS
+* owner mutation PASS
+* owner protection PASS
+
+Workspace member:
+
+* valid member access PASS
+* unauthorized member access DENY
+* insufficient permission DENY
+
+Cross workspace:
+
+* read DENY
+* update DENY
+* delete DENY
+* membership modification DENY
+
+Self escalation:
+
+* role escalation DENY
+* permission escalation DENY
+* ownership modification DENY
+
+Invalid membership:
+
+* nonexistent member
+* nonexistent workspace
+* duplicate membership
+* membership dari workspace lain
+
+Sesuaikan test dengan behavior yang memang tersedia di repository.
+
+Jangan membuat test untuk endpoint yang tidak ada.
+
+12. ERROR HANDLING
+
+Gunakan error system yang sudah ada.
+
+Pastikan:
+
+* unauthenticated → authentication error sesuai convention
+* authenticated tetapi bukan member → authorization error sesuai convention
+* member tetapi tidak memiliki permission → authorization error sesuai convention
+* resource benar-benar tidak ada → not found sesuai convention
+
+Jangan membocorkan informasi membership workspace lain.
+
+13. BACKWARD COMPATIBILITY
+
+Jangan merusak API yang sudah bekerja.
+
+Sebelum mengubah function signature:
+
+* cari semua caller
+* update caller
+* update unit test
+* update integration/API test
+* jalankan typecheck
+
+Jangan membuat breaking change tanpa alasan.
+
+14. CODE QUALITY
+
+Pastikan:
+
+* tidak ada any baru tanpa alasan
+* tidak ada @ts-ignore baru
+* tidak ada duplicate authorization logic
+* tidak ada duplicate membership system
+* tidak ada unused import
+* tidak ada dead code
+* tidak ada circular dependency baru
+* mengikuti struktur package yang sudah ada
+
+Gunakan abstraction authorization yang dibuat pada commit c4c66ff jika memang sesuai.
+
+Jangan membuat permission system kedua.
+
+15. VERIFICATION
+
+Setelah implementasi:
+
+jalankan test yang tersedia.
+
+Minimal:
+
+* domain tests
+* API tests
+* typecheck
+* lint jika tersedia
+* build jika tersedia
+
+Jika ada failure:
+
+* cari root cause
+* perbaiki
+* ulangi test
+* ulangi full verification
+
+Jangan skip test.
+
+Jangan menghapus test existing.
+
+16. README
+
+Jika diperlukan, update README.md yang sudah ada.
+
+Jangan membuat README baru.
+
+Dokumentasikan hanya hal penting:
+
+* workspace owner
+* workspace membership
+* authorization
+* role/permission behavior
+* test command
+
+17. GIT
+
+Setelah verification PASS:
+
+jalankan:
+
+git status
+git diff --stat
+git diff
+
+Pastikan tidak ada perubahan di luar scope.
+
+Buat SATU commit baru.
+
+Gunakan commit message berdasarkan perubahan sebenarnya.
+
+Contoh:
+
+feat: enforce workspace membership authorization
+
+atau:
+
+fix: secure workspace membership access
+
+Setelah commit:
+
+git status
+git log --oneline -3
+
+Kemudian:
+
+git push
+
+Branch tetap:
+
+backend-dev-recovery
+
+Jangan mengubah remote.
+
+18. JANGAN MERGE
+
+Jangan merge backend-dev-recovery ke backend-dev.
+
+Jangan melakukan merge otomatis.
+
+Hanya:
+
+AUDIT
+→ IMPLEMENT
+→ TEST
+→ BUILD
+→ COMMIT
+→ PUSH
+
+Setelah push berhasil, berhenti.
+
+19. LAPORAN AKHIR
+
+Tampilkan:
+
+Implementation:
+
+* ...
+
+Membership:
+
+* ...
+
+Security:
+
+* ...
+
+Tests:
+
+* Domain: ...
+* API: ...
+* Typecheck: ...
+* Lint: ...
+* Build: ...
+
+Commit:
+
+* hash: ...
+* message: ...
+
+Git:
+
+* branch: ...
+* push: success/failed
+
+Working tree:
+
+* clean/dirty
+
+Jika ada failure, tampilkan error sebenarnya.
+
+Jangan mengklaim sukses jika test, build, commit, atau push belum berhasil.
+
+20. PENTING
+
+Jangan membuat fitur besar baru.
+
+Fokus tahap ini:
+
+WORKSPACE
+→ OWNER
+→ MEMBERSHIP
+→ ROLE/PERMISSION
+→ AUTHORIZATION
+→ CROSS-WORKSPACE ISOLATION
+→ TEST
+→ COMMIT
+→ PUSH
+
+Tujuan akhirnya adalah memastikan setiap workspace memiliki boundary akses yang benar dan tidak ada user yang dapat menaikkan hak aksesnya sendiri atau mengakses workspace lain.
+
+Selesaikan sampai push berhasil lalu berhenti.
 
 ```
 # Prompt: BotSpace — Workspace Permission Policy Completion & Full Verification
