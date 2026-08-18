@@ -54,9 +54,362 @@
 
 
 ```
-# 
+# BotSpace — Runtime Route Registration & Authentication Wiring Diagnosis
 ```
+PROMPT: BotSpace — Runtime Route Registration & Authentication Wiring Diagnosis
 
+Kita melanjutkan BotSpace dari hasil production verification terakhir.
+
+Repository:
+/root/botspace
+
+Branch:
+backend-dev-recovery
+
+Kondisi terakhir:
+
+- Domain: 107 passed
+- API: 113 passed
+- pnpm check: 44/44 successful
+- Typecheck: 11/11 successful
+- Format: PASS
+- Import boundary: PASS
+- Secrets scan: PASS
+- Ownership check: PASS
+- Documentation links: PASS
+- Build: 11/11 successful
+- Database migration test: 31 passed, 0 failed
+- PostgreSQL 16: PASS
+- Migration 0001 through 0003: PASS
+- Migration history: PASS
+- Schema tables: 9 present
+- Constraints/FKs/indexes/triggers: PASS
+- Transaction smoke test: PASS
+- Migration idempotency: PASS
+- /health: HTTP 200
+- /ready: HTTP 200
+- Working tree: CLEAN
+- Tidak ada source change pada verification terakhir
+- Commit baru: TIDAK DIBUAT
+- Push: TIDAK DILAKUKAN — USER AKAN PUSH MANUAL
+
+HASIL VERIFICATION TERAKHIR:
+
+Runtime application berhasil start dan melayani operational routes.
+
+Namun ditemukan:
+
+- /health → HTTP 200
+- /ready → HTTP 200
+- unknown route → HTTP 404
+- unsupported method → HTTP 405
+- Workspace: BLOCKED oleh unavailable persistence adapter wiring
+- Bot: BLOCKED oleh unavailable persistence adapter wiring
+- /v1/sessions/current → HTTP 404 karena auth routes belum terdaftar pada runtime configuration
+
+FINAL STATUS:
+READY FOR DEPLOYMENT — ENVIRONMENT BLOCKER
+
+PENTING:
+
+JANGAN push.
+JANGAN commit.
+JANGAN reset.
+JANGAN force push.
+JANGAN rebase.
+JANGAN merge.
+JANGAN mengubah remote.
+JANGAN mengubah production database.
+JANGAN membuat fitur baru.
+JANGAN membuat authentication system baru.
+
+TUJUAN TAHAP INI:
+
+Cari ROOT CAUSE kenapa authentication routes yang seharusnya tersedia tidak terdaftar pada runtime application.
+
+Fokus hanya pada:
+
+AUTH ROUTE REGISTRATION
+→ ROUTER WIRING
+→ APPLICATION BOOTSTRAP
+→ MODULE IMPORT
+→ ROUTE MOUNTING
+→ RUNTIME CONFIGURATION
+→ TEST
+→ VERIFICATION
+
+1. AUDIT ROUTE REGISTRATION
+
+Cari implementasi authentication/session routes yang sudah ada.
+
+Cari:
+
+- auth routes
+- session routes
+- login route
+- logout route
+- current user route
+- /v1/sessions
+- /v1/auth
+- router registration
+- route mounting
+- app initialization
+- server bootstrap
+- API application entrypoint
+
+Jangan membuat route baru sebelum memastikan route sebenarnya memang sudah ada tetapi belum ter-register.
+
+2. CARI ROOT CAUSE /v1/sessions/current = 404
+
+Telusuri:
+
+- apakah route `/v1/sessions/current` memang didefinisikan
+- file route yang mendefinisikannya
+- router yang memuat route tersebut
+- apakah router tersebut di-import oleh application
+- apakah router tersebut di-mount
+- prefix route yang digunakan
+- apakah runtime memakai application entrypoint yang benar
+
+Bedakan:
+
+ROUTE TIDAK ADA
+
+dengan:
+
+ROUTE ADA TETAPI TIDAK DI-MOUNT
+
+dengan:
+
+ROUTE ADA TETAPI MODULE TIDAK TER-IMPORT
+
+dengan:
+
+ROUTE ADA TETAPI RUNTIME CONFIGURATION MEMILIH ROUTER YANG SALAH
+
+Jangan menebak.
+
+3. AUDIT APPLICATION BOOTSTRAP
+
+Cari entrypoint resmi application.
+
+Periksa:
+
+- app/server initialization
+- router initialization
+- route registration
+- middleware registration
+- auth middleware
+- error handler
+- environment configuration
+
+Pastikan auth router diregistrasikan pada application yang benar.
+
+Jangan membuat duplicate app instance.
+
+Jangan membuat duplicate router.
+
+Jangan memindahkan architecture hanya untuk membuat test PASS.
+
+4. AUDIT ROUTE PREFIX
+
+Pastikan prefix route konsisten.
+
+Contoh:
+
+/v1/sessions/current
+
+Jika implementasi sebenarnya menggunakan:
+
+/api/v1/sessions/current
+
+atau prefix lain, jangan mengubah route hanya berdasarkan asumsi.
+
+Gunakan route definition dan application mounting aktual sebagai sumber kebenaran.
+
+Jika route memang seharusnya `/v1/sessions/current`, pastikan runtime mendaftarkannya pada path tersebut.
+
+5. AUDIT AUTH ROUTE TEST
+
+Cari test yang sudah memverifikasi:
+
+- login
+- logout
+- current session
+- current user
+- invalid session
+- authentication
+
+Jika test domain/API sudah PASS tetapi runtime route 404, tentukan apakah test hanya menguji service/router secara isolated dan belum menguji application bootstrap.
+
+Jangan menghapus test existing.
+
+Jika integration test application sudah tersedia, gunakan test tersebut.
+
+6. PERBAIKAN MINIMAL
+
+Jika root cause adalah wiring/registration yang hilang:
+
+perbaiki hanya wiring tersebut.
+
+Contoh perubahan yang mungkin diperlukan:
+
+- import router yang memang sudah ada
+- mount router pada application
+- memperbaiki route prefix
+- memperbaiki bootstrap registration
+- memperbaiki module export/import
+
+JANGAN:
+
+- membuat auth service baru
+- membuat session system baru
+- membuat database schema baru
+- mengubah authentication architecture
+- mengubah workspace authorization
+- mengubah permission policy
+
+7. PERSISTENCE ADAPTER
+
+Untuk blocker:
+
+Workspace: unavailable persistence adapter wiring
+Bot: unavailable persistence adapter wiring
+
+Jangan langsung memperbaikinya pada tahap ini kecuali ternyata root cause yang sama dengan application wiring.
+
+Jika persistence adapter membutuhkan PostgreSQL/Docker environment yang belum tersedia, jangan membuat fake adapter.
+
+Jangan mengubah source code hanya untuk menghilangkan status BLOCKED.
+
+Dokumentasikan sebagai environment blocker jika memang external environment yang tidak tersedia.
+
+8. SECURITY
+
+Pastikan perbaikan route registration tidak melewati:
+
+- authentication
+- current user resolution
+- session validation
+- workspace authorization
+- membership
+- permission
+
+Auth route harus tetap menggunakan abstraction authentication yang sudah ada.
+
+Jangan bypass middleware/security hanya agar endpoint menghasilkan HTTP 200.
+
+9. TESTING
+
+Setelah perubahan minimal jika memang diperlukan, jalankan:
+
+- auth/session tests
+- API tests
+- typecheck
+- format check
+- import boundary
+- build
+
+Kemudian jalankan runtime verification:
+
+- `/health`
+- `/ready`
+- auth route yang memang tersedia
+- `/v1/sessions/current` jika memang route tersebut adalah route resmi repository
+
+Jangan mengklaim PASS jika endpoint masih 404.
+
+10. GIT
+
+Setelah verification:
+
+git status
+git diff --stat
+git diff
+
+Jika tidak ada source change:
+
+- Commit: NOT NEEDED
+- Push: NOT PERFORMED — USER WILL PUSH MANUALLY
+
+Jika ada source change yang benar-benar diperlukan untuk memperbaiki route registration:
+
+JANGAN commit.
+
+JANGAN push.
+
+Hanya tampilkan:
+
+- file yang berubah
+- root cause
+- perubahan yang dilakukan
+- hasil test
+- hasil build
+- status working tree
+
+USER AKAN MENENTUKAN KAPAN COMMIT/PUSH.
+
+11. FINAL REPORT
+
+Tampilkan:
+
+ROOT CAUSE:
+- ...
+
+AUTH ROUTE:
+- Route definition: ...
+- Router: ...
+- Application mount: ...
+- Runtime result: ...
+
+FIX:
+- ...
+
+TESTS:
+- Auth: ...
+- API: ...
+- Typecheck: ...
+- Format: ...
+- Import boundary: ...
+- Build: ...
+
+RUNTIME:
+- /health: ...
+- /ready: ...
+- auth route: ...
+
+PERSISTENCE:
+- Workspace: PASS/BLOCKED
+- Bot: PASS/BLOCKED
+
+GIT:
+- Working tree: CLEAN/DIRTY
+- Commit: NOT PERFORMED
+- Push: NOT PERFORMED — USER WILL PUSH MANUALLY
+
+FINAL DECISION:
+
+Gunakan salah satu:
+
+AUTH ROUTE VERIFIED — ENVIRONMENT BLOCKER REMAINS
+
+atau
+
+AUTH ROUTE FIXED — READY FOR NEXT VERIFICATION
+
+atau
+
+BLOCKED — AUTH ROUTE REGISTRATION ERROR
+
+PENTING:
+
+Fokus hanya diagnosis dan perbaikan minimal authentication route wiring.
+
+Jangan push.
+Jangan commit.
+Jangan membuat fitur baru.
+
+Berhenti setelah verification selesai dan laporan akhir ditampilkan.
 
 
 ```
