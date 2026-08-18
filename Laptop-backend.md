@@ -17,10 +17,249 @@
 
 
 ```
-# 
+# Prompt: BotSpace — Final Security Audit & Release Readiness
 ```
 
+PROMPT: BotSpace — Final Security Audit & Release Readiness
 
+Kita melanjutkan project BotSpace dari checkpoint security terakhir.
+
+Repository:
+ /root/botspace
+
+Branch:
+ backend-dev-recovery
+
+JANGAN:
+- reset
+- force push
+- rebase sembarangan
+- checkout branch lain
+- merge ke backend-dev
+- menghapus checkpoint yang sudah ada
+
+TUJUAN
+
+Ini adalah FINAL AUDIT sebelum project BotSpace dinyatakan siap.
+
+Jangan membuat fitur baru.
+
+Jangan melakukan refactor besar.
+
+Jangan mengubah architecture jika tidak ada bug nyata.
+
+Fokus hanya memastikan seluruh security checkpoint sebelumnya tetap konsisten dan project siap digunakan.
+
+AUDIT FLOW:
+
+Authentication
+→ Session
+→ Current User
+→ Workspace Authorization
+→ Membership
+→ Ownership
+→ Permission
+→ Bot Authorization
+→ Bot Lifecycle
+→ Resource Integrity
+→ Secret Security
+→ Validation
+→ Regression
+→ Build
+
+1. AUDIT FINAL
+
+Periksa seluruh implementasi yang sudah ada.
+
+Pastikan tidak ada regression pada:
+
+- authentication
+- session
+- current user
+- workspace isolation
+- membership
+- ownership
+- permission policy
+- bot authorization
+- bot lifecycle
+- child resource authorization
+- secret/token handling
+- mass-assignment protection
+- IDOR protection
+- API validation
+
+Jangan membuat sistem security baru.
+
+2. SEARCH SECURITY REGRESSION
+
+Cari kembali pola berbahaya:
+
+- findById(id)
+- findUnique({ id })
+- where: { id }
+- userId dari request sebagai identity
+- ownerId dari request
+- workspaceId tanpa authorization
+- permissions dari request body
+- role dari request body
+- secret/token pada response
+- secret/token pada log
+- @ts-ignore baru
+- any baru
+- TODO security
+
+Jika ditemukan masalah nyata, perbaiki secara minimal.
+
+Jika tidak ditemukan masalah, JANGAN mengubah source code.
+
+3. FINAL TEST
+
+Jalankan full verification repository.
+
+Minimal:
+
+- Domain tests
+- API tests
+- Auth/Session
+- Workspace
+- Membership
+- Bot/Resource
+- Security tests
+- Typecheck
+- Format
+- Import boundary
+- Build
+- pnpm check
+
+Gunakan command resmi repository.
+
+Jangan skip test.
+
+Jangan menghapus test.
+
+Jika database migration verification membutuhkan Docker tetapi Docker tidak tersedia di environment:
+
+- jangan install Docker hanya untuk membuat hasil terlihat PASS
+- jangan mengubah source code untuk menghilangkan BLOCKED
+- catat sebagai environment limitation
+- semua verification lain tetap harus dijalankan
+
+4. SECURITY RESULT
+
+Pastikan hasil akhir mencakup:
+
+- Cross-workspace access DENY
+- Unauthorized membership access DENY
+- Ownership escalation DENY
+- Permission escalation DENY
+- User identity spoofing DENY
+- Bot cross-workspace access DENY
+- Bot privilege escalation DENY
+- Secret leakage DENY
+- Mass assignment DENY
+- IDOR protection PASS
+
+5. GIT
+
+Setelah verification:
+
+git status
+git diff --stat
+git diff
+
+Jika TIDAK ADA perubahan source code:
+
+- jangan membuat empty commit
+- jangan commit
+- jangan push
+- cukup laporkan bahwa repository sudah clean dan checkpoint terakhir tetap valid
+
+Jika ADA perubahan source code yang benar-benar diperlukan:
+
+- buat SATU commit
+- gunakan commit message sesuai perubahan
+- git status
+- git log --oneline -3
+- git push
+
+Jangan force push.
+
+6. FINAL READINESS
+
+Nyatakan project:
+
+READY
+
+hanya jika:
+
+- security verification PASS
+- tests PASS
+- build PASS
+- typecheck PASS
+- working tree clean
+- tidak ada regression
+- tidak ada secret leakage
+- tidak ada unresolved source-code blocker
+
+Jika ada blocker nyata, nyatakan:
+
+NOT READY
+
+dan tampilkan blocker sebenarnya.
+
+7. LAPORAN AKHIR
+
+Tampilkan:
+
+FINAL STATUS:
+- READY / NOT READY
+
+Security:
+- Authentication: PASS/FAIL
+- Session: PASS/FAIL
+- Workspace: PASS/FAIL
+- Membership: PASS/FAIL
+- Ownership: PASS/FAIL
+- Permission: PASS/FAIL
+- Bot Authorization: PASS/FAIL
+- Bot Lifecycle: PASS/FAIL
+- Resource Integrity: PASS/FAIL
+- Secret Leakage: PASS/FAIL
+- IDOR: PASS/FAIL
+- Mass Assignment: PASS/FAIL
+
+Tests:
+- Domain: ...
+- API: ...
+- Auth/Session: ...
+- Security: ...
+- Typecheck: ...
+- Format: ...
+- Import boundary: ...
+- pnpm check: ...
+- Build: ...
+
+Database Migration:
+- PASS / BLOCKED
+- jika BLOCKED, jelaskan hanya karena environment Docker tidak tersedia
+
+Git:
+- Branch: ...
+- HEAD: ...
+- Working tree: clean/dirty
+- Commit: ...
+- Push: success/not needed/failed
+
+FINAL DECISION:
+- READY / NOT READY
+
+PENTING:
+
+Jika semua sudah PASS dan tidak ada perubahan source code baru, JANGAN memaksa membuat commit.
+
+Ini adalah final audit, bukan tahap implementasi fitur baru.
+
+Selesaikan audit sampai FINAL STATUS jelas, lalu berhenti.
 
 ```
 # 
