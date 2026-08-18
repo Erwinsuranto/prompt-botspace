@@ -44,7 +44,593 @@
 
 # 
 ```
+PROMPT: BotSpace — Minimal PostgreSQL Persistence Foundation
 
+Lanjutkan BotSpace dari hasil verification terakhir.
+
+Repository:
+/root/botspace
+
+Branch:
+backend-dev-recovery
+
+Checkpoint:
+d24aeed5d2151484449d94c72609e6f26b332d9c
+
+STATUS TERAKHIR:
+
+- Domain checks: PASS
+- API checks: PASS
+- pnpm check: 44/44 successful
+- Typecheck: 11/11 successful
+- Format: PASS
+- Import boundary: PASS
+- Secrets scan: PASS
+- Ownership check: PASS
+- Documentation links: PASS
+- Build: 11/11 successful
+- Database migration test: 31 passed, 0 failed
+- PostgreSQL 16: PASS
+- Migration 0001–0003: PASS
+- Schema tables: 9 present
+- Migration history: PASS
+- Constraints/FKs/indexes/triggers: PASS
+- Transaction smoke test: PASS
+- Migration idempotency: PASS
+- /health: HTTP 200
+- /ready: HTTP 200
+- Authentication/session route: VERIFIED
+- Working tree: CLEAN
+- Commit: NOT PERFORMED
+- Push: NOT PERFORMED — USER WILL PUSH MANUALLY
+
+HASIL AUDIT TERAKHIR:
+
+Workspace persistence: BLOCKED
+Membership persistence: BLOCKED
+Bot persistence: BLOCKED
+
+Root cause yang ditemukan:
+
+- belum ada PostgreSQL persistence adapter yang dapat digunakan runtime
+- belum ada database client/runtime connection yang terintegrasi dengan application layer
+- belum ada DI/container minimal untuk menyediakan repository
+- workspace/membership/bot repository belum dapat di-resolve oleh runtime
+
+PENTING:
+
+Pada tahap sebelumnya kita mengira adapter PostgreSQL sudah tersedia.
+
+Audit terbaru membuktikan bahwa infrastructure tersebut MEMANG BELUM ADA.
+
+Karena itu, kali ini BOLEH membuat persistence foundation minimal yang benar-benar diperlukan.
+
+Jangan hanya membuat wiring palsu agar verification terlihat PASS.
+
+TUJUAN:
+
+Buat minimal persistence foundation:
+
+PostgreSQL Client
+→ Persistence Adapter
+→ Repository
+→ Service
+→ Application Runtime
+
+untuk:
+
+- Workspace
+- Workspace Membership
+- Bot
+
+Fokus hanya pada foundation yang diperlukan.
+
+Jangan membuat fitur baru di luar scope.
+
+1. AUDIT ULANG REPOSITORY
+
+Sebelum coding:
+
+- audit package structure
+- audit domain interfaces
+- audit service interfaces
+- audit API/application bootstrap
+- audit database schema
+- audit migration 0001–0003
+- audit database configuration
+- cari repository interface yang sudah ada
+- cari model/entity yang sudah ada
+- cari query/database abstraction yang sudah tersedia
+- cari dependency yang sudah terinstall untuk PostgreSQL
+
+Jangan membuat abstraction duplicate jika sebenarnya sudah ada dalam bentuk berbeda.
+
+Gunakan architecture aktual repository sebagai sumber kebenaran.
+
+2. DATABASE CLIENT
+
+Jika belum ada PostgreSQL client:
+
+buat satu database client abstraction minimal.
+
+Gunakan dependency PostgreSQL yang memang sudah tersedia atau tambahkan dependency resmi yang sesuai dengan package manager project.
+
+Jangan membuat database engine sendiri.
+
+Jangan membuat ORM baru.
+
+Jangan menambahkan Prisma/Drizzle/TypeORM hanya karena lebih mudah jika project tidak menggunakannya.
+
+Pilih pendekatan paling minimal dan konsisten dengan repository.
+
+DATABASE_URL harus berasal dari environment.
+
+Jangan hardcode credential.
+
+3. DATABASE CONFIGURATION
+
+Buat configuration layer minimal jika belum tersedia.
+
+Minimal support:
+
+DATABASE_URL
+
+Pastikan:
+
+- production/runtime menggunakan environment
+- test dapat menggunakan environment/test database sesuai architecture
+- secret tidak dicetak ke log
+- DATABASE_URL tidak muncul pada error response
+- database client dapat ditutup dengan graceful shutdown
+
+Jangan mengubah .env production.
+
+Jangan membuat credential palsu.
+
+4. PERSISTENCE ADAPTER
+
+Buat persistence adapter minimal.
+
+Tujuannya menyediakan database access kepada repository.
+
+Architecture yang diinginkan:
+
+Application
+↓
+Service
+↓
+Repository interface
+↓
+PostgreSQL repository implementation
+↓
+PostgreSQL client
+↓
+PostgreSQL
+
+Jangan membiarkan service/API melakukan SQL langsung jika repository abstraction sudah digunakan.
+
+Jangan membuat repository abstraction kedua.
+
+5. WORKSPACE REPOSITORY
+
+Implementasikan repository PostgreSQL untuk Workspace sesuai interface/domain yang sudah ada.
+
+Gunakan schema/migration aktual.
+
+Jangan menebak nama kolom.
+
+Audit migration terlebih dahulu.
+
+Implementasikan hanya operasi yang memang dibutuhkan oleh service saat ini.
+
+Contoh jika interface memang tersedia:
+
+- create
+- findById
+- findByOwner
+- list
+- update
+- delete
+
+Jangan membuat method yang tidak diperlukan.
+
+6. MEMBERSHIP REPOSITORY
+
+Implementasikan persistence untuk workspace membership sesuai domain yang sudah ada.
+
+Gunakan table/schema aktual.
+
+Implementasikan operasi yang memang sudah digunakan application:
+
+- find membership
+- list members
+- create membership
+- update membership jika tersedia
+- remove membership jika tersedia
+
+Pastikan workspaceId dan user/account identity tetap konsisten.
+
+Jangan membuat membership system baru.
+
+7. BOT REPOSITORY
+
+Implementasikan persistence repository untuk Bot sesuai interface/domain yang sudah ada.
+
+Gunakan schema aktual.
+
+Support hanya operasi yang memang digunakan:
+
+- create
+- findById
+- list by workspace
+- update
+- delete
+- status update jika memang tersedia
+
+Bot harus tetap terikat dengan workspace.
+
+Jangan menerima ownership palsu dari client.
+
+8. QUERY SAFETY
+
+Semua repository query harus mengikuti schema aktual.
+
+Jangan menggunakan:
+
+findById(id)
+
+secara sembarangan untuk resource workspace-scoped jika authorization membutuhkan workspace scope.
+
+Pastikan service/policy tetap melakukan authorization.
+
+Persistence repository tidak boleh menjadi jalan bypass authorization.
+
+Flow harus tetap:
+
+Authentication
+→ Current User
+→ Workspace Authorization
+→ Permission
+→ Service
+→ Repository
+→ PostgreSQL
+
+9. DI / COMPOSITION ROOT
+
+Buat dependency injection minimal hanya jika memang belum ada.
+
+Contoh konsep:
+
+createDatabaseClient()
+→ createPersistenceRepositories()
+→ createServices()
+→ createApplication()
+
+Jangan membuat framework DI besar.
+
+Tidak perlu dependency injection library tambahan jika factory function sederhana sudah cukup.
+
+Pastikan hanya ada SATU database client utama untuk runtime.
+
+10. RUNTIME BOOTSTRAP
+
+Integrasikan persistence container ke application bootstrap.
+
+Pastikan runtime production tidak lagi menghasilkan:
+
+Workspace: BLOCKED
+Membership: BLOCKED
+Bot: BLOCKED
+
+karena repository tidak tersedia.
+
+Pastikan application startup gagal secara jelas jika DATABASE_URL diperlukan tetapi tidak tersedia.
+
+Jangan fallback diam-diam ke fake/in-memory repository pada production.
+
+11. TEST ADAPTER
+
+Bila repository test/in-memory adapter sudah ada:
+
+- pertahankan
+- jangan menggantinya dengan PostgreSQL
+
+Jika test repository belum ada:
+
+buat test minimal untuk PostgreSQL repository hanya jika environment test database memang tersedia.
+
+Jangan membuat test yang membutuhkan database eksternal jika environment tidak tersedia hanya untuk memaksa PASS.
+
+Bedakan:
+
+UNIT TEST
+
+dan:
+
+RUNTIME/POSTGRESQL VERIFICATION
+
+12. MIGRATION
+
+Migration 0001–0003 sudah PASS.
+
+JANGAN membuat migration baru kecuali audit schema membuktikan ada table/column/index yang benar-benar diperlukan tetapi belum tersedia.
+
+Jika schema sudah cukup:
+
+JANGAN mengubah migration.
+
+Jangan:
+
+- drop table
+- truncate
+- reset database
+- menghapus migration
+- mengubah migration history
+
+13. TRANSACTION
+
+Gunakan transaction abstraction PostgreSQL jika repository/service memang membutuhkan atomic operation.
+
+Jangan membuat transaction framework baru.
+
+Minimal pastikan connection lifecycle aman.
+
+14. ERROR HANDLING
+
+Database error tidak boleh membocorkan:
+
+- DATABASE_URL
+- password
+- credential
+- SQL secret
+- connection string
+
+Gunakan error abstraction project yang sudah ada.
+
+Jangan mengubah semua error system hanya karena persistence dibuat.
+
+15. GRACEFUL SHUTDOWN
+
+Jika application sudah memiliki shutdown handling:
+
+integrasikan database client ke lifecycle tersebut.
+
+Pastikan:
+
+startup
+→ database connection
+→ application running
+
+shutdown
+→ stop server
+→ close database connection
+
+Jangan membuat shutdown system kedua.
+
+16. SECURITY
+
+Pastikan:
+
+- DATABASE_URL hanya dari environment
+- password database tidak di-log
+- query menggunakan parameterized values
+- tidak ada SQL string interpolation dari user input
+- tidak ada credential hardcoded
+- database errors disanitasi
+- repository tidak bypass authorization
+
+17. TESTING
+
+Setelah implementasi:
+
+jalankan:
+
+- domain tests
+- API tests
+- persistence/repository tests jika tersedia
+- authentication/session tests
+- workspace authorization tests
+- membership tests
+- bot tests
+- database migration tests
+- typecheck
+- format
+- import boundary
+- lint jika tersedia
+- build
+
+Kemudian jalankan runtime smoke test.
+
+18. RUNTIME VERIFICATION
+
+Dengan PostgreSQL environment yang tersedia, verifikasi:
+
+/health
+→ HTTP 200
+
+/ready
+→ HTTP 200
+
+Authentication/session
+→ PASS
+
+Workspace repository
+→ RESOLVED
+
+Membership repository
+→ RESOLVED
+
+Bot repository
+→ RESOLVED
+
+Database connection
+→ PASS
+
+Migration state
+→ PASS
+
+Jika DATABASE_URL tidak tersedia:
+
+jangan membuat fake database.
+
+Laporkan:
+
+PERSISTENCE FOUNDATION IMPLEMENTED — DATABASE ENVIRONMENT BLOCKER REMAINS
+
+19. DATA SAFETY
+
+Jangan menghapus data existing.
+
+Jangan reset database.
+
+Jangan truncate.
+
+Jangan menjalankan destructive command.
+
+Jika membutuhkan test record:
+
+gunakan mekanisme test fixture yang sudah tersedia dan jangan merusak data existing.
+
+20. CODE QUALITY
+
+Pastikan:
+
+- tidak ada any baru tanpa alasan
+- tidak ada @ts-ignore
+- tidak ada duplicate repository
+- tidak ada duplicate database client
+- tidak ada duplicate DI container
+- tidak ada unused import
+- tidak ada circular dependency baru
+- tidak ada hardcoded secret
+- tidak ada debug logging
+- tidak ada fake production adapter
+
+21. README
+
+Update README.md yang sudah ada HANYA jika diperlukan.
+
+Dokumentasikan singkat:
+
+- DATABASE_URL
+- PostgreSQL persistence
+- repository architecture
+- runtime startup requirement
+- test/verification command
+
+Jangan membuat README baru.
+
+22. GIT
+
+PENTING:
+
+JANGAN COMMIT.
+
+JANGAN PUSH.
+
+User akan melakukan commit/push manual.
+
+Setelah perubahan:
+
+git status
+git diff --stat
+git diff
+
+Jangan:
+
+- reset
+- force push
+- rebase
+- merge
+- checkout branch lain
+
+23. FINAL REPORT
+
+Tampilkan:
+
+ROOT CAUSE:
+- ...
+
+IMPLEMENTATION:
+- PostgreSQL client: ...
+- Database configuration: ...
+- Persistence adapter: ...
+- Workspace repository: ...
+- Membership repository: ...
+- Bot repository: ...
+- DI/composition root: ...
+- Runtime bootstrap: ...
+
+DATABASE:
+- PostgreSQL: ...
+- Migration 0001–0003: ...
+- Schema: ...
+
+RUNTIME:
+- /health: ...
+- /ready: ...
+- Auth/session: ...
+- Workspace repository: ...
+- Membership repository: ...
+- Bot repository: ...
+
+TESTS:
+- Domain: ...
+- API: ...
+- Persistence: ...
+- Auth/Session: ...
+- Workspace: ...
+- Membership: ...
+- Bot: ...
+- Migration: ...
+- Typecheck: ...
+- Format: ...
+- Import boundary: ...
+- Build: ...
+
+GIT:
+- Branch: backend-dev-recovery
+- Working tree: CLEAN/DIRTY
+- Commit: NOT PERFORMED
+- Push: NOT PERFORMED — USER WILL PUSH MANUALLY
+
+FINAL DECISION:
+
+Jika PostgreSQL tersedia dan semua repository berhasil di-wire:
+
+PERSISTENCE FOUNDATION VERIFIED — READY FOR MANUAL COMMIT/PUSH
+
+Jika code selesai tetapi DATABASE_URL/PostgreSQL runtime tidak tersedia:
+
+PERSISTENCE FOUNDATION COMPLETE — ENVIRONMENT BLOCKER REMAINS
+
+Jika repository masih gagal:
+
+BLOCKED — PERSISTENCE FOUNDATION INCOMPLETE
+
+Jangan mengklaim PASS jika repository masih unavailable.
+
+FOKUS:
+
+AUDIT
+→ POSTGRESQL CLIENT
+→ DATABASE CONFIG
+→ PERSISTENCE ADAPTER
+→ WORKSPACE REPOSITORY
+→ MEMBERSHIP REPOSITORY
+→ BOT REPOSITORY
+→ DI
+→ RUNTIME
+→ TEST
+→ VERIFICATION
+
+Jangan membuat fitur baru.
+
+Jangan commit.
+
+Jangan push.
+
+Berhenti setelah laporan akhir.
 
 
 ```
