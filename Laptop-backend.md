@@ -80,7 +80,701 @@
 # 
 ```
 
+PROMPT: BotSpace — API Abuse Protection & Security Boundary Audit
 
+Lanjutkan project BotSpace dari checkpoint TERBARU yang SUDAH BERHASIL secara lokal.
+
+Repository: /root/botspace
+Branch: backend-dev-recovery
+Remote: https://github.com/zenolamee/botspace.git
+
+Checkpoint terbaru:
+e961be8 — fix: harden api input validation
+
+Verification checkpoint:
+- Mass-assignment regression: PASS
+- Typecheck: PASS
+- pnpm check: 44/44 successful
+- Format: PASS
+- Import boundary: PASS
+- Build: 11/11 successful
+- Working tree: clean
+
+PENTING:
+Commit e961be8 sudah berhasil dibuat secara lokal.
+Push sebelumnya dapat gagal karena credential GitHub:
+fatal: could not read Username for 'https://github.com': No such device or address
+
+JANGAN menghapus commit e961be8.
+JANGAN reset.
+JANGAN force push.
+JANGAN rebase sembarangan.
+JANGAN checkout branch lain.
+JANGAN merge backend-dev-recovery ke backend-dev.
+
+TUJUAN
+
+Lanjutkan security hardening BotSpace dengan fokus pada API ABUSE PROTECTION dan SECURITY BOUNDARY.
+
+Authentication, session security, workspace authorization, membership, ownership, bot resource authorization, bot lifecycle integrity, API input validation, dan mass-assignment protection sudah diperbaiki.
+
+Sekarang audit apakah API yang sudah ada aman terhadap penggunaan berlebihan atau abuse tanpa membuat sistem rate-limit baru yang besar.
+
+Fokus:
+
+AUTHENTICATION
+→ AUTHORIZATION
+→ INPUT VALIDATION
+→ RESOURCE BOUNDARY
+→ API ABUSE AUDIT
+→ SENSITIVE OPERATION PROTECTION
+→ ERROR SECURITY
+→ TEST
+→ BUILD
+→ COMMIT
+→ PUSH
+
+1. AUDIT API YANG SUDAH ADA
+
+Baca struktur repository terlebih dahulu.
+
+Cari seluruh:
+
+- API routes
+- controllers
+- handlers
+- services
+- authentication endpoints
+- session endpoints
+- workspace endpoints
+- membership endpoints
+- bot endpoints
+- bot lifecycle endpoints
+- credential endpoints
+- configuration endpoints
+- webhook endpoints jika memang ada
+- upload endpoints jika memang ada
+- search/list endpoints
+- mutation endpoints
+
+Jangan membuat endpoint baru.
+
+Gunakan implementation repository aktual sebagai sumber kebenaran.
+
+2. IDENTIFIKASI OPERASI SENSITIF
+
+Kelompokkan endpoint berdasarkan tingkat sensitivitas.
+
+HIGH RISK jika tersedia:
+
+- login
+- session creation
+- password/authentication
+- credential creation
+- credential rotation
+- bot token update
+- webhook modification
+- membership modification
+- role modification
+- permission modification
+- ownership modification
+- destructive delete
+- bulk operation
+
+MEDIUM RISK:
+
+- create bot
+- update bot
+- enable/disable bot
+- create command
+- create flow
+- integration changes
+
+LOW RISK:
+
+- read/list operation
+- health endpoint
+- public metadata
+
+Jangan mengubah behavior hanya berdasarkan asumsi.
+Gunakan endpoint yang benar-benar tersedia.
+
+3. RATE LIMIT / THROTTLING AUDIT
+
+Cari apakah repository sudah memiliki:
+
+- rate limiter
+- throttle middleware
+- request limiter
+- abuse protection
+- retry protection
+- login attempt protection
+
+Jika sudah ada:
+
+- audit penggunaannya
+- pastikan protected endpoint menggunakan abstraction yang benar
+- pastikan tidak ada bypass sederhana
+
+Jika belum ada:
+
+JANGAN membuat rate-limit framework besar pada tahap ini.
+
+Fokus pada audit dan protection boundary yang sudah tersedia.
+
+4. AUTHENTICATION ABUSE
+
+Audit login/authentication endpoint jika tersedia.
+
+Pastikan:
+
+- invalid authentication tidak membuat session
+- malformed authentication tidak membuat session
+- failed authentication tidak menghasilkan authenticated context
+- session hanya dibuat setelah authentication berhasil
+- session tidak dapat dibuat hanya dengan userId
+- client tidak dapat memalsukan identity
+- error response tidak membocorkan credential
+
+Jangan menambahkan CAPTCHA atau 2FA.
+
+Jangan membuat authentication system baru.
+
+5. SESSION ABUSE
+
+Audit:
+
+- session creation
+- session validation
+- logout
+- revoke
+- expiration
+
+Pastikan:
+
+- expired session ditolak
+- revoked session ditolak
+- malformed session ditolak
+- session tidak dapat dipakai untuk impersonation
+- logout tidak menghasilkan session baru
+- session identifier tidak muncul di log
+
+6. RESOURCE ENUMERATION
+
+Audit endpoint yang menggunakan ID.
+
+Cari kemungkinan enumeration melalui:
+
+- workspaceId
+- botId
+- memberId
+- commandId
+- flowId
+- integrationId
+- credentialId
+
+Pastikan unauthorized user tidak dapat menggunakan response API untuk memetakan resource workspace lain.
+
+Periksa:
+
+- status code
+- error body
+- response metadata
+- existence leakage
+
+Gunakan convention project.
+
+Jangan mengubah semua error menjadi 404 tanpa alasan.
+
+7. LIST ENDPOINT
+
+Audit endpoint list/search.
+
+Pastikan query:
+
+- memiliki workspace boundary
+- tidak mengembalikan resource lintas workspace
+- tidak mengabaikan membership
+- tidak menerima arbitrary userId sebagai authorization source
+- pagination tidak dapat melewati security boundary
+
+Jika endpoint menerima:
+
+userId
+workspaceId
+accountId
+
+pastikan parameter tersebut hanya menjadi filter yang diizinkan, bukan pengganti authenticated identity.
+
+8. PAGINATION
+
+Jika API memiliki pagination:
+
+Audit:
+
+- limit
+- offset
+- cursor
+- page
+- sort
+
+Pastikan nilai abnormal tidak menyebabkan:
+
+- memory exhaustion
+- query terlalu besar
+- database scan tidak terbatas
+
+Gunakan validation yang sudah ada.
+
+Jangan mengubah pagination contract tanpa kebutuhan.
+
+Jika ada default/max limit yang sudah digunakan repository, pertahankan dan perkuat jika memang diperlukan.
+
+9. BULK OPERATION
+
+Cari endpoint yang menerima banyak ID sekaligus.
+
+Contoh:
+
+ids[]
+botIds[]
+memberIds[]
+
+Pastikan:
+
+- setiap resource tetap di-authorize
+- user tidak dapat memasukkan ID workspace lain
+- jumlah input divalidasi
+- satu resource unauthorized tidak menyebabkan bypass terhadap resource lain
+
+Jangan membuat bulk API baru.
+
+10. DESTRUCTIVE OPERATION
+
+Audit operasi:
+
+- delete
+- revoke
+- disable
+- remove member
+- remove integration
+- delete credential
+- reset configuration
+
+Pastikan:
+
+Authentication
+→ Workspace access
+→ Permission
+→ Resource authorization
+→ Mutation
+
+Urutan ini harus dipertahankan.
+
+Jangan melakukan mutation sebelum authorization.
+
+11. REPEATED MUTATION
+
+Audit endpoint yang dapat dipanggil berulang:
+
+- enable
+- disable
+- revoke
+- delete
+- rotate credential
+- update settings
+
+Pastikan repeated request tidak menghasilkan state korup.
+
+Contoh:
+
+delete → delete
+
+disable → disable
+
+revoke → revoke
+
+Behavior harus mengikuti domain model yang sudah ada.
+
+Jangan membuat state baru hanya untuk task ini.
+
+12. IDEMPOTENCY
+
+Jika repository sudah memiliki abstraction idempotency:
+
+gunakan yang sudah ada.
+
+Jika belum ada:
+
+jangan membuat framework idempotency besar.
+
+Fokus memastikan mutation yang tersedia tidak menghasilkan database corruption ketika request diulang.
+
+Tambahkan regression test jika ditemukan bug nyata.
+
+13. ERROR RESPONSE SECURITY
+
+Audit semua API error.
+
+Pastikan error tidak membocorkan:
+
+- database schema
+- SQL query
+- stack trace production
+- credential
+- token
+- password
+- session data
+- workspace data lain
+- internal authorization metadata
+
+Gunakan error system yang sudah ada.
+
+Jangan membuat error framework kedua.
+
+14. LOG SECURITY
+
+Audit log/error/debug output.
+
+Pastikan tidak ada:
+
+- password
+- API key
+- bot token
+- session token
+- refresh token
+- webhook secret
+- credential
+
+Jangan menambahkan verbose logging untuk security testing yang membocorkan secret.
+
+15. REQUEST BODY SIZE
+
+Jika repository sudah memiliki body size/configuration limit:
+
+audit dan pastikan digunakan.
+
+Jika belum ada:
+
+jangan membuat perubahan server configuration besar.
+
+Hanya dokumentasikan jika ada risiko nyata yang ditemukan.
+
+16. FILE / UPLOAD ENDPOINT
+
+Jika project memiliki upload endpoint:
+
+audit:
+
+- file size
+- file type
+- filename
+- path handling
+- unauthorized workspace access
+- arbitrary path
+- dangerous extension
+
+Jangan membuat sistem upload baru.
+
+Jika tidak ada upload endpoint, lewati bagian ini.
+
+17. WEBHOOK ENDPOINT
+
+Jika project memiliki webhook:
+
+audit:
+
+- authentication/signature
+- replay behavior
+- secret handling
+- bot ownership
+- workspace relation
+- malformed payload
+- unauthorized source
+
+Jika runtime/webhook implementation belum tersedia, jangan membuat implementation baru.
+
+18. SECURITY REGRESSION
+
+Pastikan semua checkpoint security tetap PASS:
+
+- authentication
+- session
+- current user
+- workspace authorization
+- membership
+- ownership
+- permission policy
+- bot resource authorization
+- bot lifecycle integrity
+- API input validation
+- mass-assignment protection
+
+Jangan melemahkan test existing.
+
+19. TESTING
+
+Tambahkan/perbaiki test hanya untuk behavior yang benar-benar tersedia.
+
+Minimal jika endpoint tersedia:
+
+Authentication abuse:
+- invalid authentication DENY
+- malformed authentication DENY
+
+Session:
+- expired session DENY
+- revoked session DENY
+
+Enumeration:
+- cross-workspace resource access DENY
+- unauthorized ID lookup DENY
+
+List:
+- cross-workspace resource tidak muncul
+- unauthorized filtering DENY
+
+Pagination:
+- invalid limit DENY
+- excessive limit DENY jika policy memang tersedia
+
+Bulk:
+- unauthorized resource DENY
+- cross-workspace IDs DENY
+
+Mutation:
+- unauthorized delete DENY
+- unauthorized disable DENY
+- unauthorized revoke DENY
+
+Error security:
+- secret tidak bocor
+- token tidak bocor
+- credential tidak bocor
+
+Jangan membuat test endpoint yang tidak tersedia.
+
+20. TYPESCRIPT QUALITY
+
+Pastikan:
+
+- tidak ada any baru tanpa alasan
+- tidak ada @ts-ignore baru
+- tidak ada duplicate security abstraction
+- tidak ada duplicate rate-limit framework
+- tidak ada unused import
+- tidak ada dead code
+- tidak ada circular dependency baru
+- tidak ada hardcoded secret
+
+Ikuti architecture repository.
+
+21. BACKWARD COMPATIBILITY
+
+Sebelum mengubah:
+
+- API contract
+- DTO
+- middleware
+- service signature
+- repository signature
+
+cari seluruh caller.
+
+Update caller dan test jika memang diperlukan.
+
+Jangan membuat breaking change tanpa alasan.
+
+22. README
+
+Jika memang diperlukan, update README.md yang sudah ada.
+
+Jangan membuat README baru.
+
+Dokumentasikan secara singkat:
+
+- API security boundary
+- sensitive operation protection
+- abuse protection yang benar-benar tersedia
+- cara menjalankan security tests
+
+23. VERIFICATION
+
+Setelah implementation:
+
+jalankan verification resmi repository.
+
+Minimal:
+
+- domain tests
+- API tests
+- authentication/session tests
+- workspace authorization tests
+- membership tests
+- bot/resource tests
+- lifecycle tests
+- input validation tests
+- mass-assignment regression
+- typecheck
+- format check
+- import boundary check
+- lint jika tersedia
+- build
+
+Jika failure:
+
+1. cari root cause
+2. perbaiki
+3. jalankan test terkait
+4. jalankan full verification kembali
+
+Jangan skip test.
+Jangan menghapus test existing.
+
+24. GIT AUDIT
+
+Sebelum commit:
+
+git status
+git diff --stat
+git diff
+
+Pastikan hanya perubahan task ini.
+
+Jangan commit:
+
+- .env
+- API key
+- password
+- token
+- credential
+- logs
+- temporary files
+- build artifacts
+
+25. COMMIT
+
+Jika ada perubahan valid dan semua verification PASS:
+
+buat SATU commit.
+
+Gunakan commit message sesuai implementasi aktual.
+
+Contoh:
+
+fix: harden api abuse protection
+
+atau:
+
+fix: strengthen api security boundaries
+
+Jika audit tidak menemukan perubahan valid:
+
+JANGAN membuat empty commit.
+
+26. PUSH
+
+Setelah commit baru dibuat:
+
+git push
+
+Branch tetap:
+
+backend-dev-recovery
+
+Jika push gagal karena credential GitHub:
+
+JANGAN mengubah source code.
+
+JANGAN reset commit.
+
+Pertahankan commit lokal.
+
+Laporkan error sebenarnya.
+
+Jika push berhasil:
+
+verifikasi:
+
+git status
+git log --oneline -3
+
+27. HASIL AKHIR
+
+Tampilkan:
+
+Implementation:
+- ...
+
+API Abuse Audit:
+- ...
+
+Security:
+- ...
+
+Resource Enumeration:
+- ...
+
+Mutation Protection:
+- ...
+
+Tests:
+- Domain: ...
+- API: ...
+- Auth/Session: ...
+- Workspace: ...
+- Membership: ...
+- Bot/Resource: ...
+- Lifecycle: ...
+- Validation: ...
+- Mass-assignment: ...
+- Typecheck: ...
+- Format: ...
+- Import boundary: ...
+- Build: ...
+
+Commit:
+- hash: ...
+- message: ...
+- atau "No new commit — no valid changes"
+
+Git:
+- branch: ...
+- push: success/failed/not needed
+
+Working Tree:
+- clean/dirty
+
+Jika ada failure, tampilkan error sebenarnya.
+
+Jangan mengklaim sukses jika verification, commit, atau push belum benar-benar berhasil.
+
+28. PENTING
+
+Jangan membuat fitur besar baru.
+
+Jangan membuat rate-limit framework baru jika repository belum memilikinya.
+
+Jangan membuat authentication system baru.
+
+Jangan membuat authorization system kedua.
+
+Tahap ini hanya:
+
+AUDIT
+→ API ABUSE PROTECTION
+→ RESOURCE ENUMERATION
+→ SENSITIVE MUTATION
+→ ERROR SECURITY
+→ LOG SECURITY
+→ REGRESSION TEST
+→ BUILD
+→ COMMIT
+→ PUSH
+
+Gunakan security abstraction yang sudah ada.
+
+Selesaikan sampai push berhasil jika memang ada perubahan, lalu berhenti.
 
 ```
 # 
