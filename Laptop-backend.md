@@ -124,10 +124,1003 @@
 
 
 ```
-# 
+# API Functional & End-to-End Contract Hardening.
 ```
 
+PROMPT: BotSpace — API Functional & End-to-End Contract Hardening
 
+Kita melanjutkan project BotSpace dari checkpoint API persistence yang SUDAH BERHASIL secara lokal.
+
+Repository:
+ /root/botspace
+
+Branch:
+ backend-dev-recovery
+
+Remote:
+ https://github.com/zenolamee/botspace.git
+
+IMPORTANT:
+Beberapa commit terakhir sudah berhasil dibuat secara lokal tetapi push ke GitHub sebelumnya gagal karena credential GitHub:
+
+fatal: could not read Username for 'https://github.com'
+
+JANGAN mengubah credential GitHub.
+JANGAN mengubah remote.
+JANGAN reset commit.
+JANGAN force push.
+JANGAN rebase.
+JANGAN checkout branch lain.
+JANGAN merge ke backend-dev.
+
+Semua commit lokal harus tetap dipertahankan.
+
+Checkpoint lokal terbaru:
+
+980a0c1 — test: verify api persistence contract
+
+Commit sebelumnya juga harus tetap dipertahankan.
+
+Verification terakhir yang sudah PASS:
+
+- Domain: 110 passed
+- API: 119 passed
+- PostgreSQL adapter/runtime: 3 passed
+- pnpm check: 44/44 passed
+- Typecheck: PASS
+- Lint: PASS
+- Format: PASS
+- Import boundary: PASS
+- Secrets scan: PASS
+- Ownership check: PASS
+- Documentation links: PASS
+- Migration: PASS
+- Build: PASS
+- git diff --check: PASS
+- Working tree: clean
+
+JANGAN mengulang pekerjaan persistence yang sudah diverifikasi kecuali audit menemukan regression nyata.
+
+==================================================
+TUJUAN
+==================================================
+
+Tahap berikutnya adalah memastikan API BotSpace benar-benar memiliki contract yang konsisten dari HTTP request sampai domain/service/repository/database dan kembali menjadi HTTP response.
+
+Fokus:
+
+HTTP ROUTE
+→ AUTHENTICATION
+→ CURRENT USER
+→ WORKSPACE ACCESS
+→ MEMBERSHIP
+→ PERMISSION
+→ RESOURCE AUTHORIZATION
+→ VALIDATION
+→ SERVICE
+→ DOMAIN
+→ REPOSITORY
+→ DATABASE
+→ RESPONSE
+→ ERROR CONTRACT
+
+Tujuan utama:
+
+- tidak ada endpoint protected yang melewati authentication
+- tidak ada endpoint workspace yang melewati authorization
+- tidak ada IDOR
+- tidak ada mass assignment
+- tidak ada response contract yang tidak konsisten
+- tidak ada error leakage
+- tidak ada route yang langsung memanipulasi database tanpa abstraction yang benar
+- mutation benar-benar tersimpan
+- read benar-benar membaca persistence
+- API behavior konsisten
+- existing security tetap PASS
+
+Jangan membuat API architecture kedua.
+
+==================================================
+1. AUDIT API AKTUAL
+==================================================
+
+JANGAN langsung menulis kode.
+
+Audit repository aktual terlebih dahulu.
+
+Cari seluruh:
+
+- API routes
+- HTTP handlers
+- controllers
+- request schemas
+- response schemas
+- service layer
+- domain services
+- repository
+- persistence adapter
+- authentication middleware
+- authorization middleware
+- workspace authorization
+- membership authorization
+- bot authorization
+- error handling
+- API tests
+
+Gunakan repository aktual sebagai sumber kebenaran.
+
+Jangan mengasumsikan endpoint hanya berdasarkan dokumentasi.
+
+Buat inventory internal dari endpoint yang benar-benar tersedia.
+
+==================================================
+2. ROUTE CONTRACT
+==================================================
+
+Untuk setiap endpoint yang tersedia, trace:
+
+HTTP
+→ route
+→ auth
+→ current user
+→ workspace
+→ membership
+→ permission
+→ validation
+→ service
+→ repository
+→ persistence
+→ response
+
+Cari route yang:
+
+- langsung mengakses database
+- langsung memakai request.userId
+- mempercayai workspaceId dari client
+- mempercayai ownerId dari client
+- melewati permission policy
+- mengembalikan raw database object
+- memiliki error handling berbeda tanpa alasan
+- memiliki duplicate business logic
+
+Jika ditemukan:
+
+perbaiki secara minimal.
+
+Jangan refactor besar-besaran tanpa kebutuhan.
+
+==================================================
+3. AUTHENTICATION CONTRACT
+==================================================
+
+Pastikan endpoint protected hanya dapat digunakan oleh authenticated identity.
+
+Test:
+
+- no authentication → DENY
+- invalid session → DENY
+- expired session → DENY
+- revoked session → DENY
+- valid session → PASS
+
+Jangan menggunakan:
+
+- userId dari body
+- accountId dari body
+- ownerId dari body
+
+sebagai pengganti authentication context.
+
+Current user harus berasal dari authentication/session system yang sudah ada.
+
+==================================================
+4. WORKSPACE CONTRACT
+==================================================
+
+Pastikan setiap endpoint workspace-scoped benar-benar menggunakan workspace authorization.
+
+Test:
+
+User A:
+workspace-A
+
+User B:
+workspace-B
+
+User A:
+
+workspace-A → PASS
+workspace-B → DENY
+
+User B:
+
+workspace-B → PASS
+workspace-A → DENY
+
+Periksa:
+
+- list workspace
+- get workspace
+- update workspace
+- delete workspace
+- membership
+- bot
+- child resources
+
+sesuai endpoint yang benar-benar tersedia.
+
+==================================================
+5. MEMBERSHIP CONTRACT
+==================================================
+
+Pastikan membership tidak hanya menjadi data tetapi benar-benar digunakan sebagai authorization boundary.
+
+Test:
+
+- owner → allowed sesuai policy
+- authorized member → allowed
+- member tanpa permission → DENY
+- non-member → DENY
+- cross-workspace member → DENY
+
+Jangan membuat role/permission system baru.
+
+Gunakan policy yang sudah ada.
+
+==================================================
+6. BOT CONTRACT
+==================================================
+
+Audit seluruh Bot API yang tersedia.
+
+Minimal:
+
+CREATE
+GET
+LIST
+UPDATE
+DELETE
+ENABLE
+DISABLE
+STATUS
+
+sesuai implementasi aktual.
+
+Pastikan:
+
+botId
+→ resolve bot
+→ resolve workspace
+→ authorize user
+→ perform operation
+
+Bukan:
+
+botId
+→ perform operation
+
+Test:
+
+own bot → PASS
+other workspace bot → DENY
+
+==================================================
+7. MASS ASSIGNMENT
+==================================================
+
+Audit request body.
+
+Cari endpoint yang menerima object langsung dari client lalu meneruskannya ke database.
+
+Contoh berbahaya:
+
+{
+  userId,
+  accountId,
+  workspaceId,
+  ownerId,
+  role,
+  permissions,
+  status
+}
+
+Pastikan field server-controlled tidak dapat dimanipulasi client.
+
+Audit khusus:
+
+- userId
+- accountId
+- workspaceId
+- ownerId
+- createdBy
+- role
+- permissions
+- createdAt
+- updatedAt
+
+Gunakan explicit field mapping jika diperlukan.
+
+Jangan mempercayai object request secara langsung untuk mutation sensitif.
+
+==================================================
+8. RESOURCE IDOR
+==================================================
+
+Cari seluruh lookup berdasarkan ID:
+
+findById
+findUnique
+where id
+getById
+repository lookup
+atau equivalent.
+
+Untuk resource workspace-scoped, pastikan ada authorization.
+
+Jika architecture memungkinkan query scoped:
+
+gunakan workspace/user scope.
+
+Jika authorization dilakukan di service:
+
+pastikan service benar-benar dipanggil sebelum mutation/response.
+
+Audit:
+
+- workspace
+- membership
+- bot
+- commands
+- flows
+- settings
+- integrations
+- webhook
+- credentials
+- logs
+- statistics
+
+hanya jika resource tersebut benar-benar tersedia.
+
+Jangan membuat endpoint baru.
+
+==================================================
+9. REQUEST VALIDATION
+==================================================
+
+Audit:
+
+- path parameter
+- query parameter
+- request body
+- enum
+- boolean
+- number
+- string
+- nullable field
+- required field
+
+Pastikan invalid input tidak sampai menyebabkan:
+
+- database exception
+- TypeError
+- undefined behavior
+- 500 yang seharusnya 400
+- invalid persistence
+
+Gunakan validator yang sudah ada.
+
+Jangan membuat validation framework baru.
+
+==================================================
+10. RESPONSE CONTRACT
+==================================================
+
+Audit response seluruh API.
+
+Pastikan response:
+
+- konsisten
+- tidak mengembalikan raw database entity jika tidak diperlukan
+- tidak membocorkan secret
+- tidak membocorkan credential
+- tidak membocorkan authorization metadata
+- tidak mengembalikan resource workspace lain
+
+Cari khusus:
+
+- bot token
+- API key
+- webhook secret
+- session token
+- password
+- credentials
+
+Jika DTO sudah tersedia:
+
+gunakan DTO tersebut.
+
+Jangan membuat response abstraction kedua.
+
+==================================================
+11. ERROR CONTRACT
+==================================================
+
+Pastikan error behavior konsisten.
+
+Minimal bedakan:
+
+401:
+unauthenticated
+
+403:
+authenticated tetapi tidak memiliki permission/access
+
+404:
+resource tidak ditemukan sesuai convention project
+
+400:
+invalid input
+
+409:
+conflict jika memang digunakan architecture
+
+500:
+unexpected internal error
+
+Jangan mengubah error convention hanya agar test PASS.
+
+Jangan membocorkan:
+
+- SQL
+- stack trace
+- token
+- credential
+- secret
+- internal database details
+
+Production response harus aman.
+
+==================================================
+12. HTTP METHOD CONTRACT
+==================================================
+
+Audit method:
+
+GET
+POST
+PUT/PATCH
+DELETE
+
+Pastikan route tidak menerima method yang tidak didukung.
+
+Jika framework sudah menghasilkan:
+
+405
+Allow header
+
+gunakan behavior tersebut.
+
+Jangan membuat custom router baru.
+
+==================================================
+13. CRUD CONSISTENCY
+==================================================
+
+Untuk resource yang memiliki CRUD:
+
+CREATE
+→ persistence
+
+GET
+→ persistence
+
+LIST
+→ scoped persistence
+
+UPDATE
+→ persistence
+
+DELETE
+→ persistence
+
+Pastikan hasil operasi benar-benar terlihat pada request berikutnya.
+
+Contoh:
+
+CREATE bot
+→ GET bot harus menemukan bot tersebut.
+
+UPDATE bot
+→ GET bot harus melihat perubahan.
+
+DELETE bot
+→ GET bot harus mengikuti delete semantics architecture.
+
+Jangan menggunakan in-memory fake state pada production path.
+
+==================================================
+14. API PERSISTENCE REGRESSION
+==================================================
+
+Persistence contract sebelumnya SUDAH PASS.
+
+Sekarang hanya lakukan regression verification.
+
+Pastikan API layer tidak bypass persistence adapter yang sudah diverifikasi.
+
+Jangan mengubah PostgreSQL adapter/runtime tanpa alasan.
+
+Jangan membuat migration baru kecuali ada bug nyata.
+
+Jangan melakukan destructive database operation.
+
+==================================================
+15. CROSS-WORKSPACE API TEST
+==================================================
+
+Buat regression test matrix:
+
+USER A
+workspace-A
+bot-A
+
+USER B
+workspace-B
+bot-B
+
+Test:
+
+A → workspace-A GET = PASS
+A → workspace-B GET = DENY
+
+A → bot-A GET = PASS
+A → bot-B GET = DENY
+
+A → bot-A UPDATE = PASS
+A → bot-B UPDATE = DENY
+
+A → bot-A DELETE = PASS sesuai permission
+A → bot-B DELETE = DENY
+
+A → bot-A ENABLE = PASS
+A → bot-B ENABLE = DENY
+
+A → bot-A DISABLE = PASS
+A → bot-B DISABLE = DENY
+
+Sesuaikan dengan endpoint yang benar-benar tersedia.
+
+==================================================
+16. IDENTITY SPOOFING TEST
+==================================================
+
+Test request yang mencoba mengirim:
+
+userId=user-B
+
+padahal session:
+
+user-A
+
+Backend harus tetap menggunakan:
+
+user-A
+
+Test juga:
+
+accountId spoof
+ownerId spoof
+workspaceId spoof
+createdBy spoof
+
+Pastikan tidak terjadi impersonation atau privilege escalation.
+
+==================================================
+17. PERMISSION SPOOFING
+==================================================
+
+Test request yang mencoba:
+
+role=owner
+
+atau:
+
+permissions=["*"]
+
+atau permission lain yang privileged.
+
+Backend tidak boleh mempercayai request tersebut sebagai authorization source.
+
+Authorization harus berdasarkan:
+
+authenticated identity
++
+stored membership
++
+existing permission policy
+
+==================================================
+18. CONCURRENCY / REPEATED REQUEST
+==================================================
+
+Audit mutation yang dapat dipanggil berulang.
+
+Contoh:
+
+enable bot
+disable bot
+update bot
+delete bot
+
+Pastikan repeated request tidak menghasilkan state korup.
+
+Jika repository/database abstraction sudah memiliki atomic behavior:
+
+gunakan abstraction tersebut.
+
+Jangan membuat concurrency framework baru.
+
+==================================================
+19. DUPLICATE REQUEST
+==================================================
+
+Audit create operation.
+
+Jika terdapat unique constraint/business rule:
+
+duplicate create harus menghasilkan behavior yang benar.
+
+Jangan menghapus constraint.
+
+Jangan membuat business rule baru tanpa bukti.
+
+==================================================
+20. CHILD RESOURCE SECURITY
+==================================================
+
+Jika child resource tersedia:
+
+Bot
+→ Child Resource
+
+Pastikan authorization parent tetap berlaku.
+
+Contoh:
+
+User A tidak boleh:
+
+GET child-resource-B
+
+jika:
+
+child-resource-B
+→ bot-B
+→ workspace-B
+
+meskipun child resource ID diketahui.
+
+==================================================
+21. TEST SUITE
+==================================================
+
+Tambahkan/perbaiki test sesuai implementation aktual.
+
+Minimal:
+
+AUTH:
+- unauthenticated DENY
+- invalid session DENY
+- valid session PASS
+
+WORKSPACE:
+- own workspace PASS
+- other workspace DENY
+
+MEMBERSHIP:
+- authorized member PASS
+- unauthorized member DENY
+
+BOT:
+- own bot PASS
+- cross-workspace bot DENY
+- unauthorized mutation DENY
+
+INPUT:
+- invalid body DENY
+- invalid ID DENY
+- privileged field spoof DENY
+
+PERSISTENCE:
+- create persists
+- update persists
+- delete persists sesuai architecture
+
+RESPONSE:
+- no secret leakage
+
+ERROR:
+- correct status/error convention
+
+==================================================
+22. REGRESSION
+==================================================
+
+Semua checkpoint security sebelumnya harus tetap PASS:
+
+- authentication
+- session
+- current user
+- workspace authorization
+- membership
+- ownership
+- permission policy
+- bot authorization
+- bot lifecycle
+- persistence
+
+Jangan melemahkan test existing.
+
+==================================================
+23. TYPESCRIPT QUALITY
+==================================================
+
+Pastikan:
+
+- tidak ada any baru tanpa alasan
+- tidak ada @ts-ignore baru
+- tidak ada unused import
+- tidak ada dead code
+- tidak ada duplicate authorization
+- tidak ada duplicate validation
+- tidak ada duplicate API layer
+- tidak ada circular dependency baru
+- tidak ada hardcoded secret
+
+==================================================
+24. README
+==================================================
+
+Jika diperlukan:
+
+UPDATE README.md yang sudah ada.
+
+JANGAN membuat README baru.
+
+Dokumentasikan secara singkat:
+
+- API authentication
+- workspace authorization
+- bot authorization
+- persistence contract
+- test commands
+
+==================================================
+25. VERIFICATION
+==================================================
+
+Setelah implementation:
+
+jalankan verification resmi repository.
+
+Minimal:
+
+- domain tests
+- API tests
+- authentication/session tests
+- workspace tests
+- membership tests
+- bot tests
+- persistence tests
+- typecheck
+- lint
+- format
+- import boundary
+- secrets scan
+- ownership check
+- migration check
+- build
+- git diff --check
+
+Jika PostgreSQL suite bersifat opt-in:
+
+jalankan hanya jika environment PostgreSQL tersedia.
+
+Laporkan:
+
+PostgreSQL:
+- skipped
+- passed
+- failed
+
+Jangan mengklaim skipped sebagai PASS.
+
+==================================================
+26. GIT AUDIT
+==================================================
+
+Sebelum commit:
+
+git status
+git diff --stat
+git diff
+
+Pastikan hanya perubahan task ini.
+
+Jangan commit:
+
+- .env
+- API key
+- credential
+- token
+- log
+- temporary file
+- build artifact
+
+==================================================
+27. COMMIT
+==================================================
+
+Jika verification PASS:
+
+buat SATU commit.
+
+Gunakan commit message berdasarkan perubahan aktual.
+
+Contoh:
+
+feat: harden api functional contracts
+
+atau:
+
+fix: enforce api resource contracts
+
+Pilih yang paling sesuai.
+
+Setelah commit:
+
+git status
+git log --oneline -5
+
+==================================================
+28. PUSH
+==================================================
+
+Coba:
+
+git push
+
+Branch tetap:
+
+backend-dev-recovery
+
+JANGAN:
+
+- force push
+- reset
+- rebase
+- merge
+- ubah remote
+- ubah credential GitHub
+
+Jika push kembali gagal karena:
+
+could not read Username for 'https://github.com'
+
+JANGAN menyentuh source code.
+
+Commit lokal harus dipertahankan.
+
+Laporkan:
+
+PUSH FAILED — GITHUB CREDENTIAL ONLY
+
+dan tampilkan branch/local commits yang belum dipush.
+
+==================================================
+29. FINAL REPORT
+==================================================
+
+Tampilkan:
+
+Implementation:
+- ...
+
+API:
+- Route contract: ...
+- Authentication: ...
+- Authorization: ...
+- Validation: ...
+- Persistence: ...
+- Response: ...
+- Error contract: ...
+
+Security:
+- IDOR: ...
+- Mass assignment: ...
+- Cross-workspace: ...
+- Identity spoofing: ...
+- Secret leakage: ...
+
+Tests:
+- Domain: ...
+- API: ...
+- Auth/Session: ...
+- Workspace: ...
+- Membership: ...
+- Bot: ...
+- Persistence: ...
+- Typecheck: ...
+- Lint: ...
+- Format: ...
+- Import boundary: ...
+- Secrets scan: ...
+- Ownership: ...
+- Migration: ...
+- Build: ...
+
+PostgreSQL:
+- skipped/passed/failed
+
+Commit:
+- hash: ...
+- message: ...
+
+Git:
+- branch: backend-dev-recovery
+- push: success/failed
+
+Working tree:
+- clean/dirty
+
+Jika push gagal:
+
+JANGAN menganggap implementation gagal.
+
+Pisahkan:
+
+CODE STATUS
+dan
+GIT PUSH STATUS.
+
+==================================================
+30. BATASAN SCOPE
+==================================================
+
+Jangan membuat fitur besar baru.
+
+Jangan membuat:
+
+- frontend baru
+- payment system
+- billing
+- notification
+- OAuth baru
+- Telegram runtime baru
+- deployment system
+- permission system kedua
+- persistence system kedua
+
+Fokus:
+
+AUDIT
+→ API CONTRACT
+→ AUTHENTICATION
+→ AUTHORIZATION
+→ VALIDATION
+→ RESOURCE ISOLATION
+→ PERSISTENCE REGRESSION
+→ RESPONSE
+→ ERROR
+→ TEST
+→ BUILD
+→ COMMIT
+→ PUSH
+
+Selesaikan seluruh scope ini.
+
+Jika semua verification PASS, buat satu commit dan coba push.
+
+Setelah itu BERHENTI.
 
 ```
 # API Contract & Functional Completeness
