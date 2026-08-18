@@ -110,6 +110,643 @@
 
 # 
 ```
+PROMPT: BotSpace — Authentication & Session Security Hardening
+
+Kita melanjutkan project BotSpace setelah checkpoint WORKSPACE MEMBERSHIP dan OWNERSHIP yang sudah selesai.
+
+CHECKPOINT TERAKHIR
+
+Repository: /root/botspace
+Branch: backend-dev-recovery
+Remote: https://github.com/zenolamee/botspace.git
+
+Checkpoint sebelumnya:
+c4c66ff — fix: enforce workspace authorization
+
+Checkpoint terbaru:
+e28105b — fix: secure workspace membership access
+
+Verification sebelumnya:
+
+* pnpm check: 44 tasks successful
+* Format check: PASS
+* Import boundary check: PASS
+* Working tree: clean
+* Push checkpoint terbaru sudah dilakukan sebelum melanjutkan tahap ini
+
+JANGAN reset, force push, rebase sembarangan, checkout branch lain, atau menghapus checkpoint yang sudah ada.
+
+Jangan merge backend-dev-recovery ke backend-dev.
+
+TUJUAN
+
+Tahap berikutnya fokus pada AUTHENTICATION dan SESSION SECURITY BotSpace.
+
+Workspace authorization dan membership authorization sudah diperbaiki. Sekarang pastikan identitas user yang masuk ke backend benar-benar tervalidasi dan session/authentication flow tidak dapat digunakan untuk melewati workspace permission.
+
+Fokus:
+
+Authentication
+→ Session
+→ Current User
+→ Account Identity
+→ Authorization
+→ Workspace Membership
+→ Resource Access
+
+Jangan membuat authentication system kedua jika project sudah memiliki implementasinya.
+
+1. AUDIT AUTHENTICATION YANG SUDAH ADA
+
+Sebelum mengubah kode, audit repository secara menyeluruh.
+
+Cari:
+
+* authentication API
+* login
+* logout
+* session
+* session token
+* current user
+* current account
+* user identity
+* authentication middleware
+* authorization middleware
+* password handling jika ada
+* token handling jika ada
+* cookie handling jika ada
+* API authentication
+* protected routes
+* public routes
+* session repository
+* user repository
+* account repository
+* authentication tests
+* session tests
+
+Baca implementasi aktual repository sebelum melakukan perubahan.
+
+Jangan membuat sistem auth baru hanya karena menemukan struktur yang belum sempurna.
+
+2. AUTHENTICATION BOUNDARY
+
+Pastikan endpoint yang membutuhkan login benar-benar protected.
+
+Audit seluruh API route dan tandai:
+
+PUBLIC:
+
+* endpoint yang memang harus bisa diakses tanpa login
+
+PROTECTED:
+
+* endpoint yang membutuhkan authenticated user
+
+Pastikan protected endpoint tidak dapat dipanggil hanya dengan:
+
+* workspaceId
+* userId
+* accountId
+* botId
+* membershipId
+
+tanpa authentication context yang valid.
+
+Jangan mempercayai userId/accountId dari request body sebagai identitas user yang sedang login.
+
+Identitas user harus berasal dari authentication/session context.
+
+3. CURRENT USER
+
+Pastikan backend memiliki cara yang konsisten untuk menentukan current user.
+
+Jangan menggunakan pola berbahaya seperti:
+
+userId dari body
+userId dari query
+userId dari URL
+
+sebagai sumber utama identitas authenticated user jika session/auth context sudah tersedia.
+
+Jika request memiliki:
+
+userId = user-A
+
+tetapi session sebenarnya milik user-B,
+
+backend harus tetap memperlakukan request sebagai user-B dan tidak boleh memberikan akses user-A.
+
+Tambahkan regression test untuk kasus ini.
+
+4. SESSION SECURITY
+
+Audit lifecycle session:
+
+* create session
+* validate session
+* retrieve current user
+* expire session
+* logout
+* revoke session
+* invalid session
+* expired session
+* malformed session
+* repeated logout
+
+Pastikan session yang expired tidak dapat digunakan.
+
+Pastikan session yang sudah direvoke tidak dapat digunakan.
+
+Jika project memang mendukung multiple sessions, pastikan logout behavior mengikuti arsitektur yang sudah ada.
+
+Jangan mengubah semantics logout tanpa alasan.
+
+5. SESSION OWNERSHIP
+
+Pastikan session selalu terkait dengan identity yang benar.
+
+Contoh:
+
+User A login.
+
+Session A dibuat.
+
+User A tidak boleh dapat menggunakan session tersebut untuk mengambil data User B.
+
+Test minimal:
+
+* session A → user A
+* session B → user B
+* session A tidak dapat impersonate user B
+* invalid session ditolak
+* expired session ditolak
+* revoked session ditolak
+
+6. SESSION TOKEN HANDLING
+
+Audit bagaimana token/session identifier disimpan dan dibandingkan.
+
+Pastikan:
+
+* tidak ada token plaintext yang tidak diperlukan di database
+* tidak ada logging token rahasia
+* tidak ada token yang dikirim dalam response secara tidak perlu
+* comparison mengikuti mekanisme yang sudah digunakan project
+* session expiration benar-benar diperiksa
+* revoked session benar-benar diperiksa
+
+Jangan mengganti hashing/token architecture secara besar-besaran jika sistem yang ada sudah benar.
+
+Perbaiki hanya kelemahan nyata yang ditemukan.
+
+7. COOKIE / HEADER SECURITY
+
+Jika authentication menggunakan cookie:
+
+Audit:
+
+* HttpOnly
+* Secure
+* SameSite
+* expiration/max-age
+* domain/path
+* session clearing saat logout
+
+Jika authentication menggunakan Authorization header/token:
+
+Audit:
+
+* format token
+* validation
+* expiration
+* invalid token behavior
+* token leakage melalui log/error
+
+Gunakan pendekatan yang sesuai dengan implementasi repository.
+
+Jangan memaksakan cookie jika project menggunakan bearer token atau sebaliknya.
+
+8. AUTHENTICATION VS AUTHORIZATION
+
+Pastikan boundary jelas.
+
+Authentication menjawab:
+
+"Siapa user ini?"
+
+Authorization menjawab:
+
+"Apakah user ini boleh melakukan operasi tersebut?"
+
+Flow harus konsisten:
+
+Authentication
+→ resolve identity
+→ resolve workspace
+→ membership/ownership
+→ permission
+→ operation
+
+Jangan menggunakan permission check untuk menggantikan authentication.
+
+Jangan menggunakan userId dari request untuk menggantikan authentication.
+
+9. WORKSPACE SECURITY REGRESSION
+
+Karena authentication menjadi dasar authorization, tambahkan regression test gabungan:
+
+User A login
+→ akses workspace A = allowed
+
+User A login
+→ akses workspace B = denied
+
+User B login
+→ akses workspace B = allowed
+
+User B login
+→ akses workspace A = denied
+
+Pastikan hasilnya tidak berubah setelah authentication hardening.
+
+10. IDENTITY SPOOFING TEST
+
+Buat test untuk request yang mencoba memalsukan:
+
+* userId
+* accountId
+* workspaceId
+* ownerId
+* membership userId
+
+Authentication context harus selalu menjadi sumber identity.
+
+Contoh:
+
+Session:
+user-A
+
+Request:
+userId=user-B
+
+Hasil:
+authorization harus tetap menggunakan user-A.
+
+Jangan mengizinkan request body mengubah identity authenticated user.
+
+11. LOGIN FLOW
+
+Jika login flow sudah tersedia, audit:
+
+* valid credential
+* invalid credential
+* missing credential
+* malformed credential
+* repeated invalid authentication
+* inactive/disabled account jika konsep tersebut ada
+* session creation
+* current-user resolution
+
+Jangan menambahkan CAPTCHA, 2FA, rate limiting, atau fitur besar lain jika belum ada dalam architecture project.
+
+Fokus pada correctness dan security dari sistem yang sudah ada.
+
+12. LOGOUT FLOW
+
+Pastikan logout:
+
+* invalidates/revokes session sesuai architecture
+* tidak meninggalkan session aktif secara tidak sengaja
+* tidak membocorkan session information
+* dapat menangani session yang sudah expired/revoked dengan behavior yang konsisten
+
+Tambahkan test logout jika belum ada.
+
+13. API ERROR BEHAVIOR
+
+Pastikan authentication failure tidak membocorkan informasi sensitif.
+
+Contoh jangan membedakan secara berlebihan:
+
+user tidak ada
+
+versus
+
+password salah
+
+jika convention security project memang menggunakan generic authentication failure.
+
+Ikuti error system yang sudah ada.
+
+Jangan membuat error system kedua.
+
+14. AUTH MIDDLEWARE / SERVICE
+
+Jika project memiliki authentication middleware/service:
+
+* gunakan satu abstraction utama
+* jangan membuat middleware duplicate
+* jangan membuat current-user resolver duplicate
+* jangan menyebarkan parsing token ke setiap endpoint
+
+Jika logic authentication tersebar dan dapat dipusatkan tanpa breaking change, refactor secara aman.
+
+15. DATABASE / REPOSITORY
+
+Audit query authentication/session.
+
+Cari:
+
+* session lookup
+* user lookup
+* account lookup
+* session deletion
+* session revocation
+* expiration filtering
+
+Pastikan query session tidak mengembalikan session yang sudah expired/revoked jika architecture mengharuskan filtering di repository.
+
+Jangan mengubah schema database kecuali memang diperlukan.
+
+Jika migration benar-benar diperlukan:
+
+* buat migration aman
+* jangan menghapus data
+* jangan menyentuh production database
+* test migration
+* dokumentasikan perubahan
+
+16. TESTING
+
+Tambahkan atau perbaiki test minimal untuk:
+
+Authentication:
+
+* valid authentication PASS
+* invalid authentication DENY
+* missing authentication DENY
+* malformed authentication DENY
+
+Session:
+
+* valid session PASS
+* expired session DENY
+* revoked session DENY
+* invalid session DENY
+* logout invalidates session
+
+Identity:
+
+* current user berasal dari auth context
+* spoofed userId DENY
+* spoofed accountId DENY
+* user A tidak menjadi user B
+
+Authorization regression:
+
+* user A → workspace A PASS
+* user A → workspace B DENY
+* user B → workspace B PASS
+* user B → workspace A DENY
+
+Resource regression:
+
+* authenticated user dapat mengakses resource miliknya
+* authenticated user tidak dapat mengakses resource workspace lain
+
+17. TEST EXISTING SUITE
+
+Jangan menghapus atau melemahkan test yang sudah ada.
+
+Jalankan test existing sebelum dan sesudah perubahan jika memungkinkan.
+
+Jika test gagal:
+
+* identifikasi root cause
+* perbaiki implementation
+* jalankan ulang test
+* jangan skip test
+* jangan mengubah expected result hanya agar test PASS kecuali behavior memang sengaja berubah dan alasannya valid
+
+18. TYPESCRIPT QUALITY
+
+Pastikan:
+
+* tidak menambahkan any tanpa alasan
+* tidak menambahkan @ts-ignore
+* tidak ada unused import
+* tidak ada dead code
+* tidak ada duplicate authentication logic
+* tidak ada duplicate session system
+* tidak ada circular dependency baru
+* tidak ada secret/token yang hardcoded
+* mengikuti struktur package repository
+
+19. SECURITY LOGGING
+
+Audit log/error output.
+
+Jangan mencetak:
+
+* password
+* session token
+* access token
+* refresh token
+* secret
+* credential
+
+Jika terdapat logging sensitif, hapus atau sanitasi.
+
+Jangan menambahkan verbose authentication logging yang dapat membocorkan credential.
+
+20. BACKWARD COMPATIBILITY
+
+Jangan merusak API existing.
+
+Sebelum mengubah:
+
+* function signature
+* middleware contract
+* session structure
+* authentication response
+
+cari seluruh caller.
+
+Update caller dan test yang diperlukan.
+
+Jangan membuat breaking change tanpa alasan yang jelas.
+
+21. README
+
+Jika diperlukan, update README.md yang sudah ada.
+
+JANGAN membuat README baru.
+
+Dokumentasikan secara singkat:
+
+* authentication flow
+* session behavior
+* protected API
+* logout/session invalidation
+* cara menjalankan authentication test
+
+Jangan menulis dokumentasi panjang yang tidak diperlukan.
+
+22. VERIFICATION
+
+Setelah implementation selesai jalankan:
+
+* domain tests
+* API tests
+* authentication tests
+* session tests
+* typecheck
+* format check
+* import boundary check
+* lint jika tersedia
+* build semua package yang tersedia
+
+Pastikan tidak ada regression pada:
+
+* workspace authorization
+* workspace membership
+* ownership
+* permission policy
+
+Jika repository memiliki command khusus untuk verification, gunakan command resmi repository.
+
+23. GIT AUDIT
+
+Sebelum commit:
+
+git status
+git diff --stat
+git diff
+
+Pastikan hanya perubahan yang berkaitan dengan authentication/session security.
+
+Jangan commit file:
+
+* .env
+* secret
+* credential
+* temporary files
+* log files
+* build artifacts
+
+24. COMMIT
+
+Jika seluruh verification PASS:
+
+buat SATU commit baru.
+
+Gunakan commit message sesuai perubahan sebenarnya.
+
+Contoh:
+
+fix: harden authentication and session security
+
+atau:
+
+feat: secure authentication session flow
+
+Pilih message berdasarkan implementasi aktual.
+
+Setelah commit:
+
+git status
+git log --oneline -3
+
+25. PUSH
+
+Setelah commit:
+
+git push
+
+Branch tetap:
+
+backend-dev-recovery
+
+Jangan mengubah remote.
+
+Jangan force push.
+
+Jangan merge ke backend-dev.
+
+26. HASIL AKHIR
+
+Setelah selesai tampilkan laporan:
+
+Implementation:
+
+* ...
+
+Authentication:
+
+* ...
+
+Session:
+
+* ...
+
+Security:
+
+* ...
+
+Regression:
+
+* Workspace authorization: ...
+* Membership authorization: ...
+* Ownership: ...
+
+Tests:
+
+* Domain: ...
+* API: ...
+* Auth: ...
+* Session: ...
+* Typecheck: ...
+* Format: ...
+* Import boundary: ...
+* Build: ...
+
+Commit:
+
+* hash: ...
+* message: ...
+
+Git:
+
+* branch: ...
+* push: success/failed
+
+Working Tree:
+
+* clean/dirty
+
+Jika ada failure, tampilkan error sebenarnya.
+
+Jangan mengklaim sukses jika test, build, commit, atau push belum berhasil.
+
+27. PENTING
+
+Jangan membuat fitur besar baru.
+
+Tahap ini hanya fokus pada:
+
+AUTHENTICATION
+→ SESSION
+→ CURRENT USER
+→ IDENTITY SECURITY
+→ AUTHORIZATION REGRESSION
+→ TEST
+→ BUILD
+→ COMMIT
+→ PUSH
+
+Pastikan authentication menjadi fondasi yang aman untuk workspace authorization dan membership yang sudah selesai.
+
+Selesaikan sampai push berhasil lalu berhenti.
 
 
 
