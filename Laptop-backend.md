@@ -91,7 +91,735 @@
 ```
 # 
 ```
+PROMPT: BotSpace — Bot Runtime, Deployment & Integration Security Hardening
 
+Kita melanjutkan project BotSpace dari checkpoint yang SUDAH BERHASIL.
+
+Repository: /root/botspace
+Branch: backend-dev-recovery
+Remote: https://github.com/zenolamee/botspace.git
+
+CHECKPOINT TERAKHIR:
+2947d34 — fix: harden bot lifecycle integrity
+
+Verification checkpoint terakhir:
+- Format check: PASS
+- Import boundary check: PASS
+- Build: 11 tasks successful
+- Working tree: clean
+- Commit berhasil dibuat
+- Push berhasil
+
+JANGAN melakukan reset, force push, rebase sembarangan, checkout branch lain, merge ke backend-dev, atau menghapus checkpoint yang sudah ada.
+
+Kita sudah menyelesaikan:
+- workspace authorization
+- workspace membership
+- ownership security
+- authentication/session security
+- bot resource authorization
+- bot lifecycle integrity
+
+SEKARANG lanjutkan ke tahap berikutnya.
+
+TUJUAN
+
+Audit dan harden BOT RUNTIME, BOT DEPLOYMENT, INTEGRATION, WEBHOOK, dan RESOURCE EXECUTION SECURITY berdasarkan arsitektur yang benar-benar sudah tersedia di repository.
+
+Fokus:
+
+AUTHENTICATION
+→ WORKSPACE AUTHORIZATION
+→ BOT AUTHORIZATION
+→ BOT LIFECYCLE
+→ BOT RUNTIME
+→ INTEGRATION
+→ WEBHOOK
+→ EXECUTION SECURITY
+→ SECRET SECURITY
+→ TEST
+→ BUILD
+→ COMMIT
+→ PUSH
+
+Jangan membuat authorization system kedua.
+
+Jangan membuat fitur besar baru.
+
+1. AUDIT BOT RUNTIME
+
+Audit seluruh kode yang berhubungan dengan menjalankan bot.
+
+Cari implementasi aktual untuk:
+
+- start bot
+- stop bot
+- restart bot
+- enable bot
+- disable bot
+- bot worker
+- bot process
+- bot runtime
+- bot executor
+- bot scheduler
+- bot queue
+- bot polling
+- webhook listener
+- Telegram connection
+- runtime status
+- health status
+- deployment status
+
+Gunakan struktur repository aktual sebagai sumber kebenaran.
+
+Jika fitur tertentu belum ada, jangan membuatnya hanya untuk memenuhi prompt.
+
+2. RUNTIME AUTHORIZATION
+
+Pastikan operasi runtime selalu memverifikasi akses terhadap bot terlebih dahulu.
+
+Operasi seperti:
+
+start
+stop
+restart
+enable
+disable
+
+tidak boleh hanya menggunakan botId.
+
+Flow harus:
+
+authenticated user
+→ workspace access
+→ bot authorization
+→ permission check
+→ runtime operation
+
+User tidak boleh menjalankan bot workspace lain hanya dengan mengetahui botId.
+
+3. RUNTIME STATE CONSISTENCY
+
+Audit hubungan antara:
+
+database bot status
+dan
+runtime bot status.
+
+Cari kemungkinan:
+
+database mengatakan active
+tetapi runtime tidak berjalan
+
+atau:
+
+database mengatakan inactive
+tetapi runtime masih berjalan.
+
+Jangan membuat sistem orchestration baru.
+
+Jika repository sudah memiliki runtime abstraction, gunakan abstraction tersebut.
+
+Tujuan tahap ini adalah menemukan bug nyata dan memastikan state transition tidak menghasilkan state yang menyesatkan.
+
+4. START / STOP SECURITY
+
+Audit seluruh jalur start dan stop.
+
+Pastikan:
+
+- unauthenticated user ditolak
+- user workspace lain ditolak
+- member tanpa permission ditolak
+- authorized user diperbolehkan sesuai policy
+- bot yang tidak ada ditangani sesuai convention
+- bot yang disabled tidak dapat dijalankan jika architecture memang melarangnya
+- bot yang sudah berjalan tidak menghasilkan duplicate runtime jika architecture tidak mengizinkannya
+
+Jangan mengubah behavior bisnis tanpa bukti dari code/test.
+
+5. RESTART SECURITY
+
+Jika restart tersedia:
+
+Pastikan restart tidak menjadi bypass terhadap permission.
+
+Restart harus tetap:
+
+authentication
+→ workspace authorization
+→ bot authorization
+→ permission
+→ restart
+
+Jangan menggunakan internal runtime identifier sebagai pengganti authorization.
+
+6. BOT PROCESS ISOLATION
+
+Audit bagaimana runtime menentukan bot yang dijalankan.
+
+Pastikan process/worker tidak dapat dijalankan menggunakan:
+
+- botId workspace lain
+- workspaceId palsu
+- ownerId palsu
+- accountId palsu
+
+Runtime harus mengambil ownership/workspace relationship dari server/database, bukan mempercayai client.
+
+7. WEBHOOK SECURITY
+
+Jika repository memiliki webhook:
+
+Audit:
+
+- webhook creation
+- webhook update
+- webhook delete
+- webhook endpoint
+- webhook secret
+- webhook configuration
+- webhook bot association
+
+Pastikan webhook tidak dapat dipasang ke bot workspace lain.
+
+Jika webhook memiliki secret:
+
+- jangan log secret
+- jangan expose secret tanpa alasan
+- jangan menyimpan secret di response publik
+- jangan mempercayai botId dari payload tanpa validasi
+
+Gunakan webhook security mechanism yang sudah ada.
+
+Jangan membuat webhook architecture baru.
+
+8. WEBHOOK CALLBACK
+
+Jika terdapat callback endpoint dari Telegram atau provider lain:
+
+Audit apakah callback dapat menyebabkan:
+
+- bot action
+- command execution
+- configuration update
+- message processing
+- external API call
+
+Pastikan callback hanya diproses untuk bot/integration yang valid.
+
+Jangan menganggap ID dari callback otomatis trusted.
+
+Jika callback memang harus public karena provider membutuhkan endpoint public, authentication user biasa tidak boleh dipaksakan pada callback tersebut.
+
+Sebagai gantinya gunakan mekanisme verifikasi callback yang memang tersedia di architecture, seperti secret/token/signature jika memang sudah digunakan.
+
+Jangan mengarang mekanisme baru tanpa kebutuhan.
+
+9. INTEGRATION SECURITY
+
+Audit seluruh integration yang tersedia.
+
+Contoh jika ada:
+
+- Telegram
+- webhook
+- external API
+- OAuth
+- API key
+- provider connection
+- account integration
+- bot credential
+
+Pastikan integration selalu terikat dengan resource yang benar:
+
+User
+→ Account
+→ Workspace
+→ Bot
+→ Integration
+
+Jangan sampai integration milik workspace-A dapat dipakai oleh bot workspace-B.
+
+10. CROSS-WORKSPACE INTEGRATION
+
+Buat regression test untuk skenario:
+
+Workspace A:
+bot A
+integration A
+
+Workspace B:
+bot B
+integration B
+
+User A tidak boleh menggunakan:
+
+integration B
+untuk
+bot A
+
+atau:
+
+integration B
+untuk
+bot B
+
+jika user A tidak memiliki akses workspace B.
+
+Pastikan semua lookup integration melewati authorization boundary.
+
+11. CREDENTIAL SECURITY
+
+Audit semua credential yang digunakan runtime/integration.
+
+Cari:
+
+- bot token
+- API key
+- webhook secret
+- access token
+- refresh token
+- OAuth credential
+- provider credential
+- encryption key reference
+
+Pastikan credential:
+
+- tidak dikembalikan dalam list
+- tidak masuk response yang tidak perlu
+- tidak masuk log
+- tidak masuk error
+- tidak masuk test output
+- tidak dapat diganti oleh user tanpa permission
+- tidak dapat digunakan untuk mengambil resource workspace lain
+
+Jangan mengubah secret storage architecture secara besar-besaran.
+
+12. ENVIRONMENT SECURITY
+
+Audit penggunaan environment variables.
+
+Pastikan:
+
+- secret tidak hardcoded
+- credential tidak ditulis ke source code
+- test tidak membutuhkan production secret
+- error tidak mencetak environment variables
+- configuration tidak membocorkan secret
+
+Jangan mengubah .env production.
+
+Jangan membuat atau commit credential.
+
+13. BOT COMMAND EXECUTION
+
+Jika bot memiliki command/flow execution:
+
+Audit apakah user dapat memodifikasi command/flow milik bot workspace lain.
+
+Pastikan:
+
+- command read authorized
+- command update authorized
+- command delete authorized
+- flow read authorized
+- flow update authorized
+- flow delete authorized
+
+Jika command/flow dieksekusi oleh runtime:
+
+pastikan runtime hanya mengambil resource yang memang terkait dengan bot yang sedang dijalankan.
+
+14. RESOURCE RELATION INTEGRITY
+
+Audit relasi:
+
+Bot
+→ Workspace
+→ Integration
+→ Credential
+→ Webhook
+→ Command
+→ Flow
+→ Runtime
+
+Cari kemungkinan:
+
+- integration.botId berbeda dengan runtime bot
+- integration.workspaceId berbeda dengan bot.workspaceId
+- webhook mengarah ke bot lain
+- credential digunakan oleh workspace lain
+- command berasal dari bot lain
+- flow berasal dari bot lain
+
+Jangan memperbaiki production data secara otomatis.
+
+Perbaiki enforcement dan test.
+
+15. IDOR AUDIT
+
+Cari seluruh pola:
+
+findById(id)
+
+findUnique({ id })
+
+findFirst({ id })
+
+where: { id }
+
+dan equivalent lainnya.
+
+Untuk resource runtime/integration:
+
+Pastikan lookup tidak memungkinkan cross-workspace access.
+
+Gunakan workspace/bot scoped query jika repository abstraction mendukungnya.
+
+Jangan mengubah semua query secara otomatis.
+
+Hanya perbaiki yang benar-benar memiliki security boundary issue.
+
+16. MASS ASSIGNMENT
+
+Audit request body untuk runtime/integration resource.
+
+Perhatikan field:
+
+- workspaceId
+- botId
+- ownerId
+- accountId
+- integrationId
+- credentialId
+- webhookId
+- status
+- role
+- permissions
+
+Pastikan client tidak dapat mengubah server-controlled relation.
+
+Gunakan explicit field mapping jika diperlukan.
+
+17. RUNTIME ERROR HANDLING
+
+Pastikan runtime error tidak membocorkan:
+
+- bot token
+- API key
+- webhook secret
+- access token
+- refresh token
+- database credentials
+- internal credential IDs yang sensitif
+- stack trace ke client jika production convention melarangnya
+
+Gunakan error system yang sudah ada.
+
+Jangan membuat error system kedua.
+
+18. CONCURRENCY
+
+Audit kemungkinan race condition pada:
+
+start
+stop
+restart
+enable
+disable
+
+Contoh:
+
+request A → start
+request B → start
+
+Pastikan tidak menghasilkan duplicate worker/process jika architecture melarangnya.
+
+Contoh lain:
+
+request A → disable
+request B → start
+
+Pastikan hasil akhir tidak menghasilkan runtime state yang tidak konsisten.
+
+Jika transaction/atomic operation sudah tersedia, gunakan abstraction tersebut.
+
+Jangan membuat concurrency framework baru.
+
+19. TEST MATRIX
+
+Tambahkan/perbaiki test sesuai fitur yang benar-benar tersedia.
+
+Authentication:
+- unauthenticated runtime access = DENY
+
+Workspace:
+- authorized workspace = PASS
+- cross-workspace runtime access = DENY
+
+Bot:
+- authorized bot start = PASS
+- unauthorized bot start = DENY
+- cross-workspace start = DENY
+- authorized stop = PASS
+- unauthorized stop = DENY
+- cross-workspace stop = DENY
+- restart authorization = PASS/DENY sesuai permission
+
+Integration:
+- authorized integration access = PASS
+- cross-workspace integration = DENY
+- integration reassignment spoof = DENY
+
+Webhook:
+- valid callback = PASS
+- invalid callback = DENY
+- wrong bot association = DENY
+- secret tidak bocor
+
+Credential:
+- secret tidak muncul pada response
+- secret tidak muncul pada error
+- secret tidak muncul pada log/test output
+
+Command/Flow:
+- authorized resource access = PASS
+- cross-workspace resource access = DENY
+
+20. REGRESSION
+
+Pastikan semua security checkpoint sebelumnya tetap PASS:
+
+- authentication
+- session
+- current user
+- workspace authorization
+- workspace membership
+- ownership
+- permission policy
+- bot resource authorization
+- bot lifecycle integrity
+
+Jangan melemahkan test lama.
+
+21. TYPESCRIPT QUALITY
+
+Pastikan:
+
+- tidak menambahkan any tanpa alasan
+- tidak menambahkan @ts-ignore
+- tidak ada unused import
+- tidak ada dead code
+- tidak ada duplicate authorization
+- tidak ada duplicate validation
+- tidak ada duplicate runtime logic
+- tidak ada circular dependency baru
+- tidak ada hardcoded secret
+
+Ikuti architecture repository.
+
+22. BACKWARD COMPATIBILITY
+
+Sebelum mengubah:
+
+- function signature
+- DTO
+- route contract
+- repository contract
+- service contract
+
+cari seluruh caller.
+
+Update caller dan test secara aman.
+
+Jangan membuat breaking change tanpa alasan.
+
+23. README
+
+Jika diperlukan, update README.md yang sudah ada.
+
+Jangan membuat README baru.
+
+Dokumentasikan secara singkat:
+
+- bot runtime lifecycle
+- runtime authorization
+- integration security
+- webhook security
+- credential handling
+- test command
+
+24. VERIFICATION
+
+Setelah implementasi selesai jalankan verification resmi repository.
+
+Minimal:
+
+- domain tests
+- API tests
+- authentication/session tests
+- workspace authorization tests
+- membership tests
+- bot/resource tests
+- runtime/integration tests jika tersedia
+- typecheck
+- format check
+- import boundary check
+- lint jika tersedia
+- build
+
+Jika gagal:
+
+1. identifikasi root cause
+2. perbaiki
+3. jalankan test terkait
+4. jalankan full verification kembali
+
+Jangan skip test.
+
+Jangan menghapus test existing.
+
+25. GIT AUDIT
+
+Sebelum commit:
+
+git status
+git diff --stat
+git diff
+
+Pastikan hanya perubahan task ini.
+
+Jangan commit:
+
+- .env
+- API key
+- token
+- credential
+- log
+- temporary file
+- build artifact
+
+26. COMMIT
+
+Jika seluruh verification PASS:
+
+buat SATU commit.
+
+Gunakan commit message berdasarkan perubahan aktual.
+
+Contoh:
+
+fix: harden bot runtime security
+
+atau:
+
+fix: secure bot runtime integrations
+
+Pilih message yang paling sesuai dengan implementation sebenarnya.
+
+Setelah commit:
+
+git status
+git log --oneline -3
+
+27. PUSH
+
+Jalankan:
+
+git push
+
+Branch tetap:
+
+backend-dev-recovery
+
+Jangan:
+
+- force push
+- ubah remote
+- merge ke backend-dev
+- reset checkpoint
+- rebase sembarangan
+
+Jika push gagal karena credential GitHub:
+
+JANGAN mengubah source code lagi.
+
+Pertahankan commit lokal dan tampilkan error sebenarnya.
+
+28. HASIL AKHIR
+
+Tampilkan laporan:
+
+Implementation:
+- ...
+
+Runtime:
+- ...
+
+Integration:
+- ...
+
+Webhook:
+- ...
+
+Credential Security:
+- ...
+
+Tests:
+- Domain: ...
+- API: ...
+- Auth/Session: ...
+- Workspace: ...
+- Membership: ...
+- Bot/Resource: ...
+- Runtime/Integration: ...
+- Typecheck: ...
+- Format: ...
+- Import boundary: ...
+- Build: ...
+
+Commit:
+- hash: ...
+- message: ...
+
+Git:
+- branch: ...
+- push: success/failed
+
+Working Tree:
+- clean/dirty
+
+Jika ada failure, tampilkan error sebenarnya.
+
+Jangan mengklaim sukses jika verification, commit, atau push belum berhasil.
+
+29. PENTING
+
+Jangan membuat fitur besar baru.
+
+Tahap ini hanya fokus:
+
+AUDIT
+→ BOT RUNTIME
+→ START/STOP/RESTART SECURITY
+→ INTEGRATION ISOLATION
+→ WEBHOOK SECURITY
+→ CREDENTIAL SECURITY
+→ COMMAND/FLOW EXECUTION SECURITY
+→ CONCURRENCY
+→ REGRESSION TEST
+→ BUILD
+→ COMMIT
+→ PUSH
+
+Gunakan abstraction security yang sudah ada.
+
+Jangan membuat authorization system kedua.
+
+Jangan mengubah arsitektur BotSpace secara besar-besaran.
+
+Selesaikan sampai push berhasil lalu berhenti.
 
 
 ```
