@@ -11,9 +11,560 @@
 
 
 ```
-# 
+# Prompt: BotSpace — Workspace Permission Policy Completion & Full Verification
 ```
 
+# Prompt: BotSpace — Workspace Permission Policy Completion & Full Verification
+
+Kita melanjutkan project **BotSpace** dari checkpoint yang SUDAH BERHASIL di GitHub.
+
+## Kondisi saat ini
+
+Repository:
+`/root/botspace`
+
+Branch aktif:
+`backend-dev-recovery`
+
+Remote:
+`https://github.com/zenolamee/botspace.git`
+
+Checkpoint terakhir yang sudah berhasil dipush:
+`c5db8fb`
+
+Commit message:
+`feat: add workspace permission policy`
+
+Status terakhir:
+
+* working tree clean
+* branch `backend-dev-recovery` sudah tracking `origin/backend-dev-recovery`
+* commit lokal sudah berhasil dipush
+* GitHub menerima branch `backend-dev-recovery`
+* Domain tests: 95 passed
+* API tests: 74 passed
+
+JANGAN melakukan reset, force push, rebase sembarangan, checkout branch lain, atau menghapus commit checkpoint tersebut.
+
+---
+
+# TUJUAN
+
+Lanjutkan pengembangan BotSpace dari checkpoint `c5db8fb`.
+
+Fokus utama tahap ini adalah memastikan **Workspace Permission Policy benar-benar terimplementasi secara konsisten**, bukan hanya definisi/type/policy di satu tempat.
+
+BotSpace menggunakan konsep:
+
+* satu user/account website dapat memiliki beberapa Telegram account/workspace
+* setiap Telegram account memiliki workspace sendiri
+* bot dibuat dan dikelola di dalam workspace yang dipilih
+* resource workspace tidak boleh dapat diakses oleh workspace lain
+* permission harus menjadi bagian dari arsitektur backend, bukan hanya validasi frontend
+
+Jangan membuat ulang arsitektur yang sudah ada. Ikuti struktur repository yang sekarang.
+
+---
+
+# ATURAN PENTING
+
+## 1. Audit kode terlebih dahulu
+
+Sebelum mengubah kode:
+
+* baca struktur repository
+* baca `README.md`
+* baca package/domain yang relevan
+* baca service/API yang berkaitan dengan workspace
+* baca file permission yang sudah dibuat pada commit terakhir
+* cari seluruh penggunaan:
+
+  * workspace
+  * workspaceId
+  * userId
+  * accountId
+  * bot ownership
+  * permissions
+  * authorization
+  * membership
+  * role
+* pahami flow request dari API sampai domain/service/repository
+
+Jangan langsung menulis kode sebelum memahami implementasi yang sudah ada.
+
+---
+
+# 2. Periksa file yang berubah pada checkpoint terakhir
+
+Audit minimal file berikut:
+
+* `packages/domain/src/errors.ts`
+* `packages/domain/src/errors.test.ts`
+* `packages/domain/src/permissions.ts`
+* `packages/domain/src/permissions.test.ts`
+* `services/api/src/errors.ts`
+* `services/api/src/errors.test.ts`
+
+Jangan menghapus logic yang sudah benar.
+
+Jika struktur saat ini berbeda, gunakan file aktual repository sebagai sumber kebenaran.
+
+---
+
+# 3. Pastikan permission policy benar-benar digunakan
+
+Cari semua endpoint/API/service yang bekerja dengan resource workspace.
+
+Pastikan setiap operasi sensitif memverifikasi authorization sebelum melakukan operasi.
+
+Minimal periksa:
+
+* create workspace
+* list workspace
+* get workspace
+* update workspace
+* delete workspace
+* workspace membership
+* bot creation
+* bot listing
+* bot detail
+* bot update
+* bot delete
+* bot enable/disable
+* resource lain yang memiliki hubungan dengan workspace
+
+Prinsip utama:
+
+**User hanya boleh mengakses resource yang memang menjadi miliknya atau workspace yang memang menjadi hak aksesnya.**
+
+Jangan hanya mengandalkan:
+
+```text
+workspaceId dari request
+```
+
+Tanpa memastikan user/session memang memiliki akses ke workspace tersebut.
+
+---
+
+# 4. Workspace isolation
+
+Pastikan tidak terjadi IDOR / cross-workspace access.
+
+Contoh kasus yang WAJIB ditolak:
+
+User A memiliki:
+
+```text
+workspace-A
+```
+
+User B memiliki:
+
+```text
+workspace-B
+```
+
+Jika User A mencoba:
+
+```text
+GET /workspaces/workspace-B
+```
+
+request harus ditolak.
+
+Hal yang sama berlaku untuk bot/resource:
+
+User A tidak boleh:
+
+```text
+GET bot milik workspace-B
+UPDATE bot milik workspace-B
+DELETE bot milik workspace-B
+ENABLE bot milik workspace-B
+DISABLE bot milik workspace-B
+```
+
+meskipun User A mengetahui ID resource tersebut.
+
+---
+
+# 5. Jangan hanya memperbaiki frontend
+
+Permission wajib ditegakkan di backend/domain/service layer.
+
+Frontend boleh menyembunyikan menu yang tidak boleh digunakan, tetapi security decision harus tetap dilakukan backend.
+
+Jangan membuat implementasi yang hanya:
+
+```text
+if (!showButton) ...
+```
+
+atau validasi frontend.
+
+Backend harus menjadi sumber kebenaran authorization.
+
+---
+
+# 6. Gunakan policy yang sudah ada
+
+Jika `packages/domain/src/permissions.ts` sudah menyediakan abstraction/policy tertentu:
+
+* gunakan abstraction tersebut
+* jangan membuat sistem permission kedua yang duplikat
+* jangan membuat role system baru tanpa kebutuhan
+* jangan hardcode permission di banyak endpoint
+
+Jika ada logic authorization yang tersebar dan bisa menggunakan policy yang sudah ada, refactor secara aman agar konsisten.
+
+---
+
+# 7. Error handling
+
+Gunakan error type yang sudah ada.
+
+Pastikan unauthorized access memiliki behavior yang konsisten.
+
+Bedakan secara benar antara:
+
+* authentication gagal / user tidak login
+* authorization gagal / user login tetapi tidak punya akses
+* resource tidak ditemukan
+* validation error
+
+Jangan membocorkan informasi sensitif tentang resource milik workspace lain.
+
+Contoh yang perlu diperhatikan:
+
+Jika user tidak memiliki akses ke resource:
+
+```text
+workspace-B
+```
+
+jangan memberikan response yang secara tidak perlu membocorkan detail internal resource tersebut.
+
+Ikuti convention error yang sudah digunakan project.
+
+---
+
+# 8. Testing wajib diperkuat
+
+Tambahkan atau perbaiki test yang diperlukan.
+
+Minimal coverage:
+
+### Workspace
+
+* owner dapat mengakses workspace sendiri
+* user tanpa akses ditolak
+* workspace lain tidak dapat diakses
+* invalid workspace ditangani dengan benar
+
+### Bot
+
+* user dapat mengakses bot dalam workspace yang dimiliki
+* user tidak dapat mengakses bot workspace lain
+* update cross-workspace ditolak
+* delete cross-workspace ditolak
+* enable/disable cross-workspace ditolak
+
+### Permission
+
+* permission yang valid diterima
+* permission yang tidak valid ditolak
+* role/permission mapping konsisten
+* policy tidak menghasilkan false positive authorization
+
+### API
+
+Tambahkan integration/API test jika architecture repository memang menggunakannya.
+
+Jangan membuat test palsu yang hanya memanggil function tanpa benar-benar memverifikasi authorization behavior.
+
+---
+
+# 9. Security test
+
+Cari pola berbahaya seperti:
+
+```text
+findById(id)
+```
+
+yang langsung mengembalikan resource tanpa memverifikasi ownership/workspace access.
+
+Cari juga pola:
+
+```text
+where: { id }
+```
+
+yang seharusnya mungkin:
+
+```text
+where: {
+  id,
+  workspaceId
+}
+```
+
+atau harus melewati authorization policy/service.
+
+Jangan mengubah query secara membabi buta. Pastikan perubahan sesuai dengan repository abstraction yang digunakan project.
+
+Audit seluruh jalur yang relevan.
+
+---
+
+# 10. Backward compatibility
+
+Jangan merusak API yang sudah bekerja.
+
+Sebelum mengubah signature function/service:
+
+* cari semua caller
+* update seluruh caller yang relevan
+* update test
+* pastikan TypeScript build tetap lolos
+
+Jangan membuat breaking change tanpa alasan yang jelas.
+
+---
+
+# 11. TypeScript quality
+
+Pastikan:
+
+* tidak ada `any` baru tanpa alasan
+* tidak ada `@ts-ignore` baru
+* tidak ada TODO security yang dibiarkan
+* tidak ada dead code
+* tidak ada duplicate permission system
+* tidak ada import yang tidak digunakan
+* tidak ada circular dependency baru
+
+Ikuti coding style repository.
+
+---
+
+# 12. Jalankan verification
+
+Setelah implementasi selesai, jalankan test/build yang memang tersedia di repository.
+
+Minimal:
+
+* domain tests
+* API tests
+* typecheck
+* lint jika tersedia
+* build jika tersedia
+
+Jika ada test failure:
+
+1. identifikasi root cause
+2. perbaiki
+3. jalankan ulang test terkait
+4. jalankan full verification kembali
+
+Jangan mematikan atau skip test hanya supaya CI hijau.
+
+Jangan menghapus test existing.
+
+---
+
+# 13. Jangan menyentuh hal di luar scope
+
+Jangan melakukan perubahan terhadap:
+
+* deployment production
+* VPS configuration
+* DNS
+* Cloudflare
+* secret/API key
+* `.env` production
+* credential GitHub
+* database production
+
+kecuali repository memang membutuhkan perubahan kode yang jelas terkait task ini.
+
+Fokus pada source code BotSpace.
+
+---
+
+# 14. README.md
+
+Jika implementation atau workflow permission membutuhkan dokumentasi:
+
+UPDATE `README.md` yang sudah ada.
+
+JANGAN membuat README baru.
+
+Dokumentasikan secara singkat:
+
+* konsep workspace permission
+* authorization rule
+* bagaimana workspace isolation bekerja
+* cara menjalankan test terkait
+
+Jangan menulis dokumentasi panjang yang tidak diperlukan.
+
+---
+
+# 15. Git discipline
+
+Setelah semua perubahan selesai:
+
+Jalankan:
+
+```bash
+git status
+git diff --stat
+git diff
+```
+
+Pastikan hanya perubahan yang berhubungan dengan task ini.
+
+Kemudian jalankan verification terakhir.
+
+Jika semuanya PASS:
+
+buat SATU commit baru.
+
+Gunakan commit message yang jelas, misalnya:
+
+```text
+feat: enforce workspace authorization
+```
+
+Jika implementasi lebih cocok dengan `fix`, gunakan:
+
+```text
+fix: enforce workspace authorization
+```
+
+Pilih message berdasarkan perubahan sebenarnya.
+
+Setelah commit berhasil:
+
+```bash
+git status
+git log --oneline -3
+```
+
+Lalu push:
+
+```bash
+git push
+```
+
+Karena branch sudah tracking:
+
+```text
+origin/backend-dev-recovery
+```
+
+tidak perlu mengubah remote.
+
+---
+
+# 16. Jangan merge
+
+Jangan merge:
+
+```text
+backend-dev-recovery
+```
+
+ke:
+
+```text
+backend-dev
+```
+
+Jangan membuat Pull Request merge otomatis.
+
+Kita hanya perlu:
+
+```text
+implement
+→ test
+→ commit
+→ push
+```
+
+Setelah itu berhenti.
+
+---
+
+# 17. Hasil akhir yang wajib dilaporkan
+
+Setelah selesai, tampilkan laporan ringkas:
+
+```text
+Implementation:
+- ...
+
+Security:
+- ...
+
+Tests:
+- Domain: ...
+- API: ...
+- Typecheck: ...
+- Build: ...
+
+Commit:
+- hash: ...
+- message: ...
+
+Git:
+- branch: ...
+- push: success/failed
+
+Working tree:
+- clean/dirty
+```
+
+Jika ada failure, JANGAN menyembunyikannya.
+
+Tampilkan error sebenarnya dan jangan mengklaim berhasil jika verification belum selesai.
+
+---
+
+# 18. PENTING
+
+Jangan hanya membuat permission policy terlihat bagus secara code.
+
+Tujuan utama task ini adalah:
+
+**memastikan authorization benar-benar enforced pada jalur backend yang menggunakan workspace dan resource workspace.**
+
+Prioritaskan:
+
+```text
+security
+→ correctness
+→ tests
+→ maintainability
+→ documentation
+```
+
+Jangan mengejar banyak fitur baru.
+
+Selesaikan scope ini sampai:
+
+```text
+AUDIT
+→ IMPLEMENT
+→ TEST
+→ BUILD
+→ COMMIT
+→ PUSH
+```
+
+dan berhenti setelah push berhasil.
 
 
 ```
