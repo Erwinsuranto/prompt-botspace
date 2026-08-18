@@ -35,10 +35,428 @@
 
 
 ```
-# 
+# Bot Lifecycle & Resource Integrity.
 ```
 
+PROMPT: BotSpace — Bot Lifecycle & Resource Integrity
 
+Lanjutkan project BotSpace dari hasil Persistence Foundation yang baru selesai.
+
+Repository:
+ /root/botspace
+
+Branch:
+ backend-dev-recovery
+
+STATUS TERAKHIR:
+- Workspace authorization: PASS
+- Membership: PASS
+- Bot: PASS
+- Migration: 31/31 PASS
+- pnpm check: 44/44 successful
+- Typecheck: 11/11 successful
+- Format: PASS
+- Import boundary: PASS
+- Build: 11/11 successful
+- git diff --check: PASS
+- Persistence Foundation: VERIFIED
+- Working tree: DIRTY karena perubahan persistence belum di-commit
+
+PENTING:
+JANGAN commit.
+JANGAN push.
+User akan commit dan push secara manual.
+
+JANGAN reset, force push, rebase, merge, atau checkout branch lain.
+
+TUJUAN:
+
+Setelah PostgreSQL persistence, Workspace, Membership, dan Bot repository sudah tersedia, sekarang audit dan hardening BOT LIFECYCLE.
+
+Fokus:
+
+AUTHENTICATION
+→ WORKSPACE AUTHORIZATION
+→ BOT AUTHORIZATION
+→ BOT LIFECYCLE
+→ RESOURCE INTEGRITY
+→ STATE TRANSITION
+→ DATABASE CONSISTENCY
+→ TEST
+→ BUILD
+
+1. AUDIT BOT LIFECYCLE
+
+Audit implementasi yang sudah ada untuk:
+
+- create bot
+- get bot
+- list bot
+- update bot
+- delete bot
+- enable bot
+- disable bot
+- bot status
+- bot configuration
+- bot credentials
+- bot settings
+- child resource yang memiliki botId
+
+Jangan membuat endpoint baru jika tidak diperlukan.
+
+2. BOT OWNERSHIP
+
+Pastikan setiap bot:
+
+- selalu memiliki workspace valid
+- dibuat oleh authenticated user
+- user memiliki akses ke workspace
+- tidak dapat dibuat menggunakan workspace milik user lain
+- tidak dapat dipindahkan ke workspace lain melalui update biasa
+- owner/workspace tidak dapat dipalsukan dari request body
+
+Authorization harus tetap menggunakan authentication context + workspace membership/permission.
+
+3. BOT READ
+
+Audit:
+
+- get bot
+- list bot
+
+Pastikan user hanya dapat melihat bot yang berada pada workspace yang memang dapat dia akses.
+
+Cross-workspace access harus DENY meskipun user mengetahui botId.
+
+4. BOT UPDATE
+
+Audit semua field yang dapat diubah.
+
+Khusus:
+
+- workspaceId
+- ownerId
+- accountId
+- createdBy
+- status
+- permissions
+- credentials
+
+Jangan izinkan update biasa mengubah ownership/workspace jika architecture tidak mendukungnya.
+
+Gunakan explicit field mapping jika diperlukan.
+
+5. BOT DELETE
+
+Pastikan:
+
+- authorization dilakukan sebelum delete
+- cross-workspace delete ditolak
+- member tanpa permission delete ditolak
+- nonexistent bot mengikuti error convention
+- child resource tidak menjadi orphan secara tidak sengaja
+
+Jangan mengubah soft-delete menjadi hard-delete atau sebaliknya tanpa alasan.
+
+6. BOT ENABLE / DISABLE
+
+Audit seluruh state mutation:
+
+- enable
+- disable
+- activate
+- deactivate
+- start
+- stop
+
+Gunakan state yang memang sudah ada.
+
+Jangan membuat state baru hanya untuk task ini.
+
+Pastikan user tidak dapat mengubah status bot workspace lain.
+
+7. INVALID STATE
+
+Jika project memiliki deleted/inactive/stopped state, audit transisi seperti:
+
+deleted → enable
+deleted → update
+deleted → disable
+
+Pertahankan behavior architecture yang sudah ada.
+
+Jangan membuat state machine baru jika belum diperlukan.
+
+8. CHILD RESOURCE
+
+Audit resource yang bergantung pada bot, jika tersedia:
+
+- commands
+- flows
+- settings
+- integrations
+- webhooks
+- logs
+- statistics
+- credentials
+- configuration
+
+Pastikan child resource selalu mengikuti workspace/bot authorization.
+
+User yang tidak dapat mengakses bot tidak boleh mengakses child resource hanya dengan mengetahui child resource ID.
+
+9. CROSS-WORKSPACE INTEGRITY
+
+Audit seluruh relasi:
+
+User
+→ Account
+→ Workspace
+→ Bot
+→ Bot Resource
+
+Cari kemungkinan:
+
+- bot.workspaceId berbeda dengan parent workspace
+- bot.ownerId tidak sesuai
+- bot.accountId tidak sesuai
+- child resource memiliki botId invalid
+- child resource memiliki workspaceId yang berbeda dari bot
+- orphan resource
+
+Jangan memperbaiki data production secara destructive.
+
+Fokus pada enforcement dan test.
+
+10. CREDENTIAL SECURITY
+
+Audit bot credential handling.
+
+Pastikan credential:
+
+- tidak menentukan ownership
+- tidak menentukan workspace
+- tidak muncul pada list response
+- tidak bocor pada error
+- tidak masuk log
+- tidak dapat diubah tanpa permission
+- tetap terikat pada bot yang benar
+
+Jangan menampilkan secret dalam test output.
+
+11. DATABASE CONSISTENCY
+
+Karena PostgreSQL persistence baru saja selesai:
+
+audit repository PostgreSQL untuk:
+
+- Workspace
+- Membership
+- Bot
+
+Pastikan query menggunakan schema/migration aktual.
+
+Jangan membuat migration baru kecuali benar-benar diperlukan.
+
+Jangan reset database.
+Jangan truncate.
+Jangan menghapus data.
+
+12. AUTHORIZATION ORDER
+
+Pastikan flow mutation:
+
+Authentication
+→ Current User
+→ Workspace Access
+→ Permission
+→ Bot Authorization
+→ Mutation
+→ Repository
+
+Jangan melakukan mutation sebelum authorization.
+
+Jangan mempercayai workspaceId/ownerId dari client sebagai sumber authorization.
+
+13. TEST WAJIB
+
+Tambahkan/perbaiki test sesuai resource yang benar-benar tersedia.
+
+Create:
+- authenticated + valid workspace = PASS
+- unauthenticated = DENY
+- cross-workspace = DENY
+- spoofed ownerId = DENY
+- spoofed accountId = DENY
+
+Read:
+- own workspace bot = PASS
+- other workspace bot = DENY
+
+Update:
+- authorized update = PASS
+- unauthorized update = DENY
+- workspaceId spoof = DENY
+- ownerId spoof = DENY
+
+Delete:
+- authorized delete = PASS
+- unauthorized delete = DENY
+- cross-workspace delete = DENY
+
+Status:
+- authorized enable = PASS
+- unauthorized enable = DENY
+- cross-workspace enable = DENY
+- authorized disable = PASS
+- unauthorized disable = DENY
+- cross-workspace disable = DENY
+
+Child resources:
+- authorized access = PASS
+- cross-workspace access = DENY
+- invalid parent relation = DENY
+
+14. REGRESSION
+
+Pastikan checkpoint sebelumnya tetap PASS:
+
+- Authentication
+- Session
+- Workspace authorization
+- Membership
+- Ownership
+- Permission
+- Persistence
+- Bot authorization
+
+Jangan melemahkan test existing.
+
+15. CODE QUALITY
+
+Pastikan:
+
+- tidak ada any baru tanpa alasan
+- tidak ada @ts-ignore baru
+- tidak ada duplicate authorization system
+- tidak ada duplicate repository
+- tidak ada unused import
+- tidak ada dead code
+- tidak ada circular dependency baru
+- tidak ada hardcoded secret
+
+16. README
+
+Jika diperlukan, update README.md yang sudah ada.
+
+JANGAN membuat README baru.
+
+Dokumentasikan singkat:
+
+- bot lifecycle
+- bot authorization
+- persistence
+- test command
+
+17. VERIFICATION
+
+Setelah implementasi jalankan:
+
+- domain tests
+- API tests
+- authentication/session tests
+- workspace authorization tests
+- membership tests
+- bot/resource tests
+- persistence tests
+- migration tests
+- typecheck
+- format
+- import boundary
+- lint jika tersedia
+- build
+
+Jika gagal:
+
+1. cari root cause
+2. perbaiki
+3. ulangi test terkait
+4. ulangi full verification
+
+Jangan skip test.
+
+18. GIT
+
+JANGAN commit.
+JANGAN push.
+
+Setelah semua selesai hanya jalankan:
+
+git status
+git diff --stat
+git diff --check
+
+Pastikan perubahan persistence + lifecycle memang berada di working tree.
+
+Jangan membuat commit.
+
+19. FINAL REPORT
+
+Tampilkan:
+
+BOT LIFECYCLE:
+- Create: ...
+- Read: ...
+- Update: ...
+- Delete: ...
+- Enable/Disable: ...
+
+RESOURCE INTEGRITY:
+- Workspace relation: ...
+- Ownership: ...
+- Child resources: ...
+- Credentials: ...
+
+PERSISTENCE:
+- PostgreSQL: ...
+- Workspace repository: ...
+- Membership repository: ...
+- Bot repository: ...
+
+TESTS:
+- Domain: ...
+- API: ...
+- Auth/Session: ...
+- Workspace: ...
+- Membership: ...
+- Bot: ...
+- Persistence: ...
+- Migration: ...
+- Typecheck: ...
+- Format: ...
+- Import boundary: ...
+- Build: ...
+
+GIT:
+- Branch: backend-dev-recovery
+- Working tree: CLEAN/DIRTY
+- Commit: NOT PERFORMED
+- Push: NOT PERFORMED — USER WILL PUSH MANUALLY
+
+FINAL DECISION:
+
+Jika semua verification PASS:
+
+BOT LIFECYCLE VERIFIED — READY FOR MANUAL COMMIT/PUSH
+
+Jika masih ada masalah:
+
+BOT LIFECYCLE BLOCKED — tampilkan root cause sebenarnya.
+
+Berhenti setelah laporan akhir.
+
+Jangan commit.
+Jangan push.
 
 ```
 
