@@ -13,7 +13,373 @@
 ```
 # 
 ```
+PROMPT: BotSpace — Production Runtime & Deployment Readiness Verification
 
+Kita melanjutkan project BotSpace dari checkpoint terakhir.
+
+Repository: /root/botspace
+Branch: backend-dev-recovery
+Remote: https://github.com/zenolamee/botspace.git
+
+CHECKPOINT TERAKHIR
+
+Source-code/security verification sudah selesai.
+
+Hasil terakhir:
+- Domain tests: PASS
+- API tests: PASS
+- pnpm check: 44/44 PASS
+- Typecheck: 11/11 PASS
+- Format: PASS
+- Import boundary: PASS
+- Secrets scan: PASS
+- Ownership check: PASS
+- Documentation links: PASS
+- Build: 11/11 successful
+- Database migration test: 31 passed, 0 failed
+- PostgreSQL 16: PASS
+- Migration 0001 through 0003: PASS
+- Migration history: PASS
+- Schema tables: 9 present
+- Constraints/FKs/indexes/triggers: PASS
+- Transaction smoke test: PASS
+- Migration idempotency: PASS
+- Working tree: CLEAN
+- Local HEAD dan origin/backend-dev-recovery sudah synchronized
+
+PENTING:
+- JANGAN melakukan git push.
+- User akan melakukan push secara manual.
+- JANGAN mengubah remote.
+- JANGAN force push.
+- JANGAN reset.
+- JANGAN rebase sembarangan.
+- JANGAN merge ke backend-dev.
+- Jangan membuat commit jika tidak ada source-code change.
+
+TUJUAN
+
+Sekarang lakukan verifikasi akhir terhadap kesiapan runtime/deployment BotSpace.
+
+Fokus:
+
+SOURCE CODE FINAL
+→ DATABASE FINAL
+→ ENVIRONMENT CHECK
+→ RUNTIME STARTUP
+→ HEALTH CHECK
+→ API SMOKE TEST
+→ ERROR HANDLING
+→ GRACEFUL SHUTDOWN
+→ PRODUCTION READINESS REPORT
+
+1. AUDIT STARTUP
+
+Periksa bagaimana aplikasi BotSpace dijalankan berdasarkan repository aktual.
+
+Cari:
+
+- package scripts
+- start command
+- production start command
+- API entrypoint
+- worker entrypoint jika ada
+- database initialization
+- migration startup behavior
+- environment validation
+- health endpoint
+- readiness endpoint jika tersedia
+
+Jangan membuat entrypoint baru jika sudah tersedia.
+
+2. ENVIRONMENT CHECK
+
+Audit environment variables yang memang dibutuhkan runtime.
+
+Pastikan:
+
+- required environment variable terdeteksi
+- missing environment variable menghasilkan error yang jelas
+- secret tidak dicetak ke terminal
+- .env tidak dimodifikasi
+- production secret tidak dibuat
+- API key/token/password tidak ditampilkan dalam report
+
+Jangan meminta atau mencetak nilai secret.
+
+Jika environment deployment belum tersedia, catat sebagai ENVIRONMENT BLOCKER dan jangan memalsukan hasil.
+
+3. DATABASE RUNTIME
+
+Gunakan migration yang sudah terbukti PASS.
+
+Verifikasi runtime database connection menggunakan environment yang memang tersedia.
+
+Periksa:
+
+- PostgreSQL connection
+- schema tersedia
+- migration state
+- basic query
+- transaction
+- connection failure behavior
+
+Jangan menghapus data.
+
+Jangan melakukan destructive migration.
+
+Jangan mengubah production database.
+
+4. APPLICATION STARTUP
+
+Jalankan production/runtime startup command yang memang digunakan repository.
+
+Pastikan:
+
+- process dapat start
+- tidak ada TypeScript/runtime error
+- database connection berhasil
+- dependency resolution berhasil
+- environment validation berhasil
+- application tidak langsung crash
+
+Jika startup gagal:
+
+1. ambil root cause
+2. perbaiki hanya jika source-code issue nyata
+3. ulangi startup verification
+
+Jangan mengubah source code hanya untuk menyembunyikan environment problem.
+
+5. HEALTH CHECK
+
+Cari health endpoint yang memang tersedia.
+
+Jika tersedia, lakukan request terhadap endpoint tersebut.
+
+Verifikasi:
+
+- HTTP status benar
+- response valid
+- tidak membocorkan secret
+- database status sesuai architecture
+- process tetap berjalan
+
+Jika readiness endpoint tersedia, verifikasi juga.
+
+Jangan membuat endpoint baru hanya untuk task ini.
+
+6. API SMOKE TEST
+
+Gunakan endpoint API yang sudah tersedia.
+
+Lakukan smoke test minimal untuk:
+
+- authentication/current user jika tersedia
+- workspace access
+- bot/resource access
+- protected endpoint
+- unauthorized request
+- not-found behavior
+- validation error
+
+Gunakan data test yang aman.
+
+Jangan menggunakan production credential.
+
+Jangan menghapus atau mengubah data production.
+
+7. SECURITY RUNTIME REGRESSION
+
+Pastikan runtime tidak melewati security boundary yang sebelumnya sudah diperbaiki.
+
+Verifikasi:
+
+- unauthenticated protected request → DENY
+- authenticated valid request → PASS
+- cross-workspace request → DENY
+- invalid resource → proper error
+- secret tidak muncul pada response
+- secret tidak muncul pada logs
+
+Jangan membuat authorization system baru.
+
+8. ERROR HANDLING
+
+Uji failure scenario yang aman:
+
+- database unavailable jika dapat disimulasikan tanpa merusak environment
+- invalid authentication
+- invalid resource ID
+- malformed request
+- unauthorized access
+
+Pastikan error:
+
+- tidak membocorkan secret
+- tidak membocorkan stack trace production
+- tidak membocorkan credential
+- mengikuti error convention repository
+
+Jangan mengubah error system jika tidak diperlukan.
+
+9. GRACEFUL SHUTDOWN
+
+Jika runtime/service mendukung graceful shutdown, verifikasi:
+
+- SIGTERM/SIGINT handling
+- database connection close
+- HTTP server shutdown
+- worker shutdown jika tersedia
+- process tidak meninggalkan resource terbuka
+
+Jangan membuat shutdown framework baru.
+
+10. RUNTIME RESOURCE CHECK
+
+Periksa secara singkat:
+
+- memory usage
+- process count
+- open port yang memang digunakan
+- duplicate process
+- unexpected background process
+- startup crash loop
+
+Jangan mematikan service lain yang tidak terkait BotSpace.
+
+11. PRODUCTION CONFIGURATION
+
+Audit konfigurasi runtime tanpa mengubah infrastructure.
+
+Periksa:
+
+- production NODE_ENV/runtime mode jika memang digunakan
+- logging level
+- port
+- host binding
+- database URL presence
+- secret configuration presence
+- CORS configuration jika tersedia
+- API base configuration
+
+Jangan mengubah VPS, DNS, Cloudflare, firewall, atau reverse proxy pada task ini.
+
+12. TEST REGRESSION
+
+Setelah runtime verification, jalankan kembali verification resmi repository jika source code berubah.
+
+Minimal:
+
+- domain tests
+- API tests
+- typecheck
+- format
+- import boundary
+- build
+
+Jangan skip test.
+
+Jika tidak ada source-code change, tetap laporkan hasil verification terakhir dan hasil runtime test secara terpisah.
+
+13. SOURCE-CODE CHANGE POLICY
+
+Jika semua source code sudah benar dan masalah hanya karena:
+
+- Docker tidak tersedia
+- environment deployment belum tersedia
+- credential belum tersedia
+- external service belum tersedia
+
+JANGAN membuat workaround palsu.
+
+Catat sebagai environment blocker.
+
+Jangan mengubah source code hanya agar status terlihat PASS.
+
+14. GIT
+
+JANGAN PUSH.
+
+Sebelum selesai jalankan:
+
+git status
+git diff --stat
+git log --oneline -3
+
+Jika tidak ada source-code change:
+
+- jangan membuat commit
+- jangan membuat empty commit
+- jangan force push
+
+Jika ternyata ada source-code fix yang benar-benar diperlukan:
+
+- buat SATU commit saja
+- jangan push
+- tampilkan hash commit
+- user akan melakukan push manual
+
+15. FINAL DECISION
+
+Tentukan salah satu status berikut berdasarkan bukti nyata:
+
+FULLY VERIFIED — READY FOR PRODUCTION
+
+atau
+
+READY FOR DEPLOYMENT — ENVIRONMENT VERIFICATION PENDING
+
+atau
+
+BLOCKED — SOURCE CODE ISSUE
+
+atau
+
+BLOCKED — ENVIRONMENT ISSUE
+
+Jangan menyebut FULLY VERIFIED jika runtime production belum benar-benar dapat diverifikasi.
+
+16. FINAL REPORT
+
+Tampilkan laporan:
+
+Runtime:
+- Startup: PASS/FAIL/BLOCKED
+- Database connection: PASS/FAIL/BLOCKED
+- Health check: PASS/FAIL/BLOCKED
+- API smoke test: PASS/FAIL/BLOCKED
+- Security runtime: PASS/FAIL/BLOCKED
+- Graceful shutdown: PASS/FAIL/BLOCKED
+
+Database:
+- PostgreSQL: ...
+- Migration: ...
+- Schema: ...
+- Transaction: ...
+
+Tests:
+- Domain: ...
+- API: ...
+- Typecheck: ...
+- Format: ...
+- Import boundary: ...
+- Build: ...
+
+Git:
+- Branch: backend-dev-recovery
+- Working tree: clean/dirty
+- Commit: created/not created
+- Push: NOT PERFORMED — USER WILL PUSH MANUALLY
+
+FINAL DECISION:
+...
+
+Jika ada blocker, tampilkan root cause sebenarnya.
+
+Jangan mengklaim production ready tanpa bukti.
+
+Selesaikan verification ini dan berhenti.
 
 
 ```
