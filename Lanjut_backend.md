@@ -654,10 +654,1037 @@
 
 
 ```
-# 
+# Prompt: F-002 → F-070 — Complete Frontend Roadmap End-to-End
 ```
 
+Lanjutkan project BotSpace dari kondisi repository SAAT INI.
 
+WORKING DIRECTORY:
+`/root/botspace`
+
+BRANCH:
+`backend-dev-recovery`
+
+==================================================
+KONDISI TERAKHIR — JANGAN DIULANG
+==================================================
+
+Backend foundation yang sudah selesai:
+
+- B-030 Workspace API/Contract SUDAH selesai.
+- B-070 Storage Adapter SUDAH selesai.
+- B-071 File/Share contract SUDAH selesai.
+- B-071 File/Share API SUDAH selesai.
+- B-071 production wiring SUDAH selesai.
+- SecretResolver/deployment boundary sudah diaudit dan dikerjakan sejauh yang dapat dilakukan.
+- Deferred infrastructure sudah diverifikasi sejauh environment memungkinkan.
+- Working tree terakhir CLEAN.
+- Local SHA dan remote SHA sudah sinkron.
+- Branch tetap `backend-dev-recovery`.
+
+JANGAN mengulang:
+
+- B-030
+- B-070
+- B-071 contract
+- B-071 repository
+- B-071 service
+- B-071 API
+- B-071 production wiring
+- SecretResolver infrastructure yang sudah selesai
+- backend storage implementation yang sudah selesai
+
+Jangan membuat ulang backend hanya karena frontend membutuhkan API.
+
+Gunakan API B-071 yang SUDAH ADA sebagai source of truth.
+
+==================================================
+HASIL AUDIT TERAKHIR
+==================================================
+
+Repository menunjukkan bahwa task frontend yang valid sekarang adalah:
+
+1. F-002 — approve frontend framework dan styling approach
+2. F-010 — build web application shell
+3. F-011 — build UI primitives
+4. F-012 — replace API client dengan typed API client
+5. F-020/F-021 — authentication state dan route guards
+6. F-030 — workspace dashboard/context
+7. F-070 — implement real File/Share UI terhadap B-071 API
+
+Dependency order tersebut WAJIB dihormati.
+
+Jangan melompat langsung ke F-070 sebelum foundation frontend tersedia.
+
+==================================================
+TUJUAN UTAMA
+==================================================
+
+Kerjakan seluruh frontend roadmap yang dapat diselesaikan dari repository/environment saat ini:
+
+F-002
+→ F-010
+→ F-011
+→ F-012
+→ F-020/F-021
+→ F-030
+→ F-070
+
+Kerjakan secara end-to-end.
+
+Jangan hanya audit.
+
+Jangan berhenti setelah satu task.
+
+Setiap task yang dependency-nya sudah tersedia harus langsung dikerjakan.
+
+Setelah satu task selesai:
+
+- test,
+- typecheck,
+- build,
+- lint,
+- review diff,
+
+kemudian lanjut ke task berikutnya.
+
+Jika ada dependency yang benar-benar tidak tersedia, jangan membuat fake implementation. Tandai deferred dan lanjutkan bagian lain yang masih dapat dikerjakan.
+
+==================================================
+FASE 0 — AUDIT FRONTEND SAAT INI
+==================================================
+
+Sebelum mengubah file:
+
+1. `cd /root/botspace`
+2. `git status`
+3. `git branch --show-current`
+4. `git log --oneline -10`
+5. audit `package.json`.
+6. audit lockfile.
+7. audit frontend source.
+8. audit routing.
+9. audit existing UI.
+10. audit existing API client.
+11. audit auth/session code.
+12. audit workspace context.
+13. audit CSS/styling system.
+14. audit existing component library.
+15. audit build configuration.
+16. audit TypeScript configuration.
+17. audit frontend roadmap/documentation.
+
+Cari framework yang SUDAH digunakan.
+
+Contoh:
+
+- React
+- Next.js
+- Vite
+- Vue
+- Svelte
+- atau framework lain.
+
+Jangan mengubah framework jika repository sudah memiliki framework yang valid.
+
+Jangan melakukan rewrite frontend hanya demi preferensi pribadi.
+
+Source of truth:
+
+- existing package.json,
+- existing source,
+- existing build config,
+- roadmap,
+- API contract.
+
+==================================================
+FASE 1 — F-002
+FRONTEND FRAMEWORK + STYLING APPROACH
+==================================================
+
+Tentukan dan dokumentasikan framework frontend yang memang paling sesuai dengan repository saat ini.
+
+PRINSIP:
+
+1. Jika framework sudah tersedia dan valid:
+   - pertahankan.
+
+2. Jika framework belum jelas:
+   - audit dependency dan source terlebih dahulu.
+   - pilih pendekatan paling minimal yang kompatibel dengan repository.
+
+3. Jangan menambahkan framework kedua.
+
+4. Jangan menambahkan CSS framework baru jika repository sudah memiliki styling system yang cukup.
+
+5. Jangan menambahkan dependency besar tanpa alasan.
+
+6. Styling harus konsisten.
+
+7. Gunakan TypeScript jika repository frontend sudah menggunakan TypeScript.
+
+8. Jangan membuat architecture frontend yang tidak dibutuhkan.
+
+Dokumentasikan keputusan F-002 di dokumentasi frontend yang SUDAH ADA.
+
+Jangan membuat banyak README.
+
+Jika sudah ada architecture documentation:
+- update file tersebut.
+
+Jika memang tidak ada dokumentasi yang sesuai:
+- gunakan dokumentasi repository yang paling tepat,
+- jangan membuat banyak file dokumentasi.
+
+==================================================
+FASE 2 — F-010
+WEB APPLICATION SHELL
+==================================================
+
+Implementasikan application shell.
+
+Minimal foundation:
+
+- application root,
+- routing structure,
+- global layout,
+- header/navigation,
+- main content area,
+- responsive behavior,
+- loading state,
+- error boundary/state,
+- not-found state jika routing mendukung,
+- authentication-aware layout jika architecture sudah siap.
+
+Jangan membuat dashboard palsu yang tidak terhubung ke state nyata.
+
+Gunakan reusable layout.
+
+Pastikan shell dapat menjadi foundation untuk:
+
+- authentication,
+- workspace context,
+- dashboard,
+- File/Share UI.
+
+Jangan mengimplementasikan file management langsung di tahap ini jika dependency F-012/F-030 belum selesai.
+
+==================================================
+FASE 3 — F-011
+UI PRIMITIVES
+==================================================
+
+Buat UI primitives yang memang diperlukan oleh application shell dan dashboard.
+
+Contoh jika diperlukan:
+
+- Button
+- Input
+- Select
+- Dialog/Modal
+- Card
+- Badge
+- Table/List
+- Dropdown
+- Tabs
+- Toast/notification
+- Spinner/loading
+- Empty state
+- Error state
+- Confirm dialog
+
+ATURAN:
+
+1. Jangan membuat component yang sama berkali-kali.
+2. Gunakan reusable primitives.
+3. Jangan membuat design system raksasa.
+4. Hanya implementasikan primitives yang memang dibutuhkan.
+5. Props harus typed.
+6. Accessibility dasar harus diperhatikan.
+7. Keyboard interaction untuk interactive elements.
+8. Button harus memiliki disabled/loading behavior bila relevan.
+9. Form control harus memiliki label/error state bila relevan.
+10. Jangan hardcode business logic ke primitive component.
+
+Styling harus konsisten dengan keputusan F-002.
+
+==================================================
+FASE 4 — F-012
+TYPED API CLIENT
+==================================================
+
+Sekarang implementasikan typed API client berdasarkan API BotSpace yang SUDAH ADA.
+
+Audit backend API B-030 dan B-071.
+
+Jangan mengarang endpoint.
+
+Jangan mengarang response.
+
+Jangan mengarang request field.
+
+Gunakan contract/API implementation repository sebagai source of truth.
+
+API client harus typed.
+
+Minimal support API yang memang sudah tersedia:
+
+- authentication/session jika tersedia,
+- workspace/context,
+- file list,
+- upload,
+- download,
+- create share,
+- revoke share,
+- public share access jika frontend memang membutuhkan public route.
+
+Gunakan centralized API client.
+
+Jangan membuat fetch logic tersebar di seluruh component.
+
+Contoh architecture yang diinginkan:
+
+UI
+ ->
+feature hook/service
+ ->
+typed API client
+ ->
+HTTP API
+
+Bukan:
+
+UI
+ ->
+fetch() acak di setiap component.
+
+Pastikan:
+
+- base URL configuration,
+- request headers,
+- auth handling,
+- JSON parsing,
+- error mapping,
+- HTTP status handling,
+- multipart upload,
+- binary/download response.
+
+Jangan memasukkan API secret ke frontend.
+
+Jangan hardcode token production.
+
+==================================================
+FASE 5 — F-020/F-021
+AUTHENTICATION STATE + ROUTE GUARDS
+==================================================
+
+Audit authentication system backend yang SUDAH ADA.
+
+Jangan membuat authentication backend baru.
+
+Frontend harus mengikuti authentication mechanism yang repository sudah gunakan.
+
+Implementasikan:
+
+- authentication state,
+- current user/account state,
+- loading state,
+- unauthenticated state,
+- authenticated state,
+- logout behavior jika endpoint tersedia,
+- route guard,
+- protected layout.
+
+Pastikan route protection terjadi pada frontend UX level.
+
+Tetapi JANGAN menganggap frontend route guard sebagai security boundary.
+
+Backend authorization tetap menjadi source of truth.
+
+Jika user belum login:
+
+- jangan menampilkan protected dashboard sebagai authenticated.
+
+Jika session sedang diperiksa:
+
+- tampilkan loading state.
+
+Jika session expired:
+
+- clear auth state,
+- arahkan ke login sesuai routing architecture.
+
+Jangan menyimpan credential sensitif secara tidak aman.
+
+Jangan menyimpan password.
+
+Jangan menaruh API secret di localStorage.
+
+Gunakan mekanisme session/token yang memang sesuai backend.
+
+==================================================
+FASE 6 — WORKSPACE CONTEXT
+==================================================
+
+Sebelum F-030, implementasikan workspace context berdasarkan B-030.
+
+Pastikan frontend memiliki satu source of truth untuk current workspace.
+
+Context/state harus mendukung:
+
+- current workspace,
+- workspace list jika API tersedia,
+- switching workspace,
+- loading,
+- error,
+- no workspace state.
+
+Workspace context harus digunakan oleh feature yang workspace-scoped.
+
+Jangan membuat workspace ID global hardcoded.
+
+Jangan menggunakan workspace milik user lain.
+
+Jangan mencampurkan workspace ID dengan BotInstallation process state.
+
+==================================================
+FASE 7 — F-030
+WORKSPACE DASHBOARD
+==================================================
+
+Implementasikan dashboard workspace menggunakan foundation yang sudah dibuat.
+
+Dashboard harus menggunakan data API nyata jika endpoint tersedia.
+
+Minimal:
+
+- current workspace,
+- workspace information,
+- navigation,
+- relevant summary,
+- file/share area entry point,
+- loading state,
+- error state,
+- empty state.
+
+Jangan membuat statistik palsu.
+
+Jangan menampilkan angka dummy.
+
+Jika API belum menyediakan metric tertentu:
+
+- jangan mengarang metric,
+- tampilkan hanya data yang memang tersedia.
+
+Dashboard harus responsive.
+
+Prioritaskan mobile usability tetapi tetap baik di desktop.
+
+==================================================
+FASE 8 — F-070
+REAL FILE/SHARE UI
+==================================================
+
+Sekarang setelah:
+
+F-002
+F-010
+F-011
+F-012
+F-020/F-021
+F-030
+
+selesai, implementasikan F-070 menggunakan API B-071 yang SUDAH ADA.
+
+JANGAN membuat fake API.
+
+JANGAN membuat mock data sebagai production behavior.
+
+UI File/Share harus menggunakan backend nyata.
+
+Minimal feature:
+
+### File list
+
+Tampilkan:
+
+- file name,
+- size jika tersedia,
+- metadata yang memang tersedia,
+- created/uploaded time jika tersedia,
+- share status jika tersedia,
+- actions.
+
+State:
+
+- loading,
+- empty,
+- error,
+- success.
+
+### Upload
+
+Implementasikan real multipart upload.
+
+Support:
+
+- file selection,
+- upload progress jika architecture mendukung,
+- disabled state saat upload,
+- success,
+- failure,
+- retry.
+
+Jangan membuat arbitrary file limit di frontend jika backend contract belum menetapkannya.
+
+Frontend validation boleh mengikuti backend policy jika memang sudah ada.
+
+Jangan membuat policy baru.
+
+### Download
+
+Gunakan endpoint download yang nyata.
+
+Jangan mengekspos internal object storage path/key.
+
+### Create Share
+
+UI harus:
+
+- create share,
+- menerima response API,
+- menampilkan share link,
+- menyediakan copy action.
+
+Jangan membuat share URL sendiri jika backend sudah menghasilkan URL.
+
+### Revoke Share
+
+Gunakan API revoke nyata.
+
+Setelah revoke:
+
+- update UI state,
+- jangan hanya menghapus item secara visual jika backend gagal.
+
+Jika revoke gagal:
+- tampilkan error,
+- jangan menganggap revoke berhasil.
+
+### Public Share
+
+Jika roadmap frontend memang menyediakan public-share route:
+
+implementasikan route berdasarkan API public share yang sudah ada.
+
+Public share UI:
+
+- valid share,
+- revoked/invalid state,
+- download/access behavior,
+- error state.
+
+Jangan implementasikan expiry UI karena backend contract/schema saat ini belum mendukung expiry.
+
+==================================================
+FASE 9 — ERROR HANDLING
+==================================================
+
+Buat error handling frontend yang konsisten.
+
+Mapping minimal:
+
+- 400 → invalid request
+- 401 → authentication required/session expired
+- 403 → access denied
+- 404 → resource not found
+- 409 → conflict jika API menggunakannya
+- 413 → payload too large jika backend menggunakannya
+- 429 → rate limited jika backend menggunakannya
+- 5xx → server error
+
+Jangan menampilkan:
+
+- stack trace,
+- database details,
+- storage credential,
+- secret,
+- internal object path,
+- internal infrastructure details.
+
+Gunakan safe user-facing error message.
+
+==================================================
+FASE 10 — RESPONSIVE + UX
+==================================================
+
+Audit seluruh frontend yang dibuat.
+
+Pastikan:
+
+- mobile usable,
+- desktop usable,
+- buttons tidak terlalu kecil,
+- form mudah digunakan,
+- loading state jelas,
+- error state jelas,
+- empty state jelas,
+- dialogs dapat ditutup dengan benar,
+- keyboard accessibility dasar,
+- focus state,
+- disabled state,
+- upload interaction tidak membingungkan.
+
+Jangan membuat UI terlalu kompleks.
+
+Prioritaskan:
+
+clean,
+simple,
+responsive,
+consistent.
+
+==================================================
+FASE 11 — SECURITY REVIEW FRONTEND
+==================================================
+
+Audit:
+
+- token handling,
+- auth state,
+- API base URL,
+- XSS risk,
+- unsafe HTML rendering,
+- share URL handling,
+- file name rendering,
+- error rendering,
+- workspace switching.
+
+Jangan menggunakan:
+
+`dangerouslySetInnerHTML`
+
+kecuali benar-benar diperlukan dan input telah disanitasi.
+
+File name dan metadata harus diperlakukan sebagai untrusted data.
+
+Jangan menaruh:
+
+- API key,
+- secret,
+- database credential,
+- storage credential,
+
+di frontend source.
+
+==================================================
+FASE 12 — TESTING
+==================================================
+
+Tambahkan test sesuai framework yang repository gunakan.
+
+Prioritas:
+
+### F-010
+- shell render,
+- navigation,
+- loading/error states.
+
+### F-011
+- primitive behavior,
+- button disabled,
+- form behavior,
+- accessibility dasar.
+
+### F-012
+- typed API behavior,
+- error mapping,
+- multipart request,
+- binary response.
+
+### F-020/F-021
+- authenticated state,
+- unauthenticated state,
+- loading state,
+- route guard.
+
+### Workspace
+- workspace selection,
+- switching,
+- isolation behavior.
+
+### F-030
+- dashboard loading,
+- dashboard success,
+- empty/error.
+
+### F-070
+- file list,
+- upload,
+- upload error,
+- download,
+- create share,
+- copy link,
+- revoke,
+- revoked state,
+- unauthorized state.
+
+Jangan membuat fake tests yang hanya memastikan component muncul.
+
+Test behavior yang penting.
+
+==================================================
+FASE 13 — VALIDATION
+==================================================
+
+Setelah seluruh frontend selesai:
+
+jalankan command yang memang tersedia di repository.
+
+Minimal:
+
+`pnpm test`
+
+`pnpm build`
+
+`pnpm typecheck`
+
+`pnpm lint`
+
+`pnpm format:check`
+
+`node scripts/check-imports.mjs`
+
+`node scripts/check-ownership.mjs`
+
+`node scripts/check-doc-links.mjs`
+
+`git diff --check`
+
+Jika repository memang memiliki command frontend tambahan:
+
+jalankan juga.
+
+Untuk:
+
+`node scripts/check-symlinks.mjs`
+
+JANGAN membuat script baru jika memang tidak tersedia.
+
+Jika tidak ada:
+
+`SKIPPED — scripts/check-symlinks.mjs unavailable`
+
+Jangan mengubah validation agar terlihat PASS.
+
+==================================================
+FASE 14 — FIX FAILURE
+==================================================
+
+Jika build/test/typecheck/lint gagal:
+
+Jangan berhenti.
+
+Lakukan:
+
+1. baca error lengkap,
+2. cari root cause,
+3. perbaiki source,
+4. jalankan test terkait,
+5. jalankan validation penuh kembali.
+
+Jangan:
+
+- menghapus test,
+- menurunkan strictness TypeScript hanya agar PASS,
+- menonaktifkan lint,
+- menonaktifkan build check,
+- membuat mock production,
+- mengubah backend contract secara sembarangan.
+
+Jika failure berasal dari environment:
+
+- diagnosis,
+- jangan membuat fake PASS,
+- dokumentasikan sebagai environment limitation.
+
+==================================================
+FASE 15 — TYPESCRIPT / PARSER AUDIT
+==================================================
+
+Karena repository sebelumnya pernah mengalami TypeScript parser error, lakukan audit khusus:
+
+Cari:
+
+- merge conflict markers,
+- malformed TypeScript,
+- duplicate imports,
+- duplicate exports,
+- broken generics,
+- invalid JSX,
+- malformed object literals,
+- accidental pasted terminal output,
+- illegal characters,
+- broken route definitions.
+
+Cari:
+
+`<<<<<<<`
+
+`=======`
+
+`>>>>>>>`
+
+Hanya hapus jika benar-benar leftover merge conflict.
+
+Jangan mengubah dokumentasi/test fixture yang memang menggunakan string tersebut secara valid.
+
+==================================================
+FASE 16 — NO UNRELATED CHANGES
+==================================================
+
+Sebelum commit:
+
+Review seluruh diff.
+
+Pastikan TIDAK ADA:
+
+- perubahan Gorouter.app,
+- perubahan NVIDIA provider yang tidak diperlukan,
+- perubahan TokenHarbor yang tidak diperlukan,
+- credential,
+- API key,
+- password,
+- secret,
+- `.env`,
+- temporary files,
+- generated junk,
+- unrelated backend refactor,
+- schema migration yang tidak diperlukan.
+
+Jika ada:
+hapus/revert perubahan tersebut.
+
+==================================================
+FASE 17 — DOCUMENTATION
+==================================================
+
+Update dokumentasi yang SUDAH ADA jika diperlukan.
+
+Dokumentasikan:
+
+- frontend framework decision,
+- application shell,
+- UI architecture,
+- typed API client,
+- authentication flow,
+- workspace context,
+- dashboard,
+- File/Share UI,
+- development/run instructions.
+
+Jangan membuat banyak README.
+
+Gunakan dokumentasi utama repository yang sudah ada.
+
+==================================================
+FASE 18 — COMMIT PER BATCH
+==================================================
+
+Karena pekerjaan cukup besar, gunakan commit yang logis.
+
+Jangan membuat empty commit.
+
+Idealnya:
+
+1. F-002/F-010/F-011
+2. F-012/F-020/F-021
+3. F-030
+4. F-070
+
+Tetapi jika repository lebih cocok dengan satu commit frontend besar, gunakan satu commit.
+
+Yang paling penting:
+
+- setiap commit harus valid,
+- test harus dijalankan,
+- jangan commit pekerjaan rusak,
+- jangan commit secret.
+
+==================================================
+FASE 19 — PUSH
+==================================================
+
+Setelah commit valid:
+
+`git push origin backend-dev-recovery`
+
+Setelah push:
+
+verifikasi:
+
+`git rev-parse HEAD`
+
+`git rev-parse origin/backend-dev-recovery`
+
+`git status`
+
+Pastikan:
+
+LOCAL SHA == REMOTE SHA
+
+dan:
+
+working tree clean.
+
+Jika push gagal:
+
+- jangan force push,
+- jangan reset --hard,
+- jangan menghapus commit,
+- jangan mengubah credential sembarangan.
+
+Diagnosis error dan tampilkan dengan jelas.
+
+==================================================
+FASE 20 — LANJUTKAN SAMPAI BATAS DEPENDENCY
+==================================================
+
+Setelah F-070 selesai:
+
+audit roadmap lagi.
+
+Jika masih ada frontend task berikutnya yang dependency-nya sudah tersedia:
+
+LANJUTKAN.
+
+Jangan berhenti hanya karena F-070 selesai.
+
+Tetapi jangan membuat fitur yang belum ada di roadmap.
+
+Jika semua frontend task yang dapat dikerjakan sudah selesai:
+
+berhenti dengan aman.
+
+==================================================
+OUTPUT AKHIR
+==================================================
+
+Tampilkan:
+
+## F-002
+- framework:
+- styling:
+- status:
+
+## F-010
+- shell:
+- routing:
+- responsive:
+- status:
+
+## F-011
+- primitives:
+- status:
+
+## F-012
+- typed API client:
+- endpoints integrated:
+- status:
+
+## F-020/F-021
+- authentication state:
+- route guards:
+- status:
+
+## Workspace
+- workspace context:
+- switching:
+- isolation:
+- status:
+
+## F-030
+- dashboard:
+- status:
+
+## F-070
+- file list:
+- upload:
+- download:
+- create share:
+- revoke share:
+- public share:
+- status:
+
+## Testing
+- test:
+- build:
+- typecheck:
+- lint:
+- format:
+- imports:
+- ownership:
+- docs:
+- diff:
+
+## Git
+- branch:
+- commits:
+- latest SHA:
+- remote SHA:
+- push:
+- working tree:
+
+## Remaining Deferred
+
+HANYA tampilkan dependency yang benar-benar belum dapat dikerjakan karena:
+
+- external infrastructure,
+- missing environment,
+- approved architecture decision,
+- backend contract,
+- atau dependency nyata lainnya.
+
+## Next Roadmap
+
+Audit repository setelah frontend selesai dan tentukan task berikutnya berdasarkan roadmap NYATA.
+
+Jangan membuat roadmap fiktif.
+
+==================================================
+ATURAN KERAS
+==================================================
+
+1. Jangan mengulang B-030.
+2. Jangan mengulang B-070.
+3. Jangan mengulang B-071 backend.
+4. Jangan membuat backend API duplikat.
+5. Jangan membuat fake API.
+6. Jangan membuat fake production authentication.
+7. Jangan hardcode secret.
+8. Jangan menyimpan password.
+9. Jangan menaruh API secret di frontend.
+10. Jangan membuat expiry UI sebelum backend contract mendukungnya.
+11. Jangan membuat rate-limit UI/policy baru tanpa backend contract.
+12. Jangan menyentuh Gorouter.app.
+13. Jangan membuat Telegram polling/webhook runtime.
+14. Jangan mengubah `BotInstallation.status`.
+15. Jangan membuat framework kedua.
+16. Jangan melakukan rewrite besar jika tidak diperlukan.
+17. Jangan menonaktifkan test/typecheck/lint untuk membuat PASS.
+18. Jangan membuat dummy validation.
+19. Jangan membuat empty commit.
+20. Jangan force push.
+21. Jangan berhenti hanya karena satu dependency/environment tidak tersedia.
+22. Kerjakan semua task yang dependency-nya sudah tersedia.
+23. Gunakan repository sebagai source of truth.
+24. Kerjakan langsung di `/root/botspace`.
+25. Setelah satu task selesai, lanjut otomatis ke task berikutnya dalam dependency order.
+26. Jangan meminta saya memilih task berikutnya selama roadmap repository sudah jelas.
+
+KERJAKAN SEKARANG.
+AUDIT -> IMPLEMENT -> TEST -> FIX -> BUILD -> COMMIT -> PUSH -> VERIFY -> LANJUT.
+JANGAN HANYA MEMBERIKAN RENCANA.
 
 ```
 # B-072 — Complete Remaining Roadmap End-to-End
