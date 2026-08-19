@@ -570,9 +570,395 @@
 
 
 ```
-# 
+# Prompt: B-040 Implementation — Approval-Gated
 ```
+# Prompt: BotSpace — B-040 Telegram Account Connection Implementation
 
+Lanjutkan project BotSpace dari kondisi repository TERAKHIR.
+
+Repository:
+`/root/botspace`
+
+Branch:
+`backend-dev-recovery`
+
+==================================================
+CURRENT STATE
+==================================================
+
+Validation terakhir sudah PASS:
+
+- pnpm test: PASS
+- pnpm build: PASS
+- pnpm typecheck: PASS
+- pnpm lint: PASS
+- pnpm format: PASS
+- imports: PASS
+- ownership: PASS
+- docs: PASS
+- secrets: PASS
+- migration smoke: PASS
+- git diff: PASS
+
+Beberapa integration test tetap SKIPPED karena environment memang tidak tersedia:
+
+- PostgreSQL: PERSISTENCE_TEST_DATABASE_URL unavailable
+- MinIO/S3: environment unavailable
+- symlink check: script unavailable
+
+Security review tidak menemukan credential/secret leakage baru.
+
+Git:
+
+- working tree CLEAN
+- local SHA == remote SHA
+- branch: backend-dev-recovery
+- tidak ada pekerjaan repository yang tersisa tanpa dependency approval.
+
+B-040 / ADR-011 adalah blocker resmi terakhir.
+
+==================================================
+MANDATORY APPROVAL GATE
+==================================================
+
+SEBELUM MENYENTUH SOURCE CODE:
+
+Cari evidence APPROVAL yang nyata di repository/documentation untuk B-040 / ADR-011.
+
+Periksa:
+
+- ADR-011
+- B-040 decision package
+- approval matrix
+- architecture decision documentation
+- PROJECT_STATUS.md
+- CHANGELOG.md
+- docs/architecture/DECISIONS.md
+
+Approval HARUS memiliki evidence eksplisit dari owner yang diperlukan.
+
+Owner/dependency yang harus diperiksa:
+
+- Architecture
+- Telegram/provider
+- Security
+- Deployment
+
+Selain itu pastikan keputusan berikut sudah approved:
+
+- authentication mechanism
+- account/session model
+- credential lifecycle
+- connect semantics
+- disconnect semantics
+- revoke semantics
+- versioned API contract
+- persistence contract
+- event contract
+- runtime handoff boundary
+
+JANGAN menganggap:
+
+- dokumentasi draft = approval
+- audit PASS = approval
+- commit = approval
+- human approval request = approval
+- "ready" = approval
+
+==================================================
+IF APPROVAL IS NOT PRESENT
+==================================================
+
+Jika approval valid BELUM tersedia:
+
+JANGAN melakukan implementation.
+
+JANGAN membuat source-code changes.
+
+JANGAN membuat fake approval.
+
+JANGAN membuat contract baru.
+
+JANGAN mengulang audit infrastructure yang sudah selesai.
+
+JANGAN mengulang B-030/B-070/B-071.
+
+JANGAN membuat empty commit.
+
+Cukup tampilkan:
+
+### B-040 STATUS
+BLOCKED — human approval not found.
+
+### REQUIRED APPROVAL
+- Architecture:
+- Telegram/provider:
+- Security:
+- Deployment:
+
+### REQUIRED DECISIONS
+- authentication:
+- account/session:
+- credential lifecycle:
+- API:
+- persistence:
+- events:
+- runtime handoff:
+
+### NEXT ACTION
+Obtain human approval for B-040/ADR-011.
+
+Lalu STOP.
+
+==================================================
+IF VALID APPROVAL IS PRESENT
+==================================================
+
+HANYA jika evidence approval lengkap dan valid ditemukan, lanjutkan implementasi B-040.
+
+==================================================
+B-040 IMPLEMENTATION
+==================================================
+
+Audit implementation boundary yang SUDAH disetujui.
+
+Implementasikan Telegram Account Connection secara modular.
+
+Scope:
+
+1. Account connection domain/service.
+2. Authentication flow sesuai mechanism yang APPROVED.
+3. Account/session lifecycle sesuai contract APPROVED.
+4. Credential lifecycle sesuai security decision APPROVED.
+5. Connect/disconnect/revoke semantics.
+6. Persistence sesuai approved persistence contract.
+7. API routes sesuai approved API contract.
+8. Event emission sesuai approved event contract.
+9. Runtime handoff hanya pada boundary yang APPROVED.
+10. Workspace/account authorization.
+
+Architecture requirements:
+
+- Jangan membuat Telegram runtime/polling baru jika runtime handoff belum menjadi bagian implementation yang disetujui.
+- Jangan mengubah `BotInstallation.status` menjadi process/runtime state.
+- Pisahkan account lifecycle dari bot runtime lifecycle.
+- Gunakan repository/service/adapter pattern yang sudah digunakan project.
+- Jangan membuat global singleton tersembunyi.
+- Gunakan dependency injection melalui composition root.
+- Jangan mencampurkan HTTP layer dengan provider SDK.
+- Provider-specific implementation harus berada pada adapter/provider boundary.
+- Core application tidak boleh bergantung langsung pada provider-specific SDK.
+- Jangan membuat abstraction kedua jika abstraction yang dibutuhkan sudah ada.
+
+==================================================
+SECURITY
+==================================================
+
+Credential/session handling WAJIB mengikuti approval ADR-011.
+
+Pastikan:
+
+- credential tidak masuk log,
+- credential tidak masuk response,
+- credential tidak masuk error message,
+- credential tidak masuk test fixture plaintext,
+- credential tidak masuk Git,
+- session data tidak bocor,
+- revoke benar-benar invalid,
+- disconnect semantics sesuai contract,
+- workspace isolation tetap berlaku.
+
+Jangan hardcode:
+
+- Telegram credential,
+- API key,
+- token,
+- password,
+- session secret.
+
+Gunakan SecretResolver boundary yang SUDAH ADA.
+
+==================================================
+TESTING
+==================================================
+
+Tambahkan test hanya untuk behavior B-040 yang benar-benar diimplementasikan.
+
+Minimal:
+
+- authentication success/failure,
+- account creation/connection,
+- session lifecycle,
+- disconnect,
+- revoke,
+- workspace authorization,
+- workspace isolation,
+- credential resolution,
+- missing credential,
+- provider error handling,
+- persistence behavior,
+- event behavior,
+- runtime handoff boundary.
+
+Jangan membuat fake provider behavior yang berbeda dari approved contract.
+
+Jika provider integration membutuhkan environment nyata dan environment tidak tersedia:
+
+- jangan membuat fake integration PASS,
+- tandai SKIPPED/UNAVAILABLE,
+- tetap jalankan unit/contract tests.
+
+JANGAN menjalankan Gorouter.app.
+
+NVIDIA/TokenHarbor tidak perlu disentuh kecuali perubahan B-040 secara langsung membutuhkan dependency tersebut.
+
+==================================================
+VALIDATION
+==================================================
+
+Setelah implementation:
+
+pnpm test
+pnpm build
+pnpm typecheck
+pnpm lint
+pnpm format:check
+
+Kemudian:
+
+node scripts/check-imports.mjs
+node scripts/check-ownership.mjs
+node scripts/check-doc-links.mjs
+git diff --check
+
+Jangan membuat `scripts/check-symlinks.mjs` jika memang tidak tersedia.
+
+Jika ada integration test PostgreSQL dan:
+
+`PERSISTENCE_TEST_DATABASE_URL`
+
+tidak tersedia:
+
+SKIPPED — PERSISTENCE_TEST_DATABASE_URL unavailable
+
+Jangan membuat database palsu.
+
+==================================================
+SECURITY + DIFF REVIEW
+==================================================
+
+Sebelum commit:
+
+- git status
+- git diff --stat
+- git diff
+
+Pastikan tidak ada:
+
+- secret,
+- credential,
+- session data,
+- temporary files,
+- generated junk,
+- unrelated refactor,
+- B-030 regression,
+- B-070 regression,
+- B-071 regression,
+- Gorouter changes,
+- speculative infrastructure.
+
+==================================================
+COMMIT + PUSH
+==================================================
+
+Jika implementation selesai dan validation PASS:
+
+Buat SATU commit.
+
+Gunakan message sesuai perubahan aktual, misalnya:
+
+`feat: implement telegram account connection`
+
+Kemudian:
+
+`git push origin backend-dev-recovery`
+
+Verifikasi:
+
+- local SHA
+- remote SHA
+- working tree clean
+
+Jika push gagal:
+
+- jangan mengubah credential GitHub sembarangan,
+- jangan menghapus commit,
+- jangan membuat empty commit.
+
+==================================================
+FINAL OUTPUT
+==================================================
+
+Tampilkan:
+
+### Approval Gate
+- approval found:
+- Architecture:
+- Telegram/provider:
+- Security:
+- Deployment:
+- decisions approved:
+
+### B-040
+- implementation status:
+- authentication:
+- account/session:
+- credential lifecycle:
+- connect:
+- disconnect:
+- revoke:
+- API:
+- persistence:
+- events:
+- runtime handoff:
+
+### Security
+- credential leak:
+- session leak:
+- workspace isolation:
+- SecretResolver:
+
+### Validation
+- test:
+- build:
+- typecheck:
+- lint:
+- format:
+- imports:
+- ownership:
+- docs:
+- diff:
+
+### Git
+- commit:
+- SHA:
+- push:
+- local/remote:
+- working tree:
+
+### Remaining Deferred
+Tampilkan hanya dependency nyata yang masih blocked.
+
+### Next Roadmap
+Tentukan task berikutnya berdasarkan dependency graph setelah B-040.
+
+PENTING:
+
+Jika approval BELUM ada, JANGAN CODING DAN JANGAN MENGULANG AUDIT.
+
+Jika approval SUDAH ada, langsung implementasikan B-040 sesuai keputusan yang telah disetujui.
+
+Kerjakan langsung pada `/root/botspace`.
 
 
 ```
