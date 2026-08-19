@@ -537,7 +537,87 @@
 # 
 ```
 
+Prompt: BotSpace — Skip Blocked B-040 and Continue Unlocked Roadmap
 
+Lanjutkan project BotSpace dari kondisi repository saat ini.
+
+PENTING:
+B-040/ADR-011 SUDAH DIKONFIRMASI BLOCKED karena human approval belum tersedia.
+
+JANGAN:
+- mengulang audit B-040,
+- meminta approval lagi,
+- membuat approval palsu,
+- membuat implementation B-040,
+- mengulang ADR-011,
+- membuat commit kosong.
+
+Sekarang pindah ke roadmap berikutnya.
+
+Tugas:
+
+1. Baca roadmap/dependency graph repository saat ini.
+2. Identifikasi SEMUA task yang tidak bergantung langsung maupun transitif pada B-040.
+3. Jangan mengerjakan B-041, B-050, B-051, B-052, atau task lain yang dependency-nya masih B-040.
+4. Pilih task dengan dependency paling lengkap yang benar-benar UNLOCKED.
+5. Audit task tersebut SECARA SINGKAT saja, jangan melakukan full repository audit.
+6. Jika contract/dependency sudah tersedia:
+   LANGSUNG IMPLEMENTASIKAN.
+7. Jika task membutuhkan approval/contract/environment yang belum tersedia:
+   SKIP task tersebut dan cari task unlocked berikutnya.
+8. Jangan membuat contract atau architecture secara speculative hanya untuk membuka task.
+9. Jangan mengerjakan fitur acak di luar roadmap.
+10. Jangan menyentuh Gorouter.app.
+11. NVIDIA dan TokenHarbor jangan disentuh kecuali memang menjadi dependency langsung task yang dipilih.
+
+Untuk task yang dipilih:
+
+- implementasikan secara modular sesuai architecture repository,
+- tambahkan test yang relevan,
+- jangan mengubah fitur yang sudah selesai tanpa alasan,
+- jangan memasukkan secret/credential,
+- jangan membuat fake production infrastructure.
+
+Setelah implementation selesai jalankan validation yang tersedia:
+
+pnpm test
+pnpm build
+pnpm typecheck
+pnpm lint
+pnpm format:check
+node scripts/check-imports.mjs
+node scripts/check-ownership.mjs
+node scripts/check-doc-links.mjs
+git diff --check
+
+Jangan membuat scripts/check-symlinks.mjs jika file tersebut tidak tersedia.
+
+Jika validation PASS:
+
+1. review git diff,
+2. pastikan perubahan hanya untuk task yang dipilih,
+3. buat SATU commit,
+4. push ke:
+   git push origin backend-dev-recovery
+5. verifikasi local SHA == remote SHA,
+6. pastikan working tree clean.
+
+Jika tidak ada task yang unlocked:
+
+JANGAN mengulang audit.
+
+Tampilkan singkat:
+- B-040: BLOCKED — human approval belum tersedia.
+- Tidak ada independent task yang unlocked.
+- Tidak ada code change.
+- Tidak ada commit.
+- Tidak ada push.
+
+Jika ada task unlocked, JANGAN berhenti pada laporan audit.
+LANGSUNG CODING → TEST → COMMIT → PUSH.
+
+Kerjakan langsung di:
+/root/botspace
 
 ```
 # Prompt: B-040 Approval → Implementation → Continue Roadmap
