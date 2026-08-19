@@ -549,7 +549,33 @@
 # 
 ```
 
+Lanjutkan `/root/botspace` pada branch `backend-dev-recovery`.
 
+JANGAN melakukan full audit, full test, build, typecheck, lint, security scan, atau repository-wide scan lagi.
+
+Gunakan hasil audit dan `docs/architecture/ADR-011-telegram-account-connection.md` yang SUDAH ADA.
+
+Tujuan hanya menentukan status B-040/ADR-011.
+
+1. Baca approval/decision package yang sudah ada.
+2. Jangan mengubah source code.
+3. Jangan membuat schema, contract, provider, authentication, account/session implementation, atau runtime.
+4. Jangan membuat approval palsu.
+5. Jangan commit/push jika tidak ada perubahan.
+
+Tentukan secara singkat:
+
+- apakah human approval B-040 SUDAH ADA atau BELUM;
+- siapa/role yang masih harus memberikan approval;
+- keputusan apa saja yang wajib disetujui;
+- dependency apa yang akan terbuka setelah approval;
+- next single action.
+
+Jika approval BELUM ADA, berhenti setelah laporan tersebut.
+
+JANGAN mengulang audit sebelumnya.
+
+Output maksimal 15 baris.
 
 ```
 # 
