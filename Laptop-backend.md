@@ -94,9 +94,928 @@
 
 
 ```
-# 
+# Bot Runtime & Execution Integrity
 ```
+PROMPT: BotSpace — Bot Runtime & Execution Integrity Hardening
 
+Kita melanjutkan project BotSpace dari checkpoint security dan lifecycle yang SUDAH BERHASIL.
+
+Repository:
+ /root/botspace
+
+Branch:
+ backend-dev-recovery
+
+Remote:
+ https://github.com/zenolamee/botspace.git
+
+Kondisi verification terakhir:
+
+- Domain: 110 passed
+- API: 121 passed, 3 skipped karena PostgreSQL gating default
+- Auth/Session: PASS
+- Workspace authorization: PASS
+- Membership: PASS
+- Bot/Resource: PASS
+- Lifecycle: PASS
+- PostgreSQL adapter/runtime: 3 passed
+- PostgreSQL integration berhasil dijalankan menggunakan PostgreSQL lokal
+- pnpm check: 44 successful
+- Typecheck: 11 successful
+- Lint: 11 successful
+- Format: PASS
+- Import boundary: PASS
+- Secrets scan: PASS
+- Ownership check: PASS
+- Documentation links: PASS
+- Migration: 31 passed, 0 failed
+- Build: 11 successful
+- git diff --check: PASS
+- Working tree terakhir clean
+
+Checkpoint terakhir mencakup hardening bot lifecycle dan pengujian idempotency lifecycle.
+
+JANGAN:
+
+- reset
+- force push
+- rebase sembarangan
+- checkout branch lain
+- merge ke backend-dev
+- menghapus checkpoint yang sudah ada
+- mengubah remote Git
+- menghapus test existing
+- skip test hanya agar verification terlihat PASS
+
+Jika push gagal karena credential GitHub, jangan mengubah source code hanya untuk mengatasi masalah credential. Pertahankan commit lokal.
+
+==================================================
+TUJUAN
+==================================================
+
+Sekarang fokus pada:
+
+BOT RUNTIME
+→ START/STOP
+→ ENABLE/DISABLE
+→ WORKER LIFECYCLE
+→ DUPLICATE RUNTIME PREVENTION
+→ GRACEFUL SHUTDOWN
+→ RESTART SAFETY
+→ WORKSPACE ISOLATION
+→ CREDENTIAL SECURITY
+→ STATE CONSISTENCY
+→ TEST
+→ BUILD
+→ COMMIT
+→ PUSH
+
+Tujuan tahap ini bukan membuat sistem bot runtime baru.
+
+Tujuan utamanya adalah memastikan runtime bot yang SUDAH ADA tidak dapat menghasilkan:
+
+- duplicate worker
+- bot aktif tetapi database inactive
+- bot inactive tetapi worker tetap berjalan
+- worker dari workspace lain menggunakan credential bot
+- worker lama tetap berjalan setelah disable
+- worker baru berjalan dua kali karena retry
+- process crash meninggalkan state yang salah
+- credential bocor ke log/error
+- lifecycle API menghasilkan runtime yang tidak konsisten
+
+Gunakan architecture repository yang sebenarnya.
+
+Jangan mengarang abstraction yang tidak ada.
+
+==================================================
+1. AUDIT BOT RUNTIME YANG SUDAH ADA
+==================================================
+
+Sebelum mengubah kode, audit seluruh repository.
+
+Cari implementasi yang berkaitan dengan:
+
+- bot runtime
+- bot runner
+- bot worker
+- bot process
+- bot service
+- bot manager
+- bot executor
+- bot start
+- bot stop
+- bot enable
+- bot disable
+- bot restart
+- polling
+- webhook
+- Telegram client
+- Telegram bot token
+- runtime registry
+- active bot registry
+- worker registry
+- process manager
+- queue
+- job
+- scheduler
+- background worker
+- graceful shutdown
+- application shutdown
+- process shutdown
+- SIGTERM
+- SIGINT
+- startup initialization
+
+Gunakan struktur repository aktual sebagai sumber kebenaran.
+
+Jangan membuat runtime framework baru jika repository sudah memiliki implementation.
+
+==================================================
+2. PAHAMI RELASI DATABASE VS RUNTIME
+==================================================
+
+Tentukan dengan jelas:
+
+DATABASE STATE
+
+dan
+
+RUNTIME STATE
+
+Audit apakah project saat ini memiliki state seperti:
+
+- active
+- inactive
+- enabled
+- disabled
+- running
+- stopped
+- pending
+- failed
+- starting
+- stopping
+
+Jangan membuat state baru hanya agar terlihat lebih lengkap.
+
+Gunakan state yang memang sudah ada.
+
+Jika database hanya menyimpan enabled/disabled sedangkan runtime memiliki running/stopped secara internal, dokumentasikan hubungan keduanya secara jelas.
+
+Pastikan:
+
+enabled
+≠
+harus selalu running jika architecture memang tidak menjamin runtime aktif terus-menerus.
+
+Jangan mengubah semantics existing tanpa bukti dari code.
+
+==================================================
+3. START BOT
+==================================================
+
+Audit seluruh flow start bot.
+
+Pastikan:
+
+authentication
+→ workspace authorization
+→ bot authorization
+→ lifecycle validation
+→ credential resolution
+→ runtime start
+
+dilakukan dalam urutan yang aman.
+
+User tidak boleh dapat menjalankan bot workspace lain hanya dengan mengetahui:
+
+botId
+
+atau:
+
+workspaceId
+
+Pastikan runtime mendapatkan bot dari authorization context yang benar.
+
+==================================================
+4. ENABLE VS START
+==================================================
+
+Periksa apakah:
+
+enable bot
+
+dan:
+
+start bot
+
+merupakan operasi yang sama atau berbeda dalam architecture.
+
+Jangan menggabungkan keduanya jika repository memang memisahkannya.
+
+Jika enable hanya mengubah database state:
+
+jangan secara otomatis membuat runtime behavior baru tanpa alasan.
+
+Jika enable memang memulai runtime:
+
+pastikan behavior tersebut konsisten dan idempotent.
+
+Gunakan semantics existing.
+
+==================================================
+5. DISABLE VS STOP
+==================================================
+
+Audit:
+
+disable bot
+
+dan:
+
+stop bot.
+
+Pastikan tidak terjadi:
+
+database disabled
+tetapi worker masih berjalan tanpa alasan.
+
+Jika architecture memang mengizinkan worker berhenti secara asynchronous, pastikan ada mekanisme yang benar untuk menyelesaikan shutdown.
+
+Jangan menganggap perubahan database otomatis menghentikan process jika runtime implementation tidak melakukan itu.
+
+==================================================
+6. DUPLICATE WORKER PREVENTION
+==================================================
+
+Ini WAJIB diperiksa.
+
+Cari apakah request seperti:
+
+POST start bot
+
+dipanggil dua kali secara bersamaan dapat membuat:
+
+worker A
+worker B
+
+untuk bot yang sama.
+
+Contoh:
+
+Request 1:
+start bot-A
+
+Request 2:
+start bot-A
+
+secara bersamaan.
+
+Expected:
+
+hanya satu runtime aktif untuk bot-A.
+
+Audit mechanism yang sudah tersedia:
+
+- in-memory registry
+- database state
+- unique constraint
+- lock
+- transaction
+- atomic update
+- runtime manager
+- queue
+- job deduplication
+
+Gunakan mechanism existing jika tersedia.
+
+Jangan membuat distributed locking system baru hanya untuk task ini.
+
+==================================================
+7. IDEMPOTENT START
+==================================================
+
+Pastikan:
+
+start bot yang sudah running
+
+tidak membuat worker kedua.
+
+Behavior harus mengikuti architecture.
+
+Contoh:
+
+running
+→ start
+
+hasil:
+
+tidak membuat duplicate runtime.
+
+Jika API memang seharusnya mengembalikan conflict/already-running, gunakan error convention existing.
+
+Jangan membuat error system baru.
+
+==================================================
+8. IDEMPOTENT STOP
+==================================================
+
+Pastikan:
+
+stop bot yang sudah stopped
+
+tidak menyebabkan error internal atau crash.
+
+Pastikan:
+
+stop bot yang tidak memiliki runtime
+
+ditangani sesuai behavior existing.
+
+Jangan melakukan cleanup terhadap runtime bot lain.
+
+==================================================
+9. ENABLE/DISABLE RACE CONDITION
+==================================================
+
+Audit kondisi:
+
+Request A:
+enable bot
+
+Request B:
+disable bot
+
+dijalankan hampir bersamaan.
+
+Cari kemungkinan:
+
+database:
+disabled
+
+runtime:
+running
+
+atau:
+
+database:
+enabled
+
+runtime:
+stopped
+
+Jika architecture membutuhkan consistency, gunakan abstraction transaction/atomic operation yang sudah tersedia.
+
+Jangan membuat concurrency framework baru.
+
+Tambahkan test jika behavior dapat diuji secara reliable.
+
+==================================================
+10. RESTART SAFETY
+==================================================
+
+Audit apa yang terjadi jika application/backend restart.
+
+Contoh:
+
+Bot A aktif sebelum restart.
+
+Backend restart.
+
+Apa yang terjadi?
+
+Periksa architecture aktual:
+
+- apakah bot otomatis restart?
+- apakah runtime harus direhydrate?
+- apakah worker registry dibangun ulang?
+- apakah bot harus start manual?
+- apakah database state menjadi source of truth?
+
+Jangan mengubah behavior existing.
+
+Jika repository sudah memiliki startup reconciliation:
+
+audit correctness-nya.
+
+Jika tidak ada reconciliation, jangan otomatis membuat fitur baru besar.
+
+Dokumentasikan behavior aktual jika memang diperlukan.
+
+==================================================
+11. CRASH RECOVERY
+==================================================
+
+Audit behavior ketika runtime bot crash.
+
+Contoh:
+
+Bot A running.
+
+Worker crash.
+
+Pastikan database tidak diam-diam tetap berada pada state yang misleading jika architecture memang menyimpan runtime state.
+
+Periksa:
+
+- error handler
+- worker exit
+- promise rejection
+- process error
+- retry behavior
+- cleanup
+- runtime registry cleanup
+
+Jangan membuat infinite retry loop.
+
+Jangan membuat retry system baru jika belum ada abstraction.
+
+==================================================
+12. GRACEFUL SHUTDOWN
+==================================================
+
+Audit application shutdown.
+
+Cari:
+
+- SIGTERM
+- SIGINT
+- shutdown hooks
+- worker shutdown
+- runtime cleanup
+- HTTP server shutdown
+- database disconnect
+
+Pastikan shutdown tidak meninggalkan runtime bot yang tetap berjalan jika architecture mengharuskan runtime berhenti.
+
+Jika process manager memang menangani lifecycle tertentu, ikuti architecture tersebut.
+
+Jangan mengubah deployment infrastructure.
+
+Fokus source code.
+
+==================================================
+13. RUNTIME REGISTRY
+==================================================
+
+Jika project memiliki registry seperti:
+
+Map<botId, runtime>
+
+atau equivalent:
+
+audit seluruh penggunaan registry.
+
+Pastikan:
+
+- key benar-benar botId
+- runtime hanya terkait bot yang benar
+- workspace tidak dapat tertukar
+- stop menghapus runtime yang benar
+- restart tidak membuat duplicate entry
+- crash membersihkan registry
+- disable membersihkan runtime sesuai architecture
+
+Cari juga kemungkinan:
+
+bot A start
+→ registry[A]
+
+bot B start
+→ registry[B]
+
+kemudian stop A
+→ jangan sampai registry[B] ikut terhapus.
+
+==================================================
+14. MULTI-WORKSPACE ISOLATION
+==================================================
+
+Ini WAJIB diuji.
+
+Misalnya:
+
+workspace-A
+→ bot-A
+→ token-A
+
+workspace-B
+→ bot-B
+→ token-B
+
+User dari workspace-A tidak boleh menjalankan:
+
+bot-B.
+
+Runtime bot-A juga tidak boleh menggunakan:
+
+token-B.
+
+Pastikan seluruh runtime initialization menggunakan credential milik bot yang sedang dijalankan.
+
+Jangan mengambil credential berdasarkan:
+
+- user global
+- workspace terakhir
+- environment default
+- bot lain
+- global mutable variable
+
+jika architecture tidak mengizinkannya.
+
+==================================================
+15. CREDENTIAL SECURITY
+==================================================
+
+Audit credential handling pada runtime.
+
+Cari:
+
+- Telegram bot token
+- API key
+- webhook secret
+- integration credential
+- session credential
+- provider secret
+
+Pastikan credential tidak:
+
+- masuk log
+- masuk error message
+- masuk exception message
+- masuk analytics
+- masuk audit log plaintext
+- dikembalikan ke API client tanpa alasan
+- disimpan pada runtime registry secara tidak perlu
+
+Jika runtime memang membutuhkan credential di memory, gunakan lifetime seminimal mungkin sesuai architecture.
+
+Jangan mencetak credential saat test.
+
+==================================================
+16. RUNTIME CONFIGURATION
+==================================================
+
+Audit konfigurasi runtime bot.
+
+Cari:
+
+- bot settings
+- polling configuration
+- webhook configuration
+- command configuration
+- flow configuration
+- integration configuration
+- environment configuration
+
+Pastikan runtime bot-A tidak mengambil configuration bot-B.
+
+Pastikan semua resource yang digunakan runtime tetap berada dalam workspace bot.
+
+==================================================
+17. CHILD RESOURCE ACCESS DARI RUNTIME
+==================================================
+
+Jika runtime bot menggunakan:
+
+- commands
+- flows
+- templates
+- integrations
+- settings
+- webhook configuration
+- analytics configuration
+
+pastikan query/service mengambil resource berdasarkan bot/workspace yang benar.
+
+Jangan melakukan:
+
+findById(childId)
+
+kemudian langsung menggunakan resource.
+
+Pastikan parent relationship tetap diverifikasi.
+
+Audit seluruh runtime path.
+
+==================================================
+18. RUNTIME AUTHORIZATION
+==================================================
+
+Runtime internal tidak boleh menjadi bypass authorization.
+
+Misalnya jangan sampai:
+
+API:
+user tidak punya akses bot
+
+tetapi:
+
+runtime service menerima botId
+dan menjalankan bot tanpa memastikan bot tersebut valid.
+
+Bedakan:
+
+USER-FACING AUTHORIZATION
+
+dengan:
+
+INTERNAL TRUST BOUNDARY.
+
+Internal service boleh dipercaya hanya jika caller memang trusted.
+
+Namun jangan membuat endpoint publik yang dapat memanggil internal runtime service tanpa authorization.
+
+==================================================
+19. API INPUT VALIDATION
+==================================================
+
+Audit endpoint runtime:
+
+- start
+- stop
+- restart
+- enable
+- disable
+- status
+
+Validasi:
+
+- botId
+- workspaceId jika memang digunakan
+- operation
+- state
+- configuration
+
+Jangan menerima field privilege dari client.
+
+Jangan menerima:
+
+ownerId
+accountId
+role
+permissions
+
+sebagai sumber authorization.
+
+==================================================
+20. STATUS ENDPOINT
+==================================================
+
+Jika project memiliki endpoint status bot:
+
+audit apakah status response benar-benar aman.
+
+Pastikan user hanya dapat melihat status bot yang boleh dia akses.
+
+User workspace-A tidak boleh:
+
+GET status bot-B
+
+hanya karena mengetahui botId.
+
+Jika runtime status bersifat internal, jangan membocorkan detail process internal yang tidak diperlukan.
+
+==================================================
+21. ERROR HANDLING RUNTIME
+==================================================
+
+Gunakan error system yang sudah ada.
+
+Pastikan:
+
+unauthenticated
+→ authentication error
+
+unauthorized
+→ authorization error
+
+bot tidak ditemukan
+→ not found sesuai convention
+
+invalid lifecycle transition
+→ domain/validation error sesuai convention
+
+runtime gagal start
+→ runtime/application error sesuai convention
+
+Jangan mengembalikan:
+
+- stack trace
+- token
+- credential
+- database connection string
+- SQL detail
+- internal process environment
+
+ke client production.
+
+==================================================
+22. TEST MATRIX
+==================================================
+
+Tambahkan/perbaiki test sesuai runtime yang benar-benar tersedia.
+
+START:
+
+- authorized start = PASS
+- unauthenticated start = DENY
+- unauthorized start = DENY
+- cross-workspace start = DENY
+- nonexistent bot = handled
+- repeated start = no duplicate runtime
+
+STOP:
+
+- authorized stop = PASS
+- unauthorized stop = DENY
+- cross-workspace stop = DENY
+- repeated stop = safe
+- nonexistent runtime = handled
+
+ENABLE:
+
+- authorized enable = PASS
+- unauthorized enable = DENY
+- cross-workspace enable = DENY
+- repeated enable = idempotent
+
+DISABLE:
+
+- authorized disable = PASS
+- unauthorized disable = DENY
+- cross-workspace disable = DENY
+- repeated disable = idempotent
+
+RUNTIME:
+
+- bot-A cannot start using bot-B credential
+- bot-A runtime does not affect bot-B
+- stopping bot-A does not stop bot-B
+- duplicate start does not create duplicate worker
+- runtime cleanup occurs correctly
+
+CREDENTIAL:
+
+- token not logged
+- token not returned unexpectedly
+- token not included in errors
+- token not leaked in test output
+
+==================================================
+23. CONCURRENCY TEST
+==================================================
+
+Jika runtime implementation memungkinkan testing concurrency secara reliable, tambahkan test:
+
+start bot-A
++
+start bot-A
+
+secara bersamaan.
+
+Expected:
+
+satu runtime.
+
+Jika testing concurrency tidak reliable dengan current architecture:
+
+jangan membuat flaky test.
+
+Sebagai gantinya, audit mechanism yang menjamin idempotency dan buat test deterministic pada abstraction yang sudah tersedia.
+
+==================================================
+24. REGRESSION TEST
+==================================================
+
+Semua checkpoint security sebelumnya harus tetap PASS:
+
+- authentication
+- session
+- current user
+- workspace authorization
+- membership
+- ownership
+- permission policy
+- bot resource authorization
+- bot lifecycle
+- persistence
+- API input validation
+
+Jangan melemahkan test existing.
+
+==================================================
+25. DATABASE CONSISTENCY
+==================================================
+
+Jika runtime lifecycle menggunakan database:
+
+audit seluruh mutation.
+
+Pastikan tidak ada sequence seperti:
+
+1. start runtime
+2. database update gagal
+3. runtime tetap berjalan tanpa state yang benar
+
+atau:
+
+1. database state berubah
+2. runtime start gagal
+3. state menjadi misleading
+
+Gunakan transaction atau abstraction existing jika memang diperlukan.
+
+Jangan membuat distributed transaction system baru.
+
+Jika architecture memang asynchronous, pertahankan semantics tersebut dan pastikan failure behavior jelas.
+
+==================================================
+26. TYPECRIPT QUALITY
+==================================================
+
+Pastikan:
+
+- tidak ada any baru tanpa alasan
+- tidak ada @ts-ignore baru
+- tidak ada unused import
+- tidak ada dead code
+- tidak ada duplicate runtime manager
+- tidak ada duplicate lifecycle implementation
+- tidak ada circular dependency baru
+- tidak ada hardcoded secret
+- tidak ada global mutable state baru tanpa alasan
+- tidak ada unhandled promise rejection
+
+Gunakan abstraction existing.
+
+==================================================
+27. DOCUMENTATION
+==================================================
+
+Jika diperlukan, update README.md yang sudah ada.
+
+JANGAN membuat README baru.
+
+Dokumentasikan secara singkat:
+
+- bot runtime lifecycle
+- hubungan enable/disable dengan runtime
+- start/stop behavior
+- runtime isolation
+- shutdown behavior
+- test command
+
+Jangan membuat dokumentasi panjang jika tidak diperlukan.
+
+==================================================
+28. VERIFICATION WAJIB
+==================================================
+
+Setelah implementation selesai, jalankan verification resmi repository.
+
+Minimal:
+
+- domain tests
+- API tests
+- auth/session tests
+- workspace authorization tests
+- membership tests
+- bot/resource tests
+- lifecycle tests
+- runtime tests jika tersedia
+- PostgreSQL integration jika memang digunakan oleh test architecture
+- pnpm check
+- typecheck
+- lint
+- format check
+- import boundary check
+- build
+- git diff --check
+
+Jangan skip test.
+
+Jika PostgreSQL integration memang merupakan explicit verification path repository, jalankan dengan PostgreSQL lokal yang tersedia.
+
+Jangan menjalankan test provider/integration yang tidak relevan dengan BotSpace runtime task ini.
+
+Jika ada failure:
+
+1. identifikasi root cause
+2. perbaiki
+3. jalankan test terkait
+4. jalankan full verification kembali
+
+==================================================
+29. GIT AUDIT
+==================================================
+
+Sebelum commit:
+
+```bash
+git status
+git diff --stat
+git diff
 
 
 ```
