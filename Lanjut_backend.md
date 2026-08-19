@@ -624,10 +624,673 @@
 
 
 ```
-# 
+# Prompt: Final Roadmap Closure & Dependency Resolution Audit
 ```
 
+Lanjutkan project BotSpace dari kondisi repository SAAT INI.
 
+WORKING DIRECTORY:
+`/root/botspace`
+
+BRANCH:
+`backend-dev-recovery`
+
+==================================================
+STATUS TERAKHIR
+==================================================
+
+Repository saat ini sudah melalui:
+
+- B-030 Workspace API/Contract — DONE
+- B-070 Storage Adapter — DONE
+- B-071 File/Share Contract — DONE
+- B-071 File/Share API — DONE
+- B-071 Production Wiring — DONE
+- SecretResolver application boundary — DONE
+- Infrastructure verification yang dapat dilakukan dari repository — DONE
+- File/share security regression — DONE
+- Workspace isolation — DONE
+- Local SHA dan remote SHA — SAMA
+- Working tree — CLEAN
+
+Status terakhir menunjukkan:
+
+Remaining Roadmap:
+
+1. B-040 Telegram account connection
+   - contract dan implementation belum tersedia.
+2. B-041 connection health/state machine
+   - bergantung pada B-040.
+3. B-050/B-051/B-052
+   - masih menunggu bot/provider/runtime contracts.
+4. B-090
+   - membutuhkan JobEnvelope, queue adapter, retry/DLQ/replay policy,
+     scheduler persistence contract.
+5. Operator/billing/telemetry/release
+   - contract belum tersedia.
+6. Share expiry
+   - menunggu approved contract/schema/migration.
+7. Public-share rate limiting
+   - menunggu approved policy/middleware boundary.
+8. Public-share audit event
+   - menunggu approved event/service/repository boundary.
+9. PostgreSQL integration verification
+   - hanya dapat dijalankan jika `PERSISTENCE_TEST_DATABASE_URL` tersedia.
+10. MinIO/S3 smoke test
+   - hanya dapat dijalankan jika test environment tersedia.
+11. `scripts/check-symlinks.mjs`
+   - memang tidak tersedia dan JANGAN dibuat hanya untuk validation.
+
+==================================================
+TUJUAN PROMPT INI
+==================================================
+
+Lakukan FINAL ROADMAP CLOSURE AUDIT.
+
+Tujuannya bukan membuat code secara paksa.
+
+Tujuannya:
+
+1. memastikan tidak ada task repository yang sebenarnya sudah UNBLOCKED,
+2. memastikan tidak ada dependency yang terlewat,
+3. memastikan semua completed task benar-benar valid,
+4. memastikan semua deferred task memiliki alasan dependency yang nyata,
+5. mengidentifikasi EXACTLY apa yang dibutuhkan agar project bisa lanjut,
+6. melakukan implementation hanya jika dependency benar-benar tersedia,
+7. melakukan documentation/ADR update hanya jika repository memang sudah memiliki mekanisme dokumentasi/ADR untuk keputusan tersebut.
+
+JANGAN membuat architecture speculative.
+
+==================================================
+ATURAN MUTLAK
+==================================================
+
+JANGAN:
+
+- membuat Telegram account connection contract berdasarkan asumsi,
+- memilih Telegram authentication method sendiri,
+- membuat Telegram polling,
+- membuat Telegram webhook,
+- membuat MTProto implementation,
+- membuat QR login,
+- membuat phone login,
+- membuat session system,
+- membuat fake Telegram connection,
+- membuat provider abstraction baru jika belum ada contract,
+- membuat BotInstallation runtime,
+- mengubah `BotInstallation.status`,
+- membuat queue architecture speculative,
+- membuat JobEnvelope speculative,
+- membuat billing architecture speculative,
+- membuat telemetry architecture speculative,
+- membuat release architecture speculative,
+- membuat share expiry tanpa contract/schema,
+- membuat rate limiter tanpa approved policy,
+- membuat audit event system baru tanpa approved boundary,
+- membuat fake PostgreSQL,
+- menggunakan SQLite sebagai pengganti PostgreSQL,
+- membuat fake MinIO,
+- membuat credential production palsu,
+- membuat `scripts/check-symlinks.mjs`.
+
+Jangan mengubah code hanya supaya jumlah "remaining task" berkurang.
+
+==================================================
+FASE 1 — AUDIT ROADMAP AKTUAL
+==================================================
+
+Audit repository langsung.
+
+Jalankan:
+
+`cd /root/botspace`
+
+`git status`
+
+`git branch --show-current`
+
+`git log --oneline -30`
+
+Kemudian cari seluruh roadmap/task:
+
+- B-*
+- F-*
+- Phase *
+- V2
+- TODO
+- FIXME
+- deferred
+- blocked
+- dependency
+- ADR
+
+Jangan hanya menggunakan laporan AI sebelumnya.
+
+Source of truth adalah repository.
+
+==================================================
+FASE 2 — DEPENDENCY GRAPH
+==================================================
+
+Bangun dependency graph aktual untuk SEMUA task yang belum selesai.
+
+Untuk setiap task:
+
+- Task ID
+- Nama
+- Status
+- Existing contract?
+- Existing implementation?
+- Existing tests?
+- Dependency
+- External dependency?
+- Environment dependency?
+- Architecture decision dependency?
+- UNBLOCKED / BLOCKED
+
+Kategori:
+
+A. DONE
+B. UNBLOCKED — BOLEH DIKERJAKAN
+C. ENVIRONMENT BLOCKED
+D. CONTRACT BLOCKED
+E. ARCHITECTURE DECISION BLOCKED
+F. EXTERNAL INFRASTRUCTURE BLOCKED
+
+==================================================
+FASE 3 — CARI TASK UNBLOCKED
+==================================================
+
+Ini sangat penting.
+
+Jangan menganggap semua task setelah B-040 otomatis blocked.
+
+Cari seluruh repository dan pastikan apakah ada task lain yang:
+
+- tidak bergantung B-040,
+- contract-nya sudah tersedia,
+- implementation boundary-nya sudah jelas,
+- dapat dikerjakan tanpa speculative architecture.
+
+Jika ada:
+
+KERJAKAN SEKARANG.
+
+Lakukan:
+
+IMPLEMENT
+→ TEST
+→ BUILD
+→ TYPECHECK
+→ LINT
+→ REVIEW
+→ COMMIT
+
+Jangan berhenti pada audit jika task benar-benar UNBLOCKED.
+
+==================================================
+FASE 4 — B-040 TELEGRAM ACCOUNT CONNECTION
+==================================================
+
+Audit B-040 secara menyeluruh.
+
+Cari apakah repository memiliki:
+
+- Telegram account model,
+- connection contract,
+- authentication contract,
+- credential/session contract,
+- provider contract,
+- account lifecycle contract,
+- secret storage boundary,
+- OAuth/device-code/browser-login mechanism,
+- ADR yang menentukan authentication method.
+
+Jika SEMUA tersedia:
+
+implementasikan B-040 secara nyata.
+
+Jika contract belum tersedia:
+
+JANGAN mengarang implementation.
+
+Cari dan dokumentasikan EXACT dependency yang hilang.
+
+Contoh output internal:
+
+B-040 BLOCKED
+Reason:
+Telegram account connection contract unavailable.
+
+Missing decisions:
+- authentication mechanism
+- account/session lifecycle
+- credential storage
+- connection/disconnection semantics
+- health semantics
+
+Jangan membuat contract sendiri hanya untuk menghilangkan blocker.
+
+==================================================
+FASE 5 — B-041
+==================================================
+
+Audit B-041.
+
+Jika B-040 belum tersedia:
+
+JANGAN implementasikan B-041.
+
+Tetapkan:
+
+B-041 BLOCKED → B-040.
+
+Jika B-040 sudah tersedia secara nyata:
+
+implementasikan connection health/state machine berdasarkan contract B-040.
+
+Jangan membuat state machine yang tidak memiliki source of truth.
+
+==================================================
+FASE 6 — B-050/B-051/B-052
+==================================================
+
+Audit dependency chain.
+
+Cari:
+
+- bot contract,
+- provider contract,
+- runtime contract,
+- installation lifecycle,
+- execution model.
+
+Jika semua tersedia:
+
+kerjakan task yang UNBLOCKED.
+
+Jika belum:
+
+jangan membuat runtime architecture.
+
+Tampilkan dependency chain secara eksplisit:
+
+B-050 → missing X
+B-051 → depends on B-050/X
+B-052 → depends on B-051/provider/runtime contract
+
+==================================================
+FASE 7 — JOB/QUEUE/B-090
+==================================================
+
+Audit B-090 dan seluruh dependency.
+
+Cari apakah repository sudah memiliki:
+
+- JobEnvelope contract,
+- queue abstraction,
+- queue adapter,
+- retry policy,
+- DLQ policy,
+- replay policy,
+- scheduler contract,
+- persistence contract,
+- worker execution contract.
+
+Jika tersedia:
+
+implementasikan task yang memang sudah unblocked.
+
+Jika belum:
+
+JANGAN membuat queue architecture sendiri.
+
+JANGAN memilih:
+
+- Redis,
+- BullMQ,
+- RabbitMQ,
+- SQS,
+- database queue,
+- custom queue
+
+secara sepihak.
+
+Semua itu membutuhkan architecture decision jika repository belum menetapkannya.
+
+==================================================
+FASE 8 — OPERATOR / BILLING / TELEMETRY / RELEASE
+==================================================
+
+Audit seluruh roadmap untuk:
+
+- operator controls,
+- billing,
+- usage,
+- telemetry,
+- release/deployment lifecycle.
+
+Cari contract yang sudah ada.
+
+Jika tersedia:
+
+kerjakan.
+
+Jika tidak:
+
+jangan membuat speculative system.
+
+Pisahkan:
+
+CONTRACT BLOCKED
+
+dari:
+
+IMPLEMENTATION BLOCKED.
+
+==================================================
+FASE 9 — POSTGRESQL
+==================================================
+
+Periksa environment:
+
+`PERSISTENCE_TEST_DATABASE_URL`
+
+Jika tersedia:
+
+jalankan PostgreSQL integration tests yang memang sudah ada.
+
+Jangan membuat test baru hanya untuk mengklaim PostgreSQL selesai.
+
+Jika unavailable:
+
+SKIPPED.
+
+Jangan membuat fake database.
+
+==================================================
+FASE 10 — MINIO/S3
+==================================================
+
+Periksa environment.
+
+Jika test-only MinIO/S3 tersedia:
+
+jalankan smoke test.
+
+Verifikasi:
+
+- upload
+- read/download
+- metadata
+- delete
+- cleanup
+
+Jika unavailable:
+
+SKIPPED.
+
+Jangan install infrastructure permanen.
+
+==================================================
+FASE 11 — DEFERRED PUBLIC SHARE
+==================================================
+
+Audit ulang:
+
+- rate limiting
+- audit event
+- share expiry
+
+Jika contract sudah tersedia:
+
+implementasikan.
+
+Jika belum:
+
+tetap deferred.
+
+Jangan membuat architecture baru.
+
+==================================================
+FASE 12 — SECURITY AUDIT
+==================================================
+
+Pastikan pekerjaan sebelumnya tidak rusak.
+
+Audit:
+
+- workspace isolation,
+- authorization,
+- file ownership,
+- share authorization,
+- token handling,
+- object storage access,
+- secret handling,
+- path traversal,
+- error sanitization.
+
+Jika menemukan BUG nyata:
+
+perbaiki.
+
+Jika tidak:
+
+jangan melakukan refactor hanya untuk membuat diff.
+
+==================================================
+FASE 13 — VALIDATION
+==================================================
+
+Jalankan validation yang tersedia:
+
+`pnpm test`
+
+`pnpm build`
+
+`pnpm typecheck`
+
+`pnpm lint`
+
+`pnpm format:check`
+
+`node scripts/check-imports.mjs`
+
+`node scripts/check-ownership.mjs`
+
+`node scripts/check-doc-links.mjs`
+
+`git diff --check`
+
+JANGAN membuat:
+
+`node scripts/check-symlinks.mjs`
+
+jika memang tidak tersedia.
+
+Jangan mengubah test untuk membuat PASS.
+
+==================================================
+FASE 14 — GIT
+==================================================
+
+Jika ada perubahan valid:
+
+review:
+
+`git diff --stat`
+
+`git diff`
+
+Hapus semua:
+
+- temporary files,
+- credentials,
+- secrets,
+- generated junk,
+- unrelated changes,
+- speculative implementation.
+
+Jika perubahan valid:
+
+buat SATU commit yang sesuai.
+
+Kemudian:
+
+`git push origin backend-dev-recovery`
+
+Verifikasi:
+
+`git rev-parse HEAD`
+
+`git rev-parse origin/backend-dev-recovery`
+
+`git status`
+
+Pastikan:
+
+LOCAL SHA == REMOTE SHA
+
+WORKING TREE CLEAN
+
+Jika tidak ada perubahan:
+
+JANGAN membuat empty commit.
+
+==================================================
+FASE 15 — FINAL DEPENDENCY REPORT
+==================================================
+
+Setelah seluruh audit dan implementation selesai, tampilkan:
+
+# COMPLETED
+
+Daftar task yang benar-benar selesai.
+
+# IMPLEMENTED THIS RUN
+
+Hanya task yang benar-benar berubah pada run ini.
+
+# BLOCKED BY CONTRACT
+
+Tampilkan:
+
+- task,
+- contract yang hilang,
+- keputusan yang harus dibuat.
+
+# BLOCKED BY INFRASTRUCTURE
+
+Tampilkan:
+
+- task,
+- infrastructure yang hilang.
+
+# BLOCKED BY ENVIRONMENT
+
+Tampilkan:
+
+- PostgreSQL,
+- MinIO/S3,
+- secret manager,
+- environment lain.
+
+# SECURITY STATUS
+
+Tampilkan:
+
+- workspace isolation
+- authorization
+- file/share security
+- secret handling
+- storage security
+
+# VALIDATION
+
+Tampilkan:
+
+- test
+- build
+- typecheck
+- lint
+- format
+- imports
+- ownership
+- docs
+- diff check
+- PostgreSQL
+- MinIO/S3
+- symlink check
+
+# GIT
+
+Tampilkan:
+
+- branch
+- commit SHA
+- remote SHA
+- push status
+- working tree
+
+# FINAL ROADMAP
+
+Urutkan task berdasarkan dependency.
+
+Gunakan format:
+
+1. B-040 — BLOCKED
+   Missing: ...
+
+2. B-041 — BLOCKED BY B-040
+
+3. B-050 — BLOCKED
+   Missing: ...
+
+dst.
+
+Jangan membuat task baru.
+
+==================================================
+FINAL STOP CONDITION
+==================================================
+
+STOP hanya jika:
+
+1. semua task UNBLOCKED sudah dikerjakan,
+
+DAN
+
+2. semua task tersisa sudah dikategorikan secara jelas sebagai:
+   - contract blocked,
+   - architecture decision blocked,
+   - infrastructure blocked,
+   - environment blocked,
+
+DAN
+
+3. tidak ada implementation aman yang tersisa di repository.
+
+Jika kondisi tersebut tercapai, JANGAN membuat code speculative.
+
+Berikan laporan bahwa repository sudah mencapai:
+
+`NO SAFE CONTRACT-BACKED IMPLEMENTATION REMAINS`
+
+dan jelaskan EXACTLY keputusan/dependency eksternal yang diperlukan untuk membuka roadmap berikutnya.
+
+PENTING:
+
+Jangan hanya mengatakan "blocked" tanpa melakukan audit.
+
+Cari seluruh repository terlebih dahulu.
+
+Jika ada pekerjaan yang bisa dilakukan dengan aman → KERJAKAN.
+
+Jika tidak ada → jangan mengarang.
+
+Kerjakan langsung pada:
+
+`/root/botspace`
 
 ```
 # Prompt — Full Roadmap Completion / Dependency-Aware
