@@ -648,9 +648,855 @@
 
 
 ```
-# 
+# Prompt: B-031 → F-031 → Continue Frontend Roadmap
 ```
+Lanjutkan project BotSpace dari kondisi repository SAAT INI.
 
+WORKING DIRECTORY:
+`/root/botspace`
+
+BRANCH:
+`backend-dev-recovery`
+
+==================================================
+KONDISI TERAKHIR
+==================================================
+
+Frontend roadmap sebelumnya sudah dikerjakan sampai:
+
+- F-002 frontend framework/styling
+- F-010 web application shell
+- F-011 UI primitives
+- F-012 typed API client
+- F-020/F-021 authentication state + route guards
+- F-030 workspace dashboard/context
+- F-070 real File/Share UI terhadap B-071 API
+
+Dari audit terakhir, repository sekarang menyatakan:
+
+NEXT FRONTEND TASK:
+
+`F-031 Workspace settings and members UI`
+
+Tetapi F-031 BELUM boleh diimplementasikan penuh karena dependency backend:
+
+`B-031 Membership/Invitation HTTP contract + API`
+
+belum tersedia.
+
+Jadi dependency order sekarang adalah:
+
+B-031
+→ F-031
+→ audit roadmap berikutnya
+→ lanjut task yang dependency-nya sudah tersedia.
+
+Jangan membuat speculative F-031 dengan fake member/invitation API.
+
+==================================================
+ATURAN PENTING
+==================================================
+
+Jangan mengulang:
+
+- B-030 Workspace API/Contract
+- B-070 Storage Adapter
+- B-071 File/Share contract
+- B-071 File/Share API
+- B-071 production wiring
+- SecretResolver work yang sudah selesai
+- F-002
+- F-010
+- F-011
+- F-012
+- F-020/F-021
+- F-030
+- F-070
+
+Gunakan implementasi yang sudah ada sebagai source of truth.
+
+Jangan membuat framework frontend kedua.
+
+Jangan membuat API palsu.
+
+Jangan membuat database schema berdasarkan asumsi.
+
+Jangan mengubah contract B-030/B-071 jika tidak benar-benar diperlukan oleh B-031.
+
+Jangan membuat Telegram polling/webhook runtime.
+
+Jangan mengubah `BotInstallation.status`.
+
+Jangan menyentuh Gorouter.app integration test.
+
+NVIDIA dan TokenHarbor tidak perlu disentuh.
+
+==================================================
+FASE 0 — AUDIT REPOSITORY
+==================================================
+
+Sebelum mengubah kode:
+
+1. `cd /root/botspace`
+2. `git status`
+3. `git branch --show-current`
+4. `git log --oneline -15`
+5. audit roadmap.
+6. audit B-030 workspace contract.
+7. audit existing user/account model.
+8. audit existing authentication/session model.
+9. audit workspace ownership.
+10. audit existing PostgreSQL schema/migrations.
+11. audit existing repository patterns.
+12. audit existing service patterns.
+13. audit existing HTTP route patterns.
+14. audit typed frontend API client.
+15. audit frontend workspace context.
+16. audit F-030 dashboard implementation.
+17. cari apakah B-031 sudah sebagian tersedia.
+18. cari semua reference ke:
+    - member
+    - membership
+    - invitation
+    - workspace member
+    - invite
+    - role
+    - owner
+    - admin
+    - member permissions.
+
+Jangan langsung membuat kode.
+
+Tentukan terlebih dahulu dependency B-031 yang benar-benar sudah ada.
+
+==================================================
+FASE 1 — B-031 CONTRACT AUDIT
+==================================================
+
+Tentukan contract minimum B-031 berdasarkan repository.
+
+Membership system minimal perlu memiliki konsep:
+
+- workspace,
+- user/account,
+- membership,
+- role/permission jika memang sudah menjadi bagian architecture,
+- invitation jika roadmap memang memerlukannya.
+
+Tetapi JANGAN mengarang field.
+
+Gunakan model/contract yang sudah ada jika tersedia.
+
+Cari apakah repository sudah memiliki:
+
+- User identity,
+- Workspace identity,
+- Workspace owner,
+- membership relation,
+- role enum,
+- authorization abstraction,
+- invitation token abstraction.
+
+Jika sebagian sudah tersedia:
+
+gunakan kembali.
+
+Jangan membuat duplicate abstraction.
+
+==================================================
+FASE 2 — B-031 MEMBERSHIP DOMAIN/CONTRACT
+==================================================
+
+Jika contract membership belum tersedia:
+
+implementasikan contract/domain minimum yang memang dibutuhkan F-031.
+
+Membership harus memiliki:
+
+- stable identifier jika memang diperlukan,
+- workspace ownership,
+- user/account reference,
+- role/access information sesuai existing authorization architecture,
+- active/inactive state jika memang diperlukan oleh existing contract.
+
+Jangan menambahkan permission system besar.
+
+Gunakan role model paling minimal yang sesuai repository.
+
+Contoh:
+
+OWNER
+MEMBER
+
+Tetapi hanya gunakan role tersebut jika memang cocok dengan architecture yang sudah ada.
+
+Jangan membuat ADMIN/MODERATOR/EDITOR dan role lain hanya berdasarkan asumsi.
+
+==================================================
+FASE 3 — B-031 INVITATION CONTRACT
+==================================================
+
+Audit apakah invitation memang sudah ada di roadmap.
+
+Jika iya, implementasikan contract minimum.
+
+Invitation harus memiliki:
+
+- workspace reference,
+- invited identity/email/account reference sesuai architecture,
+- invitation state,
+- secure invitation identifier/token jika diperlukan,
+- created time jika model repository menggunakannya,
+- expiration hanya jika contract memang sudah mendukung expiry.
+
+JANGAN menambahkan invitation expiry hanya karena terlihat bagus.
+
+Jika invitation expiry belum ada pada contract:
+
+tetap tanpa expiry.
+
+Jangan membuat scheduler.
+
+Jangan membuat cleanup worker.
+
+Jangan membuat background job hanya untuk invitation.
+
+==================================================
+FASE 4 — DATABASE / MIGRATION
+==================================================
+
+Jika B-031 membutuhkan persistence:
+
+audit migration architecture terlebih dahulu.
+
+Jika membership/invitation schema belum tersedia dan memang merupakan bagian B-031:
+
+implementasikan migration yang sesuai contract.
+
+Requirements:
+
+- foreign key yang benar,
+- workspace ownership,
+- user/account relation,
+- uniqueness constraint yang memang dibutuhkan,
+- safe indexing untuk lookup utama.
+
+Jangan membuat migration destruktif.
+
+Jangan mengubah tabel B-071 secara tidak perlu.
+
+Jangan membuat schema hanya agar test PASS.
+
+Jangan menggunakan SQLite sebagai pengganti PostgreSQL jika repository menggunakan PostgreSQL.
+
+==================================================
+FASE 5 — B-031 REPOSITORY
+==================================================
+
+Implementasikan repository mengikuti pola repository yang sudah digunakan BotSpace.
+
+Repository hanya menangani persistence.
+
+Jangan memasukkan business logic ke repository.
+
+Minimal jika contract membutuhkannya:
+
+Membership:
+
+- get membership,
+- list workspace members,
+- create membership,
+- update role/state,
+- remove membership.
+
+Invitation:
+
+- create invitation,
+- find invitation,
+- list invitations,
+- accept invitation,
+- revoke invitation.
+
+Tetapi hanya implementasikan operasi yang memang diperlukan roadmap.
+
+Jangan membuat API CRUD berlebihan.
+
+==================================================
+FASE 6 — B-031 SERVICE
+==================================================
+
+Implementasikan service layer.
+
+Service bertanggung jawab atas:
+
+- workspace authorization,
+- membership rules,
+- invitation rules,
+- ownership protection,
+- duplicate membership handling,
+- invitation acceptance,
+- revoke behavior.
+
+PENTING:
+
+Workspace owner tidak boleh secara tidak sengaja dihapus jika architecture melarangnya.
+
+User dari workspace A tidak boleh mendapatkan membership workspace B tanpa authorization.
+
+Member biasa tidak boleh melakukan owner-only operation.
+
+Gunakan authorization abstraction yang sudah tersedia.
+
+Jangan membuat authorization system kedua.
+
+==================================================
+FASE 7 — INVITATION SECURITY
+==================================================
+
+Jika invitation menggunakan token:
+
+- gunakan crypto-safe random generation,
+- jangan menyimpan raw token jika repository menggunakan digest pattern,
+- jangan mencetak token ke log,
+- jangan memasukkan token ke error message,
+- jangan memasukkan token ke analytics/logging,
+- jangan commit token.
+
+Jika invitation token memang harus dikembalikan ke caller karena email service belum ada:
+
+kembalikan hanya sesuai contract.
+
+Jangan membuat email provider.
+
+Jangan mengirim email sungguhan dari repository jika architecture belum menyediakan email service.
+
+==================================================
+FASE 8 — B-031 HTTP API
+==================================================
+
+Setelah contract/repository/service stabil:
+
+implementasikan HTTP API B-031.
+
+Endpoint harus mengikuti routing conventions repository.
+
+Jangan membuat endpoint berdasarkan asumsi jika pattern repository sudah tersedia.
+
+Kemungkinan operation yang dibutuhkan:
+
+- list workspace members,
+- update member role,
+- remove member,
+- create invitation,
+- list invitations,
+- revoke invitation,
+- accept invitation.
+
+Hanya implementasikan endpoint yang benar-benar diperlukan roadmap.
+
+Setiap endpoint:
+
+1. authenticate user,
+2. resolve workspace,
+3. authorize operation,
+4. validate request,
+5. call service,
+6. map response,
+7. sanitize error.
+
+Jangan mengembalikan:
+
+- password,
+- secret,
+- internal database details,
+- storage credential,
+- raw internal errors.
+
+==================================================
+FASE 9 — AUTHORIZATION MATRIX
+==================================================
+
+Buat authorization matrix berdasarkan architecture yang benar-benar tersedia.
+
+Minimal review:
+
+OWNER:
+- melihat members
+- mengelola membership
+- mengundang member
+- revoke invitation
+- remove member sesuai policy
+
+MEMBER:
+- melihat data yang memang diizinkan
+- tidak boleh mengubah membership jika tidak punya permission
+
+Jangan membuat role baru hanya untuk memenuhi matrix.
+
+Jika repository sudah memiliki role/permission model:
+
+gunakan model tersebut.
+
+Tambahkan test untuk:
+
+- owner allowed,
+- member denied,
+- cross-workspace denied,
+- unknown workspace denied,
+- unknown member denied,
+- duplicate invitation/membership behavior.
+
+==================================================
+FASE 10 — TEST B-031
+==================================================
+
+Tambahkan test nyata untuk:
+
+### Membership
+- create membership,
+- list members,
+- workspace isolation,
+- authorization,
+- duplicate membership,
+- remove member,
+- owner protection,
+- role update jika tersedia.
+
+### Invitation
+- create invitation,
+- invitation lookup,
+- accept invitation,
+- revoke invitation,
+- invalid invitation,
+- unauthorized invitation management,
+- duplicate invitation handling.
+
+### HTTP
+- 401,
+- 403,
+- 404,
+- 400 validation,
+- successful response,
+- safe error response.
+
+Jangan membuat mock yang tidak menguji behavior sebenarnya.
+
+Jika PostgreSQL integration environment tersedia:
+
+gunakan:
+
+`PERSISTENCE_TEST_DATABASE_URL`
+
+Jika tidak tersedia:
+
+jangan membuat database palsu.
+
+Catat:
+
+`SKIPPED — PERSISTENCE_TEST_DATABASE_URL unavailable`
+
+==================================================
+FASE 11 — F-031 WORKSPACE SETTINGS UI
+==================================================
+
+Setelah B-031 API benar-benar selesai dan typed API client dapat mengaksesnya:
+
+langsung lanjut implementasi F-031.
+
+Jangan berhenti hanya setelah backend B-031.
+
+Gunakan frontend architecture yang SUDAH ADA.
+
+F-031 minimal menyediakan:
+
+### Workspace Settings
+
+- workspace name/info,
+- workspace context,
+- settings navigation,
+- loading state,
+- error state.
+
+### Members
+
+- list members,
+- member identity,
+- role,
+- member state jika tersedia,
+- loading,
+- empty state,
+- error state.
+
+### Member Management
+
+Jika API mendukung:
+
+- change role,
+- remove member.
+
+Tampilkan confirmation sebelum destructive action.
+
+### Invitations
+
+Jika API mendukung:
+
+- invite member,
+- invitation state,
+- pending invitations,
+- revoke invitation,
+- accept invitation jika flow frontend memang berada di workspace UI.
+
+Jangan membuat UI untuk endpoint yang tidak tersedia.
+
+==================================================
+FASE 12 — TYPED FRONTEND API
+==================================================
+
+Tambahkan typed API client methods untuk B-031.
+
+Jangan menggunakan raw `fetch()` di component.
+
+Gunakan architecture F-012 yang sudah dibuat.
+
+Contoh conceptual flow:
+
+UI
+→ feature hook/service
+→ typed API client
+→ B-031 HTTP API
+
+Bukan:
+
+UI
+→ fetch langsung.
+
+Pastikan request/response types berasal dari actual API contract.
+
+Jangan membuat frontend type yang bertentangan dengan backend.
+
+==================================================
+FASE 13 — F-031 UX
+==================================================
+
+UI harus:
+
+- responsive,
+- mobile friendly,
+- clean,
+- konsisten dengan F-030,
+- menggunakan existing UI primitives F-011.
+
+States:
+
+- loading,
+- empty,
+- error,
+- success,
+- disabled,
+- confirmation.
+
+Jangan membuat design system baru.
+
+Jangan membuat UI terlalu kompleks.
+
+Jangan menggunakan dummy member.
+
+Jika workspace tidak memiliki member selain owner:
+
+tampilkan empty/appropriate state.
+
+==================================================
+FASE 14 — SECURITY REVIEW F-031
+==================================================
+
+Audit:
+
+- route guard,
+- workspace context,
+- cross-workspace access,
+- role manipulation,
+- invitation token handling,
+- unsafe rendering,
+- error message.
+
+Frontend route guard bukan security boundary.
+
+Backend authorization tetap wajib.
+
+Jangan mempercayai role yang dikirim client.
+
+==================================================
+FASE 15 — VALIDATION
+==================================================
+
+Setelah B-031 dan F-031 selesai:
+
+jalankan validation yang tersedia:
+
+`pnpm test`
+
+`pnpm build`
+
+`pnpm typecheck`
+
+`pnpm lint`
+
+`pnpm format:check`
+
+`node scripts/check-imports.mjs`
+
+`node scripts/check-ownership.mjs`
+
+`node scripts/check-doc-links.mjs`
+
+`git diff --check`
+
+Untuk:
+
+`node scripts/check-symlinks.mjs`
+
+JANGAN membuat script baru jika memang tidak tersedia.
+
+Jika unavailable:
+
+`SKIPPED — scripts/check-symlinks.mjs unavailable`
+
+Jika PostgreSQL test membutuhkan environment yang tidak tersedia:
+
+`SKIPPED — PERSISTENCE_TEST_DATABASE_URL unavailable`
+
+Jangan mengubah test agar terlihat PASS.
+
+==================================================
+FASE 16 — FAILURE HANDLING
+==================================================
+
+Jika test/build/typecheck/lint gagal:
+
+jangan berhenti.
+
+1. baca error,
+2. cari root cause,
+3. perbaiki,
+4. test ulang,
+5. jalankan validation penuh.
+
+Jangan:
+
+- disable lint,
+- disable TypeScript strictness,
+- delete test,
+- fake PASS,
+- bypass authorization,
+- membuat dummy API.
+
+==================================================
+FASE 17 — TYPESCRIPT/PARSER AUDIT
+==================================================
+
+Cari:
+
+`<<<<<<<`
+
+`=======`
+
+`>>>>>>>`
+
+Audit juga:
+
+- duplicate imports,
+- duplicate exports,
+- malformed JSX,
+- invalid generics,
+- invalid route definitions,
+- broken object literals,
+- accidental terminal output,
+- syntax corruption.
+
+Perbaiki hanya masalah nyata.
+
+==================================================
+FASE 18 — DIFF REVIEW
+==================================================
+
+Sebelum commit:
+
+`git status`
+
+`git diff --stat`
+
+Review seluruh diff.
+
+Pastikan tidak ada:
+
+- credential,
+- secret,
+- `.env`,
+- temporary files,
+- generated junk,
+- unrelated refactor,
+- perubahan Gorouter,
+- perubahan NVIDIA,
+- perubahan TokenHarbor,
+- perubahan B-071 yang tidak diperlukan.
+
+==================================================
+FASE 19 — COMMIT
+==================================================
+
+Jika B-031 menghasilkan perubahan backend dan F-031 menghasilkan perubahan frontend:
+
+buat commit yang logis.
+
+Ideal:
+
+1. B-031 membership/invitation backend
+2. F-031 workspace settings/members UI
+
+Tetapi jika repository workflow lebih cocok satu commit:
+
+boleh satu commit.
+
+Jangan membuat empty commit.
+
+==================================================
+FASE 20 — PUSH
+==================================================
+
+Setelah commit:
+
+`git push origin backend-dev-recovery`
+
+Verifikasi:
+
+`git rev-parse HEAD`
+
+`git rev-parse origin/backend-dev-recovery`
+
+`git status`
+
+Pastikan:
+
+LOCAL SHA == REMOTE SHA
+
+WORKING TREE CLEAN
+
+Jika push gagal:
+
+- jangan force push,
+- jangan reset --hard,
+- jangan menghapus commit,
+- jangan mengubah credential sembarangan.
+
+==================================================
+FASE 21 — LANJUTKAN ROADMAP
+==================================================
+
+Setelah B-031 + F-031 selesai:
+
+JANGAN berhenti hanya karena dua task ini selesai.
+
+Audit roadmap kembali.
+
+Cari task berikutnya yang:
+
+- dependency sudah tersedia,
+- contract sudah tersedia,
+- implementation dapat dilakukan sekarang.
+
+Jika task berikutnya dapat dikerjakan dengan aman:
+
+LANJUTKAN OTOMATIS.
+
+Jika task berikutnya membutuhkan dependency yang belum tersedia:
+
+berhenti pada dependency tersebut dan tampilkan alasannya.
+
+Jangan membuat fitur speculative.
+
+==================================================
+OUTPUT AKHIR
+==================================================
+
+Tampilkan:
+
+## B-031
+- contract:
+- migration:
+- repository:
+- service:
+- HTTP API:
+- authorization:
+- tests:
+- status:
+
+## F-031
+- workspace settings:
+- members:
+- invitations:
+- member management:
+- typed API:
+- status:
+
+## Validation
+- test:
+- build:
+- typecheck:
+- lint:
+- format:
+- imports:
+- ownership:
+- docs:
+- diff:
+
+## PostgreSQL
+- status:
+
+## Git
+- branch:
+- commit:
+- local SHA:
+- remote SHA:
+- push:
+- working tree:
+
+## Remaining Deferred
+
+Hanya tampilkan dependency nyata yang belum tersedia.
+
+## Next Roadmap
+
+Tentukan berdasarkan roadmap repository yang sebenarnya.
+
+==================================================
+ATURAN TERAKHIR
+==================================================
+
+Jangan hanya membuat rencana.
+
+KERJAKAN LANGSUNG.
+
+AUDIT
+→ IMPLEMENT B-031
+→ TEST
+→ FIX
+→ BUILD
+→ IMPLEMENT F-031
+→ TEST
+→ FIX
+→ BUILD
+→ REVIEW
+→ COMMIT
+→ PUSH
+→ VERIFY
+→ AUDIT ROADMAP
+→ LANJUT JIKA DEPENDENCY SUDAH TERSEDIA.
+
+Jangan meminta saya memilih task berikutnya selama dependency repository sudah jelas.
+
+Kerjakan langsung pada:
+
+`/root/botspace`
 
 
 ```
