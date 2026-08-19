@@ -606,10 +606,761 @@
 
 
 ```
-# 
+# Prompt: Continue All Unblocked Work While B-040 Awaits Approval
 ```
 
+Lanjutkan project BotSpace dari kondisi repository TERAKHIR.
 
+WORKING DIRECTORY:
+`/root/botspace`
+
+BRANCH:
+`backend-dev-recovery`
+
+==================================================
+KONDISI TERAKHIR — JANGAN DIULANG
+==================================================
+
+Audit terakhir SUDAH selesai.
+
+B-030 Workspace API/Contract:
+DONE
+
+B-070 Storage Adapter:
+DONE
+
+B-071 File/Share Contract:
+DONE
+
+B-071 File/Share API:
+DONE
+
+B-071 Production Wiring:
+DONE
+
+Production SecretResolver boundary:
+SUDAH dikerjakan sejauh yang aman dari repository.
+
+B-040 Telegram Account Connection:
+BLOCKED
+
+ADR-011:
+SUDAH dibuat dan sudah dipush.
+
+Commit terakhir:
+`cdf489cdba7aed599f4deb69fe0248bfa7e782f9`
+
+Remote:
+`origin/backend-dev-recovery`
+
+Local SHA == Remote SHA:
+YA
+
+Working tree:
+CLEAN
+
+Tidak ada source implementation Telegram yang boleh dibuat secara
+speculative.
+
+==================================================
+BLOCKER RESMI
+==================================================
+
+B-040 / ADR-011 membutuhkan keputusan manusia dari:
+
+- Architecture owner
+- Telegram/provider owner
+- Security owner
+- Deployment owner
+
+Keputusan yang masih dibutuhkan mencakup:
+
+1. Telegram authentication mechanism
+2. account/session model
+3. credential persistence boundary
+4. lifecycle state machine
+5. disconnect/revoke semantics
+6. versioned API/provider contract
+7. runtime handoff boundary
+
+JANGAN:
+
+- mengarang approval,
+- memilih authentication mechanism sendiri,
+- membuat Telegram connector speculative,
+- membuat polling/webhook,
+- membuat session storage speculative,
+- mengubah BotInstallation.status,
+- menutup B-040 hanya agar roadmap terlihat maju.
+
+B-040 tetap:
+
+`BLOCKED — HUMAN APPROVAL REQUIRED`
+
+==================================================
+TUJUAN RUN INI
+==================================================
+
+Karena B-040 blocked, JANGAN berhenti.
+
+Sekarang audit SELURUH ROADMAP dan kerjakan SEMUA pekerjaan yang:
+
+- tidak bergantung B-040,
+- contract-nya sudah tersedia,
+- architecture sudah cukup jelas,
+- aman diimplementasikan,
+- dan dapat divalidasi dari repository/environment saat ini.
+
+Prinsip:
+
+AUDIT
+→ FIND UNBLOCKED TASK
+→ IMPLEMENT
+→ TEST
+→ REVIEW
+→ COMMIT
+→ PUSH
+→ RE-AUDIT ROADMAP
+→ CONTINUE
+
+Teruskan sampai tidak ada task aman yang tersisa.
+
+==================================================
+FASE 1 — AUDIT ROADMAP
+==================================================
+
+Baca ulang:
+
+- `AI_CONTEXT.md`
+- `AI_TASKS.md`
+- `PROJECT_STATUS.md`
+- `ROADMAP_V2.md`
+- `CHANGELOG.md`
+- `docs/architecture/`
+- `docs/architecture/DECISIONS.md`
+- ADR yang relevan.
+
+Audit task:
+
+B-040
+B-041
+B-050
+B-051
+B-052
+B-080
+B-090
+B-091
+B-092
+B-100
+B-110
+B-111
+B-120
+B-130
+B-131
+B-140
+B-141
+B-150
+B-151
+
+dan frontend:
+
+F-002
+F-010
+F-011
+F-012
+F-020
+F-021
+F-030
+F-031
+F-070
+F-080
+F-090
+F-100
+F-110
+F-120
+F-130
+F-140
+F-150
+
+Untuk masing-masing tentukan:
+
+- DONE
+- READY
+- BLOCKED
+- DEFERRED
+
+JANGAN hanya mengikuti tulisan roadmap lama.
+
+Validasi dependency berdasarkan CODE + CONTRACT + ADR aktual.
+
+==================================================
+FASE 2 — PRIORITAS TASK YANG TIDAK BERGANTUNG B-040
+==================================================
+
+Cari task yang bisa dikerjakan TANPA Telegram account connection.
+
+Jika ada:
+
+IMPLEMENTASIKAN.
+
+Jangan menunggu B-040 jika task tersebut memang independen.
+
+Contoh kandidat:
+
+- frontend yang contract/API-nya sudah tersedia,
+- typed API client,
+- frontend shell,
+- UI primitives,
+- authentication state yang contract-nya sudah ada,
+- workspace dashboard yang endpoint-nya sudah tersedia,
+- documentation/architecture cleanup,
+- validation tooling,
+- test coverage,
+- production hardening,
+- storage/file/share improvements yang memang sudah contract-backed.
+
+Tetapi jangan mengerjakan task hanya karena namanya terlihat independen.
+
+Pastikan dependency nyata.
+
+==================================================
+FASE 3 — FRONTEND
+==================================================
+
+Audit dependency frontend secara khusus.
+
+Screenshot/status sebelumnya menunjukkan:
+
+F-002:
+frontend framework/styling approach
+
+F-010:
+web application shell
+
+F-011:
+UI primitives
+
+F-012:
+typed API client
+
+F-020/F-021:
+authentication + route guards
+
+F-030:
+workspace dashboard/context
+
+F-031:
+workspace settings/members UI
+
+F-070:
+real File/Share UI
+
+Jika F-002/F-010/F-011/F-012 sudah dapat dikerjakan tanpa API contract yang belum tersedia:
+
+KERJAKAN BERURUTAN.
+
+Jangan membuat speculative API.
+
+Untuk frontend:
+
+- gunakan typed client,
+- jangan hardcode endpoint yang belum ada,
+- jangan membuat fake backend,
+- jangan membuat mock data sebagai production behavior,
+- jangan membuat membership behavior jika contract belum tersedia,
+- jangan membuat Telegram account UI jika B-040 belum approved.
+
+Jika F-031 masih bergantung pada B-031 membership/invitation contract:
+
+TETAP BLOCKED.
+
+Jangan mengarang membership API.
+
+==================================================
+FASE 4 — FILE/SHARE FRONTEND
+==================================================
+
+Audit B-071 API yang SUDAH ADA.
+
+Jika endpoint dan typed client sudah cukup:
+
+implementasikan F-070 File/Share UI.
+
+UI harus menggunakan API nyata.
+
+Minimal bila contract mendukung:
+
+- file listing,
+- upload,
+- download,
+- share,
+- revoke share,
+- public share access,
+- loading state,
+- error state,
+- empty state.
+
+Jangan menambahkan:
+
+- expiry,
+- rate limiting UI,
+- audit UI,
+
+jika backend contract belum mendukungnya.
+
+Gunakan workspace authorization yang sudah tersedia.
+
+==================================================
+FASE 5 — BACKEND TASK INDEPENDEN
+==================================================
+
+Audit semua backend task yang tidak bergantung Telegram.
+
+Khusus:
+
+B-080
+B-090
+B-091
+B-092
+B-100
+B-110
+B-111
+B-120
+B-130
+B-131
+B-140
+B-141
+B-150
+B-151
+
+Untuk setiap task:
+
+1. Cari contract.
+2. Cari dependency.
+3. Cari ADR.
+4. Cari existing implementation.
+5. Tentukan apakah benar-benar READY.
+
+Jika contract belum ada:
+
+BLOCKED.
+
+Jika contract tersedia:
+
+IMPLEMENTASIKAN.
+
+Jangan membuat architecture baru hanya karena task tersebut belum dikerjakan.
+
+==================================================
+FASE 6 — QUEUE/JOB/SCHEDULER
+==================================================
+
+Untuk:
+
+B-090
+B-091
+B-092
+F-090
+
+Audit apakah sudah ada contract untuk:
+
+- JobEnvelope
+- queue adapter
+- retry
+- DLQ
+- replay
+- execution semantics
+- scheduler
+- job monitoring.
+
+Jika contract tersedia:
+
+implementasikan sesuai contract.
+
+Jika belum:
+
+JANGAN memilih Redis/BullMQ/SQS/etc secara sepihak.
+
+Status:
+
+BLOCKED — queue/job architecture decision required
+
+==================================================
+FASE 7 — OPERATOR / BILLING
+==================================================
+
+Untuk:
+
+B-100
+B-110
+B-111
+F-100
+F-110
+
+Audit contract yang tersedia.
+
+Jangan membuat:
+
+- billing provider,
+- entitlement model,
+- operator authorization,
+
+secara speculative.
+
+Jika contract sudah ada:
+
+implementasikan.
+
+Jika belum:
+
+BLOCKED.
+
+==================================================
+FASE 8 — SECURITY / ABUSE
+==================================================
+
+Untuk:
+
+B-130
+B-131
+F-130
+
+Audit:
+
+- abuse-control contract,
+- webhook validation,
+- security settings,
+- authorization boundary.
+
+Jika contract sudah tersedia:
+
+implementasikan.
+
+Jika belum:
+
+BLOCKED.
+
+Jangan membuat security architecture baru tanpa ADR.
+
+==================================================
+FASE 9 — TELEMETRY / SLO
+==================================================
+
+Untuk:
+
+B-140
+B-141
+F-140
+
+Audit:
+
+- telemetry provider,
+- metrics,
+- tracing,
+- SLO,
+- alert,
+- runbook.
+
+Jika contract/provider tersedia:
+
+implementasikan.
+
+Jika belum:
+
+BLOCKED.
+
+Jangan memilih observability provider secara sepihak.
+
+==================================================
+FASE 10 — RELEASE / DEPLOYMENT
+==================================================
+
+Untuk:
+
+B-150
+B-151
+F-150
+
+Audit:
+
+- release contract,
+- staging,
+- backup,
+- restore,
+- rollback,
+- production approval.
+
+Jika environment dan contract tersedia:
+
+kerjakan.
+
+Jika membutuhkan infrastructure/approval yang tidak tersedia:
+
+BLOCKED.
+
+Jangan mengklaim production verification PASS tanpa evidence nyata.
+
+==================================================
+FASE 11 — INFRASTRUCTURE VERIFICATION
+==================================================
+
+PostgreSQL:
+
+Jika:
+
+`PERSISTENCE_TEST_DATABASE_URL`
+
+tersedia:
+
+jalankan integration test yang memang sudah ada.
+
+Jika tidak:
+
+`SKIPPED — PERSISTENCE_TEST_DATABASE_URL unavailable`
+
+Jangan membuat database palsu.
+
+MinIO/S3:
+
+Jika endpoint + test credentials tersedia:
+
+jalankan:
+
+upload
+→ verify
+→ download
+→ verify content
+→ delete
+→ verify deletion.
+
+Jika tidak:
+
+`SKIPPED — MinIO/S3 test environment unavailable`
+
+Managed Secret Manager:
+
+Jika environment nyata tersedia:
+
+jalankan verification.
+
+Jika tidak:
+
+jangan membuat fake production secret manager.
+
+==================================================
+FASE 12 — SECURITY AUDIT
+==================================================
+
+Sebelum commit setiap perubahan:
+
+audit:
+
+- workspace isolation,
+- authorization,
+- secret leakage,
+- credential handling,
+- token leakage,
+- path traversal,
+- object storage key leakage,
+- error sanitization,
+- log sanitization.
+
+Jangan pernah commit:
+
+- API key,
+- token,
+- password,
+- session,
+- credential,
+- production secret.
+
+==================================================
+FASE 13 — TEST
+==================================================
+
+Setelah setiap kelompok implementation:
+
+jalankan validation yang relevan.
+
+Kemudian full validation:
+
+`pnpm test`
+
+`pnpm build`
+
+`pnpm typecheck`
+
+`pnpm lint`
+
+`pnpm format:check`
+
+`node scripts/check-imports.mjs`
+
+`node scripts/check-ownership.mjs`
+
+`node scripts/check-doc-links.mjs`
+
+`git diff --check`
+
+Untuk:
+
+`node scripts/check-symlinks.mjs`
+
+jangan membuat file tersebut.
+
+Jika tidak tersedia:
+
+`SKIPPED — scripts/check-symlinks.mjs unavailable`
+
+Jangan mengubah test agar PASS.
+
+==================================================
+FASE 14 — GIT
+==================================================
+
+Sebelum commit:
+
+`git status`
+
+`git diff --stat`
+
+`git diff`
+
+Pastikan tidak ada perubahan unrelated.
+
+Jika ada implementation valid:
+
+buat SATU commit untuk pekerjaan run ini.
+
+Kemudian:
+
+`git push origin backend-dev-recovery`
+
+Verifikasi:
+
+`git rev-parse HEAD`
+
+`git rev-parse origin/backend-dev-recovery`
+
+`git status`
+
+Local SHA harus sama dengan remote SHA.
+
+Jika tidak ada perubahan valid:
+
+JANGAN membuat empty commit.
+
+==================================================
+FASE 15 — RE-EVALUATE
+==================================================
+
+SETELAH COMMIT/PUSH:
+
+Jangan langsung berhenti.
+
+Audit roadmap lagi.
+
+Jika task baru menjadi READY akibat pekerjaan tadi:
+
+KERJAKAN.
+
+Ulangi:
+
+AUDIT
+→ IMPLEMENT
+→ TEST
+→ COMMIT
+→ PUSH
+→ RE-AUDIT
+
+sampai tidak ada task READY yang aman untuk dikerjakan.
+
+==================================================
+STOP CONDITION
+==================================================
+
+Berhenti hanya jika:
+
+1. semua task yang benar-benar READY sudah selesai,
+2. semua task berikutnya BLOCKED/DEFERRED,
+3. atau membutuhkan approval manusia/infrastructure yang memang belum tersedia.
+
+B-040/ADR-011 harus tetap dicatat:
+
+`BLOCKED — HUMAN APPROVAL REQUIRED`
+
+Jangan memalsukan approval.
+
+==================================================
+FINAL REPORT
+==================================================
+
+Tampilkan:
+
+### B-040
+BLOCKED — HUMAN APPROVAL REQUIRED
+
+Jelaskan decision yang masih dibutuhkan.
+
+### TASK YANG DIKERJAKAN RUN INI
+- task:
+- implementation:
+- tests:
+- commit:
+
+### TASK YANG SEKARANG DONE
+Daftar task yang benar-benar selesai.
+
+### TASK YANG BLOCKED
+Untuk setiap task:
+- task ID
+- dependency
+- alasan blocked
+
+### TASK DEFERRED
+Hanya dependency nyata.
+
+### VALIDATION
+- test
+- build
+- typecheck
+- lint
+- format
+- imports
+- ownership
+- docs
+- diff
+
+### GIT
+- commit SHA
+- remote SHA
+- push status
+- working tree
+
+### NEXT SINGLE ACTION
+Berikan SATU task paling tepat berikutnya.
+
+PENTING:
+
+JANGAN membuat pekerjaan palsu hanya untuk menghindari blocker B-040.
+
+JANGAN mengarang contract.
+
+JANGAN mengarang approval.
+
+JANGAN membuat Telegram connector.
+
+JANGAN membuat Telegram polling/webhook.
+
+JANGAN mengubah BotInstallation.status.
+
+JANGAN menyentuh Gorouter.app.
+
+NVIDIA dan TokenHarbor hanya disentuh jika memang diperlukan oleh perubahan yang sedang dikerjakan.
+
+Kerjakan semua pekerjaan lain yang benar-benar UNBLOCKED.
+
+Kerjakan langsung pada `/root/botspace`.
 
 ```
 # Prompt: B-040 → B-041 → Bot Runtime Dependency Chain
