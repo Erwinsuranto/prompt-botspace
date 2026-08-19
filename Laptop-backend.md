@@ -84,7 +84,60 @@
 ```
 # 
 ```
+PROMPT: Lanjut Roadmap Setelah B-052
 
+Lanjutkan pekerjaan BotSpace dari state repository saat ini.
+
+KONDISI:
+- B-050 selesai.
+- B-051 selesai.
+- B-052 selesai.
+- Semua validation terakhir hijau.
+- Commit terakhir sudah dibuat dan SUDAH di-push ke remote.
+- Working tree harus dianggap sebagai checkpoint aman.
+
+ATURAN:
+1. Jangan mengulang atau mengubah implementasi B-050, B-051, atau B-052 kecuali diperlukan untuk compatibility.
+2. Audit roadmap terlebih dahulu dan tentukan task BACKEND berikutnya setelah B-052.
+3. Baca ADR, ROADMAP, FLOWS.md, contracts, serta implementasi existing sebelum coding.
+4. Kerjakan hanya SATU task roadmap berikutnya.
+5. Jangan mengerjakan task frontend/UI yang belum menjadi dependency task tersebut.
+6. Jangan membuat arsitektur baru jika contract/domain primitive yang diperlukan sudah tersedia.
+7. Pertahankan tenant/workspace isolation.
+8. Pertahankan security rule:
+   - jangan menyimpan plaintext token/secret
+   - jangan memasukkan credential ke log/error/test output
+   - gunakan opaque reference seperti BotInstallationId/secretRef sesuai contract.
+9. Gunakan existing repository/adapter/port pattern.
+10. Jangan menggunakan fake implementation untuk menggantikan contract production tanpa alasan yang ditentukan roadmap.
+11. Tambahkan test/evidence sesuai acceptance criteria task.
+12. Jalankan validation yang relevan setelah implementasi:
+    - pnpm build
+    - pnpm typecheck
+    - pnpm lint
+    - pnpm format:check
+    - pnpm test
+    - migration test jika task menyentuh database
+13. Jangan menghapus test existing.
+14. Jangan melakukan reset, rebase, squash, amend, atau force-push.
+15. Jika semua validation hijau:
+    - git add perubahan
+    - git commit dengan message yang jelas
+    - git push branch aktif ke remote
+16. Setelah push, tampilkan:
+    - task/ID yang dikerjakan
+    - ringkasan implementasi
+    - test/validation result
+    - commit hash
+    - branch
+    - status push
+    - working tree status
+    - remaining risks
+17. Jika menemukan dependency yang belum selesai, JANGAN melompati kontrak atau membuat workaround sembarangan. Audit dependency tersebut dan jelaskan task yang memang harus dikerjakan lebih dahulu.
+
+MULAI:
+Audit roadmap sekarang, tentukan task berikutnya setelah B-052, lalu langsung kerjakan task tersebut sampai validation selesai dan commit + push berhasil.
+Jangan bertanya konfirmasi untuk hal yang sudah jelas dari roadmap.
 
 
 ```
