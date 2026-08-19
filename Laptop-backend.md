@@ -43,6 +43,131 @@
 # 
 ```
 
+# Prompt: B-071 File/Share API End-to-End
+
+Lanjutkan project BotSpace dari kondisi repository saat ini.
+
+Kondisi terakhir:
+
+* B-030 Workspace API/Contract SUDAH selesai.
+* B-070 Storage Adapter SUDAH selesai.
+* B-071 contract/domain foundation SUDAH selesai dan sudah dinyatakan cukup stabil untuk dilanjutkan ke implementasi API end-to-end.
+* Jangan mengulang B-030, B-070, atau contract/domain B-071 yang sudah selesai.
+* Working tree harus clean sebelum mulai.
+* Tetap bekerja pada branch `backend-dev-recovery`.
+
+Sekarang implementasikan **B-071 File/Share API end-to-end** berdasarkan contract yang SUDAH ADA.
+
+Roadmap yang sudah teridentifikasi:
+
+1. Review/approve contract file/share yang sudah dibuat.
+2. Tambahkan PostgreSQL schema/migration untuk file metadata dan share links sesuai contract.
+3. Implementasikan repository adapter.
+4. Implementasikan crypto adapter/generator + digest untuk share token.
+5. Implementasikan bounded multipart/binary HTTP boundary.
+6. Implementasikan service layer untuk:
+
+   * upload,
+   * download,
+   * create share,
+   * revoke share,
+   * public share access.
+7. Tambahkan route-level authorization, storage interaction, cleanup/rollback behavior, audit/rate limiting hanya jika contract/roadmap memang sudah menyediakan boundary untuk itu.
+
+Aturan implementasi:
+
+* Gunakan contract/domain B-071 yang sudah ada sebagai source of truth.
+* Jangan mengarang field database baru tanpa kebutuhan dari contract.
+* Jangan membuat contract kedua yang menduplikasi contract B-071.
+* File metadata harus tetap memiliki workspace ownership.
+* Semua operasi file harus menghormati workspace isolation.
+* Gunakan `ObjectStoragePort` dari B-070. Jangan membuat storage abstraction baru.
+* Repository hanya menangani persistence, bukan business logic.
+* Service layer menangani business rules dan koordinasi repository + object storage.
+* HTTP route layer hanya menangani request validation, authorization boundary, response mapping, dan binary/multipart boundary.
+* Jangan membocorkan object storage internal path/key kepada client jika contract tidak mengharuskannya.
+* Share token harus menggunakan crypto-safe generation sesuai contract.
+* Digest/token lookup harus mengikuti storage policy yang sudah disepakati.
+* Public share endpoint hanya boleh mengakses share yang valid dan aktif.
+* Revoke share harus benar-benar mencegah akses berikutnya.
+* Workspace owner tidak boleh bisa mengakses file workspace lain hanya dengan mengetahui file ID/object ID.
+* Lindungi path traversal dan unsafe upload/path input.
+* Validasi ukuran/content metadata hanya sesuai policy yang sudah tersedia. Jangan membuat arbitrary limits.
+* Implementasikan cleanup/rollback jika database metadata berhasil dibuat tetapi object storage upload gagal, atau sebaliknya, sesuai kemampuan adapter yang tersedia.
+* Jangan membuat fake transaction/rollback jika backend belum mendukungnya; gunakan pola compensating action yang aman bila memang diperlukan.
+* Jangan membuat Telegram polling/webhook runtime.
+* Jangan mengubah `BotInstallation.status` menjadi process/runtime state.
+* Jangan menyentuh Gorouter.app integration test.
+* NVIDIA dan TokenHarbor tidak perlu disentuh kecuali perubahan secara langsung memengaruhinya.
+
+Testing:
+
+Tambahkan test yang benar-benar memverifikasi:
+
+* upload dengan workspace valid,
+* upload ditolak untuk workspace yang salah,
+* metadata persistence,
+* object storage interaction,
+* download authorization,
+* missing file/object,
+* path traversal rejection,
+* create share,
+* share token validation,
+* public share access,
+* revoked share ditolak,
+* expired share ditolak jika expiry memang ada pada contract,
+* workspace isolation,
+* rollback/cleanup saat storage operation gagal,
+* route response/error mapping.
+
+Jangan membuat mock atau schema palsu hanya untuk membuat test PASS.
+
+Validation setelah implementasi:
+
+* pnpm test
+* pnpm build
+* pnpm typecheck
+* pnpm lint
+* pnpm format:check
+* scripts/check-imports.mjs
+* scripts/check-symlinks.mjs
+* scripts/check-ownership.mjs
+* scripts/check-doc-links.mjs
+* git diff --check
+
+Jika ada PostgreSQL-gated test dan environment database tidak tersedia:
+
+* jangan mengubah test agar terlihat PASS,
+* laporkan sebagai skipped/unavailable sesuai mekanisme repository,
+* tetap jalankan seluruh validation lain.
+
+Setelah semua implementasi dan validation selesai:
+
+1. Review `git diff`.
+2. Pastikan tidak ada perubahan di luar B-071.
+3. Buat satu commit dengan message yang sesuai, misalnya:
+   `feat: implement file share api`
+4. Langsung push:
+   `git push origin backend-dev-recovery`
+5. Verifikasi SHA lokal dan remote sama.
+6. Jika push gagal karena credential/network, jangan mengubah credential secara sembarangan dan jangan menghapus commit lokal.
+
+Output akhir harus berisi:
+
+* ringkasan implementasi,
+* file yang berubah,
+* migration/schema yang ditambahkan,
+* endpoint/route yang ditambahkan,
+* authorization behavior,
+* test/validation result,
+* commit SHA,
+* push status,
+* remaining issues,
+* roadmap berikutnya berdasarkan dependency nyata repository.
+
+Jangan berhenti hanya pada audit. Implementasikan B-071 end-to-end sesuai contract yang sudah tersedia.
+
+Kerjakan langsung pada `/root/botspace`.
 
 
 ```
