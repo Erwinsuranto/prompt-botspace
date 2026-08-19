@@ -102,7 +102,908 @@
 ```
 # 
 ```
+PROMPT: BotSpace — Production Runtime Persistence & PostgreSQL Consistency Hardening
 
+Kita melanjutkan project BotSpace dari checkpoint TERBARU yang SUDAH BERHASIL diverifikasi secara lokal.
+
+Repository:
+ /root/botspace
+
+Branch:
+ backend-dev-recovery
+
+Project:
+ BotSpace
+
+TUJUAN UTAMA
+
+Lanjutkan hardening production runtime setelah tahap:
+
+AUTHENTICATION
+→ WORKSPACE AUTHORIZATION
+→ MEMBERSHIP
+→ BOT RESOURCE AUTHORIZATION
+→ BOT LIFECYCLE
+→ IDEMPOTENCY
+→ API PERSISTENCE CONTRACT
+
+sudah berhasil.
+
+Fokus tahap ini:
+
+PRODUCTION RUNTIME
+→ DATABASE PERSISTENCE
+→ POSTGRESQL CONSISTENCY
+→ BOT STATE PERSISTENCE
+→ SESSION PERSISTENCE
+→ TRANSACTION SAFETY
+→ ERROR RECOVERY
+→ REGRESSION TEST
+→ BUILD
+→ COMMIT
+→ PUSH
+
+JANGAN membuat fitur besar baru.
+
+JANGAN membuat authorization system baru.
+
+JANGAN mengganti arsitektur database secara besar-besaran.
+
+Gunakan abstraction dan repository yang sudah ada.
+
+==================================================
+1. AUDIT RUNTIME PERSISTENCE
+==================================================
+
+Sebelum mengubah kode, audit implementasi aktual repository.
+
+Cari seluruh jalur persistence yang berkaitan dengan:
+
+- bot
+- workspace
+- membership
+- session
+- account
+- bot status
+- bot configuration
+- bot credentials
+- bot resources
+- lifecycle mutation
+- enable
+- disable
+- create
+- update
+- delete
+
+Pahami flow:
+
+API
+→ SERVICE
+→ DOMAIN
+→ REPOSITORY
+→ DATABASE
+
+Jangan langsung menulis kode sebelum memahami flow aktual.
+
+==================================================
+2. POSTGRESQL RUNTIME PATH
+==================================================
+
+Pastikan production runtime menggunakan adapter/database abstraction yang memang dimaksudkan repository.
+
+Audit:
+
+- PostgreSQL adapter
+- repository implementation
+- database connection
+- transaction handling
+- persistence methods
+- error mapping
+- runtime initialization
+
+Pastikan tidak ada code path production yang diam-diam menggunakan:
+
+- in-memory state
+- mock repository
+- test database
+- SQLite fallback
+- temporary storage
+
+kecuali architecture memang secara eksplisit mendukungnya.
+
+Jangan menghapus fallback yang memang dibutuhkan oleh test environment.
+
+Pisahkan dengan jelas:
+
+TEST RUNTIME
+
+dan
+
+PRODUCTION RUNTIME.
+
+==================================================
+3. BOT STATE PERSISTENCE
+==================================================
+
+Audit state bot.
+
+Jika repository menggunakan status seperti:
+
+- active
+- inactive
+- disabled
+- pending
+- stopped
+
+gunakan state yang benar-benar sudah ada.
+
+Jangan membuat state baru.
+
+Pastikan ketika bot di-enable:
+
+request
+→ authorization
+→ state mutation
+→ persistence
+→ response
+
+dan ketika bot di-disable:
+
+request
+→ authorization
+→ state mutation
+→ persistence
+→ response
+
+State yang dikembalikan API harus sesuai dengan state yang benar-benar tersimpan.
+
+==================================================
+4. READ-AFTER-WRITE
+==================================================
+
+Tambahkan/perbaiki verification untuk memastikan:
+
+CREATE
+→ WRITE DATABASE
+→ READ DATABASE
+→ hasil konsisten
+
+UPDATE
+→ WRITE DATABASE
+→ READ DATABASE
+→ hasil konsisten
+
+ENABLE
+→ WRITE DATABASE
+→ READ DATABASE
+→ status tetap benar
+
+DISABLE
+→ WRITE DATABASE
+→ READ DATABASE
+→ status tetap benar
+
+DELETE
+→ DELETE/soft-delete sesuai architecture
+→ READ
+→ behavior sesuai contract.
+
+Jangan mengubah soft delete menjadi hard delete atau sebaliknya.
+
+==================================================
+5. RESTART PERSISTENCE
+==================================================
+
+Audit kemungkinan kehilangan state setelah process restart.
+
+Jika bot telah:
+
+- dibuat
+- di-enable
+- di-disable
+- dikonfigurasi
+
+pastikan state tidak hanya berada di memory process.
+
+Database harus menjadi sumber persistence sesuai architecture.
+
+Jika runtime process dimulai kembali:
+
+database state
+→ repository
+→ service
+→ runtime
+
+harus tetap konsisten.
+
+Jangan membuat persistence framework baru.
+
+==================================================
+6. TRANSACTION SAFETY
+==================================================
+
+Cari mutation yang membutuhkan beberapa operasi database.
+
+Contoh:
+
+bot creation
+→ bot record
+→ related resource
+
+atau:
+
+bot deletion
+→ parent
+→ dependent resource
+
+atau:
+
+membership update
+→ permission/role relation
+
+Periksa apakah operasi tersebut sudah menggunakan transaction abstraction.
+
+Jika transaction sudah tersedia:
+
+gunakan abstraction tersebut.
+
+Jika transaction tidak diperlukan:
+
+jangan menambahkan transaction hanya untuk terlihat lebih aman.
+
+Jika ditemukan bug nyata berupa partial write:
+
+perbaiki dengan perubahan minimal.
+
+Jangan membuat transaction framework baru.
+
+==================================================
+7. PARTIAL FAILURE
+==================================================
+
+Audit kondisi:
+
+operation A berhasil
+
+operation B gagal
+
+Pastikan tidak meninggalkan database dalam state invalid.
+
+Contoh:
+
+create bot
+→ database insert berhasil
+→ related operation gagal
+
+atau:
+
+disable bot
+→ state berubah
+→ operation lanjutan gagal.
+
+Pastikan behavior mengikuti architecture.
+
+Jika repository sudah menggunakan transaction:
+
+pastikan rollback benar-benar terjadi.
+
+Tambahkan test hanya untuk failure scenario yang relevan.
+
+==================================================
+8. DATABASE ERROR MAPPING
+==================================================
+
+Audit error dari PostgreSQL/database.
+
+Pastikan database error tidak bocor langsung ke API response.
+
+Contoh jangan membocorkan:
+
+- SQL statement
+- connection string
+- database hostname
+- credentials
+- internal table structure
+- stack trace
+
+Gunakan error mapping yang sudah tersedia.
+
+Pastikan:
+
+database failure
+→ internal/application error sesuai convention
+
+validation failure
+→ validation error
+
+not found
+→ not found
+
+authorization failure
+→ authorization error.
+
+Jangan membuat error system kedua.
+
+==================================================
+9. CONCURRENCY
+==================================================
+
+Audit mutation yang mungkin terjadi bersamaan.
+
+Contoh:
+
+Request A:
+enable bot
+
+Request B:
+disable bot
+
+atau:
+
+Request A:
+update bot
+
+Request B:
+delete bot
+
+Periksa apakah repository/database dapat menghasilkan:
+
+- lost update
+- invalid state
+- stale state
+- orphan resource
+- inconsistent response.
+
+Gunakan transaction/atomic operation yang sudah tersedia jika memang diperlukan.
+
+Jangan membuat concurrency framework baru.
+
+==================================================
+10. IDEMPOTENCY REGRESSION
+==================================================
+
+Checkpoint sebelumnya sudah memverifikasi bot lifecycle idempotency.
+
+Jangan merusaknya.
+
+Pastikan operasi berulang tetap aman sesuai contract:
+
+enable → enable
+
+disable → disable
+
+delete → delete
+
+logout → logout
+
+revoke → revoke
+
+Periksa bahwa persistence layer tidak mengubah behavior menjadi error atau state korup secara tidak sengaja.
+
+Jika architecture memang menganggap operasi kedua sebagai no-op, pertahankan behavior tersebut.
+
+Jangan mengubah contract tanpa alasan.
+
+==================================================
+11. SESSION PERSISTENCE
+==================================================
+
+Audit session persistence.
+
+Pastikan:
+
+- session dibuat secara benar
+- session tersimpan sesuai architecture
+- expired session tidak dianggap valid
+- revoked session tidak dianggap valid
+- logout benar-benar mempengaruhi persistence
+- restart process tidak membuat session invalid secara tidak sengaja jika architecture mengharuskan persistence
+- session tidak dapat digunakan untuk impersonation.
+
+Jangan mengganti session architecture secara besar-besaran.
+
+==================================================
+12. WORKSPACE / MEMBERSHIP PERSISTENCE
+==================================================
+
+Pastikan relasi:
+
+User
+→ Account
+→ Workspace
+→ Membership
+→ Bot
+
+tetap konsisten setelah database write/read.
+
+Audit kemungkinan:
+
+- workspaceId salah
+- accountId salah
+- ownerId salah
+- membership workspace mismatch
+- bot workspace mismatch
+- orphan membership
+- orphan bot
+
+Jangan memperbaiki data production secara otomatis.
+
+Fokus pada enforcement dan test.
+
+==================================================
+13. FOREIGN KEY / RELATION INTEGRITY
+==================================================
+
+Audit database relation yang memang tersedia.
+
+Periksa:
+
+- foreign key
+- unique constraint
+- nullable relation
+- cascade behavior
+- delete behavior
+
+Jangan membuat migration besar.
+
+Jika constraint sudah ada:
+
+gunakan behavior tersebut.
+
+Jika constraint tidak ada dan ditemukan bug nyata:
+
+evaluasi perubahan minimal.
+
+Jangan mengubah production database secara langsung.
+
+==================================================
+14. DUPLICATE CREATION
+==================================================
+
+Audit kemungkinan duplicate resource.
+
+Periksa hanya business rule yang memang sudah ada:
+
+- duplicate bot identifier
+- duplicate external identifier
+- duplicate membership
+- duplicate session identifier
+- duplicate workspace relation
+
+Jangan menciptakan business rule baru tanpa bukti dari architecture.
+
+Jika database sudah memiliki unique constraint:
+
+pastikan error-nya ditangani dengan benar.
+
+==================================================
+15. CACHE / IN-MEMORY STATE
+==================================================
+
+Cari penggunaan:
+
+- Map
+- object cache
+- singleton state
+- global variable
+- process memory
+- temporary runtime registry
+
+Pastikan tidak ada state penting yang seharusnya persistent tetapi hanya disimpan di memory.
+
+Jika memang ada runtime cache:
+
+pastikan cache tidak menjadi sumber kebenaran untuk ownership, authorization, atau persistence.
+
+Database tetap menjadi source of truth sesuai architecture.
+
+==================================================
+16. API PERSISTENCE CONTRACT
+==================================================
+
+Audit API yang melakukan mutation.
+
+Untuk setiap mutation:
+
+request
+→ validation
+→ authentication
+→ authorization
+→ domain/service
+→ persistence
+→ response
+
+Pastikan response tidak dikirim sebelum persistence berhasil.
+
+Jangan melakukan:
+
+mutation sukses di response
+padahal database write gagal.
+
+Jika write gagal:
+
+response harus failure sesuai error convention.
+
+==================================================
+17. DATABASE RELOAD TEST
+==================================================
+
+Jika test architecture memungkinkan:
+
+buat verification:
+
+1. create resource
+2. persist
+3. reload repository/database state
+4. verify resource
+5. update
+6. reload
+7. verify update
+8. delete/disable
+9. reload
+10. verify final state
+
+Jangan membuat test yang bergantung pada implementation detail yang tidak penting.
+
+Fokus pada persistence contract.
+
+==================================================
+18. REGRESSION SECURITY
+==================================================
+
+Pastikan hardening persistence tidak melemahkan security sebelumnya.
+
+Regression wajib:
+
+Authentication:
+- valid session PASS
+- invalid session DENY
+
+Workspace:
+- own workspace PASS
+- cross-workspace DENY
+
+Membership:
+- authorized member PASS
+- unauthorized member DENY
+
+Bot:
+- own bot PASS
+- cross-workspace bot DENY
+
+Lifecycle:
+- authorized enable PASS
+- unauthorized enable DENY
+- authorized disable PASS
+- unauthorized disable DENY
+
+Ownership:
+- owner relation tetap benar
+
+Persistence:
+- state tetap benar setelah read-back.
+
+==================================================
+19. TEST MATRIX
+==================================================
+
+Tambahkan/perbaiki test hanya sesuai resource yang benar-benar tersedia.
+
+Minimal:
+
+Persistence:
+- create → read PASS
+- update → read PASS
+- enable → read PASS
+- disable → read PASS
+- delete → read behavior PASS
+
+Database:
+- PostgreSQL adapter PASS
+- repository persistence PASS
+- database error mapping PASS
+
+Lifecycle:
+- repeated enable PASS
+- repeated disable PASS
+- repeated delete PASS sesuai contract
+
+Session:
+- create session PASS
+- revoke session PASS
+- expired session DENY
+
+Security:
+- cross-workspace persistence access DENY
+- ownership mismatch DENY
+
+Concurrency:
+- relevant concurrent mutation behavior PASS
+
+Jangan membuat test untuk endpoint yang tidak tersedia.
+
+==================================================
+20. TYPESCRIPT / CODE QUALITY
+==================================================
+
+Pastikan:
+
+- tidak menambahkan any tanpa alasan
+- tidak menambahkan @ts-ignore
+- tidak ada unused import
+- tidak ada dead code
+- tidak ada duplicate repository
+- tidak ada duplicate persistence abstraction
+- tidak ada duplicate database adapter
+- tidak ada hardcoded secret
+- tidak ada SQL injection pattern baru
+- tidak ada circular dependency baru.
+
+Ikuti architecture repository.
+
+==================================================
+21. MIGRATION DISCIPLINE
+==================================================
+
+Jangan membuat migration hanya untuk merapikan sesuatu.
+
+Migration hanya boleh dibuat jika:
+
+- ada perubahan schema yang benar-benar diperlukan
+- ada bug integrity yang tidak dapat diperbaiki di application layer
+- perubahan minimal
+- migration aman
+- test migration tersedia.
+
+Jika tidak diperlukan:
+
+laporkan:
+
+No migration required.
+
+Jangan menyentuh production database.
+
+==================================================
+22. README
+==================================================
+
+Jika diperlukan, update README.md yang sudah ada.
+
+Jangan membuat README baru.
+
+Dokumentasikan secara singkat:
+
+- production persistence
+- PostgreSQL runtime
+- bot state persistence
+- session persistence
+- verification command
+
+Jangan membuat dokumentasi panjang.
+
+==================================================
+23. FULL VERIFICATION
+==================================================
+
+Setelah implementation selesai jalankan verification resmi repository.
+
+Minimal:
+
+- domain tests
+- API tests
+- authentication/session tests
+- workspace authorization tests
+- membership tests
+- bot/resource tests
+- lifecycle tests
+- PostgreSQL integration/runtime tests jika tersedia
+- pnpm check
+- typecheck
+- lint
+- format
+- import boundary
+- build
+- git diff --check
+
+Jika PostgreSQL integration test memang tersedia:
+
+JALANKAN SECARA EKSPLISIT.
+
+Jangan mengklaim PostgreSQL runtime verified hanya berdasarkan unit test.
+
+Jika test PostgreSQL membutuhkan:
+
+PERSISTENCE_TEST_DATABASE_URL
+
+gunakan database PostgreSQL test yang memang tersedia.
+
+Jangan menyentuh production database.
+
+==================================================
+24. FAILURE HANDLING
+==================================================
+
+Jika verification gagal:
+
+1. identifikasi root cause
+2. perbaiki implementation
+3. jalankan test terkait
+4. jalankan full verification kembali
+
+Jangan:
+
+- skip test
+- menghapus test
+- menurunkan assertion
+- mematikan integration test
+- mengubah expected result hanya agar PASS.
+
+==================================================
+25. GIT AUDIT
+==================================================
+
+Sebelum commit:
+
+git status
+git diff --stat
+git diff
+git diff --check
+
+Pastikan perubahan hanya terkait task ini.
+
+Jangan commit:
+
+- .env
+- API key
+- token
+- credential
+- database dump
+- log
+- temporary file
+- build artifact.
+
+==================================================
+26. COMMIT
+==================================================
+
+Jika seluruh verification PASS:
+
+buat SATU commit.
+
+Gunakan message sesuai implementation aktual.
+
+Contoh:
+
+fix: harden production persistence
+
+atau:
+
+fix: enforce runtime persistence consistency
+
+Pilih yang paling sesuai.
+
+Setelah commit:
+
+git status
+git log --oneline -3
+
+==================================================
+27. PUSH
+==================================================
+
+Jalankan:
+
+git push
+
+Branch tetap:
+
+backend-dev-recovery
+
+Jangan:
+
+- force push
+- reset
+- rebase sembarangan
+- ubah remote
+- checkout branch lain
+- merge ke backend-dev.
+
+Jika push gagal karena credential GitHub:
+
+JANGAN mengubah source code.
+
+Pertahankan commit lokal.
+
+Laporkan error push sebenarnya.
+
+==================================================
+28. HASIL AKHIR
+==================================================
+
+Tampilkan laporan:
+
+Implementation:
+- ...
+
+Persistence:
+- ...
+
+PostgreSQL:
+- ...
+
+Runtime:
+- ...
+
+Security:
+- ...
+
+Tests:
+- Domain: ...
+- API: ...
+- Auth/Session: ...
+- Workspace: ...
+- Membership: ...
+- Bot/Resource: ...
+- Lifecycle: ...
+- PostgreSQL: ...
+- pnpm check: ...
+- Typecheck: ...
+- Lint: ...
+- Format: ...
+- Import boundary: ...
+- Build: ...
+- git diff --check: ...
+
+Migration:
+- required/not required
+- result
+
+Commit:
+- hash: ...
+- message: ...
+
+Git:
+- branch: ...
+- push: success/failed
+
+Working Tree:
+- clean/dirty
+
+Jika ada failure, tampilkan error sebenarnya.
+
+Jangan mengklaim production runtime verified jika PostgreSQL/runtime verification belum benar-benar dijalankan.
+
+==================================================
+29. PENTING
+==================================================
+
+Jangan membuat fitur besar baru.
+
+Jangan mengubah architecture BotSpace secara besar-besaran.
+
+Jangan membuat database layer baru.
+
+Jangan membuat authorization layer baru.
+
+Jangan membuat migration besar.
+
+Fokus hanya:
+
+AUDIT
+→ PRODUCTION RUNTIME
+→ POSTGRESQL
+→ PERSISTENCE
+→ STATE CONSISTENCY
+→ SESSION PERSISTENCE
+→ TRANSACTION SAFETY
+→ FAILURE RECOVERY
+→ REGRESSION
+→ TEST
+→ BUILD
+→ COMMIT
+→ PUSH
+
+Selesaikan sampai push berhasil lalu berhenti.
 
 
 ```
