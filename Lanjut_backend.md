@@ -618,10 +618,591 @@
 
 
 ```
-# 
+# Prompt: B-040 Telegram Account Connection — Full Contract Discovery, Decision Package & Implementation
 ```
 
+Lanjutkan project BotSpace dari kondisi repository TERAKHIR.
 
+WORKING DIRECTORY:
+`/root/botspace`
+
+BRANCH:
+`backend-dev-recovery`
+
+==================================================
+KONDISI TERAKHIR
+==================================================
+
+Repository sudah diaudit secara menyeluruh.
+
+Status yang sudah selesai dan JANGAN diulang:
+
+- B-030 Workspace API/Contract — DONE
+- B-070 Storage Adapter — DONE
+- B-071 File/Share Contract — DONE
+- B-071 File/Share API — DONE
+- B-071 Production Wiring — DONE
+- SecretResolver production boundary — DONE sejauh yang dapat dilakukan
+- Workspace isolation — verified
+- File/share security — verified
+- Git branch sudah sinkron
+- Working tree terakhir CLEAN
+
+Remaining roadmap saat ini menunjukkan:
+
+- B-040 Telegram account connection — BLOCKED
+- B-041 connection health/state machine — menunggu B-040
+- B-050/B-051/B-052 — menunggu bot/provider/runtime contract
+- B-090/B-091/B-092 — menunggu JobEnvelope/queue/scheduler contract
+- B-100 — menunggu operator/admin contract
+- B-110/B-111 — menunggu entitlement/billing contract
+- B-130/B-131 — menunggu abuse-control/webhook/security contract
+- B-140/B-141 — menunggu telemetry/SLO/alert/runbook contract
+- B-150/B-151 — menunggu release/staging/backup/rollback infrastructure
+- B-080 — AI requirements unavailable
+- B-120 — marketplace requirements unavailable
+- public-share rate limiting — deferred
+- public-share audit event — deferred
+- share expiry — deferred
+
+Audit terakhir menyatakan:
+
+"the next actionable step is not code. It is approval and delivery of the missing Telegram account connection contract, after which B-041 and the dependent bot/runtime chain can be reevaluated."
+
+==================================================
+TUJUAN RUN INI
+==================================================
+
+Sekarang fokus hanya pada:
+
+# B-040 TELEGRAM ACCOUNT CONNECTION
+
+Tujuan utama:
+
+1. Pastikan apakah Telegram account connection contract benar-benar belum ada.
+2. Cari seluruh repository untuk kemungkinan contract/ADR/model/configuration yang sebenarnya sudah tersedia tetapi belum ditemukan oleh audit sebelumnya.
+3. Jika contract sudah ada secara nyata:
+   - gunakan contract tersebut,
+   - implementasikan B-040,
+   - tambahkan test,
+   - validation,
+   - commit,
+   - push.
+4. Jika contract memang BELUM ADA:
+   - jangan langsung membuat implementation Telegram speculative,
+   - jangan membuat polling/webhook,
+   - jangan membuat authentication flow berdasarkan asumsi,
+   - jangan memilih architecture tanpa dasar.
+5. Namun jangan berhenti hanya dengan kalimat "blocked".
+   Buat decision package yang lengkap agar dependency B-040 dapat diselesaikan dengan satu keputusan yang jelas.
+
+==================================================
+FASE 1 — AUDIT TOTAL B-040
+==================================================
+
+Cari seluruh repository untuk:
+
+- B-040
+- Telegram
+- Telegram account
+- account connection
+- connection contract
+- account lifecycle
+- authentication
+- session
+- credentials
+- login
+- authorization
+- bot account
+- BotInstallation
+- provider
+- runtime
+- webhook
+- polling
+- MTProto
+- Bot API
+- token
+- secret
+- account state
+- connection state
+- health state
+- ADR
+- architecture decision
+- TODO
+- deferred
+- blocked
+- roadmap
+
+Jangan hanya mencari nama file.
+
+Periksa juga:
+
+- database schema,
+- migrations,
+- domain models,
+- interfaces,
+- ports,
+- adapters,
+- API routes,
+- configuration,
+- documentation,
+- ADR,
+- README,
+- test fixtures,
+- existing Telegram-related code.
+
+==================================================
+FASE 2 — CEK APAKAH CONTRACT TERSEMBUNYI
+==================================================
+
+Sebelum menyimpulkan B-040 blocked:
+
+Cari apakah sudah ada contract yang secara tidak langsung menentukan:
+
+- bagaimana Telegram account direpresentasikan,
+- bagaimana account dihubungkan,
+- bagaimana credential/session disimpan,
+- bagaimana connection dibuat,
+- bagaimana connection diputus,
+- bagaimana connection state ditentukan,
+- bagaimana health ditentukan,
+- bagaimana reconnect dilakukan,
+- bagaimana account ownership ditentukan,
+- bagaimana workspace memiliki account,
+- bagaimana authentication dilakukan.
+
+Jika ada:
+
+JANGAN membuat contract baru.
+
+Gunakan contract yang sudah ada.
+
+==================================================
+FASE 3 — TENTUKAN DEPENDENCY MINIMUM
+==================================================
+
+Jika contract belum tersedia, tentukan dependency minimum yang BENAR-BENAR dibutuhkan B-040.
+
+Minimal audit:
+
+1. Account identity
+2. Workspace ownership
+3. Connection lifecycle
+4. Authentication mechanism
+5. Credential/session storage boundary
+6. Connection state
+7. Disconnect/revoke semantics
+8. Health semantics
+9. Secret handling
+10. Runtime handoff boundary
+
+Jangan implementasikan runtime sebelum boundary ini jelas.
+
+==================================================
+FASE 4 — JANGAN MEMILIH AUTHENTICATION SECARA SEMBARANGAN
+==================================================
+
+JANGAN otomatis memilih:
+
+- Telegram Bot API token,
+- MTProto,
+- phone login,
+- QR login,
+- OAuth,
+- device code,
+- browser session,
+- polling,
+- webhook.
+
+Cari dulu apakah architecture repository sudah menetapkan salah satunya.
+
+Jika tidak ada:
+
+tandai sebagai ARCHITECTURE DECISION REQUIRED.
+
+Jangan mengarang keputusan.
+
+==================================================
+FASE 5 — DECISION PACKAGE
+==================================================
+
+Jika B-040 benar-benar belum memiliki contract, buat satu decision package yang bisa digunakan maintainer/deployment owner untuk menyetujui contract tersebut.
+
+Decision package harus menjelaskan:
+
+### A. Account Model
+
+Apa identitas Telegram account?
+
+Contoh pertanyaan:
+
+- internal account ID?
+- Telegram user/account ID?
+- workspace ID?
+- display name?
+- username?
+
+Jangan mengisi nilai berdasarkan asumsi. Bedakan:
+
+CONFIRMED
+
+vs
+
+DECISION REQUIRED.
+
+### B. Connection Lifecycle
+
+Tentukan contract yang dibutuhkan untuk:
+
+- connect
+- connecting
+- connected
+- degraded
+- disconnected
+- disconnecting
+- failed
+- revoked
+
+Jika state belum disetujui:
+
+jangan membuat implementation.
+
+### C. Authentication
+
+Jelaskan pilihan yang mungkin berdasarkan kebutuhan repository.
+
+Tetapi JANGAN memilih satu tanpa approval.
+
+### D. Credential Boundary
+
+Tentukan:
+
+- apa yang dianggap secret,
+- siapa yang menyimpan,
+- bagaimana SecretResolver digunakan,
+- bagaimana credential/session direvoke,
+- apa yang tidak boleh masuk database/log.
+
+### E. Workspace Ownership
+
+Pastikan satu Telegram account tidak dapat diakses oleh workspace lain.
+
+### F. Disconnect/Revoke
+
+Tentukan behavior:
+
+- disconnect account,
+- revoke credential,
+- invalidate session,
+- remove workspace association.
+
+### G. Runtime Boundary
+
+B-040 hanya mendefinisikan account connection.
+
+JANGAN memasukkan:
+
+- bot polling,
+- webhook runtime,
+- worker runtime,
+- queue,
+- scheduler.
+
+Runtime harus tetap menjadi dependency berikutnya.
+
+==================================================
+FASE 6 — ADR / DOCUMENTATION
+==================================================
+
+Cari mekanisme ADR/documentation yang SUDAH digunakan repository.
+
+Jika repository memang memiliki ADR mechanism:
+
+buat/update decision document hanya jika itu memang bagian workflow repository.
+
+Jika repository tidak memiliki ADR mechanism:
+
+JANGAN membuat sistem dokumentasi baru hanya untuk ini.
+
+Dalam laporan, tampilkan decision package sebagai output audit.
+
+Jangan mengubah README besar-besaran.
+
+==================================================
+FASE 7 — IMPLEMENTASI JIKA CONTRACT SUDAH TERSEDIA
+==================================================
+
+Jika selama audit ditemukan contract yang benar-benar sudah tersedia:
+
+IMPLEMENTASIKAN B-040.
+
+Implementation harus modular.
+
+Pisahkan:
+
+- domain contract,
+- account repository,
+- connection service,
+- credential boundary,
+- provider adapter,
+- API boundary.
+
+Jangan membuat satu file besar.
+
+Pastikan:
+
+- workspace ownership,
+- authorization,
+- secret handling,
+- lifecycle,
+- error handling.
+
+Tambahkan test untuk:
+
+- connect,
+- duplicate connection,
+- wrong workspace,
+- disconnect,
+- revoke,
+- invalid state,
+- credential failure,
+- unauthorized access,
+- secret leakage.
+
+==================================================
+FASE 8 — JIKA CONTRACT BELUM ADA
+==================================================
+
+Jika contract benar-benar belum ada:
+
+JANGAN membuat fake implementation.
+
+JANGAN membuat Telegram runtime.
+
+JANGAN membuat database migration speculative.
+
+JANGAN membuat provider adapter speculative.
+
+JANGAN membuat endpoint palsu.
+
+Sebaliknya:
+
+hasilkan:
+
+# B-040 BLOCKED
+
+dengan:
+
+- exact missing contract,
+- exact architecture decision,
+- exact dependency,
+- files inspected,
+- evidence dari repository,
+- apa yang bisa langsung dikerjakan setelah approval.
+
+==================================================
+FASE 9 — RE-EVALUASI DEPENDENCY CHAIN
+==================================================
+
+Setelah audit B-040, reevaluasi:
+
+B-040
+↓
+B-041
+↓
+B-050
+↓
+B-051
+↓
+B-052
+↓
+B-090
+↓
+B-091/B-092
+↓
+F-090
+↓
+B-100
+↓
+B-110/B-111
+↓
+B-130/B-131
+↓
+B-140/B-141
+↓
+B-150/B-151
+
+Jangan menganggap dependency chain otomatis benar.
+
+Gunakan repository sebagai source of truth.
+
+Jika ada task yang ternyata tidak bergantung B-040 dan sudah UNBLOCKED:
+
+KERJAKAN task tersebut.
+
+Jika semuanya tetap blocked:
+
+jelaskan alasannya.
+
+==================================================
+FASE 10 — VALIDATION
+==================================================
+
+Jika ada code yang berubah:
+
+jalankan:
+
+pnpm test
+pnpm build
+pnpm typecheck
+pnpm lint
+pnpm format:check
+node scripts/check-imports.mjs
+node scripts/check-ownership.mjs
+node scripts/check-doc-links.mjs
+git diff --check
+
+Jangan membuat:
+
+scripts/check-symlinks.mjs
+
+Jika file tidak tersedia:
+
+SKIPPED — unavailable.
+
+Jangan mengubah test agar PASS.
+
+==================================================
+FASE 11 — SECURITY REVIEW
+==================================================
+
+Audit:
+
+- workspace isolation,
+- account ownership,
+- credential storage,
+- SecretResolver usage,
+- session handling,
+- authorization,
+- error sanitization,
+- log sanitization.
+
+Pastikan:
+
+- tidak ada secret di source,
+- tidak ada token di log,
+- tidak ada credential di response,
+- tidak ada cross-workspace account access.
+
+==================================================
+FASE 12 — GIT
+==================================================
+
+Jika ada implementation valid:
+
+review:
+
+git status
+git diff --stat
+git diff
+
+Jika valid:
+
+buat SATU commit.
+
+Push:
+
+git push origin backend-dev-recovery
+
+Verifikasi:
+
+git rev-parse HEAD
+git rev-parse origin/backend-dev-recovery
+git status
+
+Pastikan:
+
+LOCAL SHA == REMOTE SHA
+WORKING TREE CLEAN
+
+Jika hanya audit/documentation tanpa repository change:
+
+JANGAN membuat empty commit.
+
+==================================================
+FINAL REPORT
+==================================================
+
+Tampilkan:
+
+# B-040 STATUS
+
+DONE / BLOCKED / DECISION REQUIRED
+
+# CONTRACT DISCOVERY
+
+- contract ditemukan:
+- file:
+- evidence:
+
+# MISSING DECISIONS
+
+Jika ada, tampilkan exact decision yang diperlukan.
+
+# IMPLEMENTATION
+
+Jika ada:
+- file changed
+- behavior
+- tests
+
+Jika tidak:
+- jelaskan mengapa implementation tidak aman dilakukan.
+
+# DEPENDENCY CHAIN
+
+B-040 → B-041 → B-050/B-051/B-052 → ...
+
+# VALIDATION
+
+Semua hasil test/build/typecheck/lint/etc.
+
+# GIT
+
+- SHA
+- push
+- working tree
+
+# NEXT ACTION
+
+Hanya satu next action paling tepat.
+
+Jangan membuat fitur acak.
+
+==================================================
+STOP CONDITION
+==================================================
+
+STOP setelah:
+
+1. seluruh repository sudah dicari,
+2. B-040 contract sudah ditemukan ATAU dipastikan benar-benar belum ada,
+3. semua task yang tidak bergantung B-040 sudah diperiksa,
+4. implementation dilakukan jika contract benar-benar tersedia,
+5. jika contract tidak tersedia, decision package sudah lengkap,
+6. tidak ada speculative Telegram implementation.
+
+PENTING:
+
+Jangan hanya menjawab "B-040 blocked".
+
+Lakukan audit mendalam terlebih dahulu.
+
+Jika ada code yang aman dikerjakan → KERJAKAN.
+
+Jika tidak ada → siapkan dependency/decision yang benar.
+
+Kerjakan langsung pada `/root/botspace`.
 
 ```
 # Prompt: Final Roadmap Closure & Dependency Resolution Audit
