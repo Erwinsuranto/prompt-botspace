@@ -64,9 +64,80 @@
 
 
 ```
-# 
+# Prompt: B-070 Storage Adapter + Push
 ```
 
+# Prompt: B-070 Storage Adapter + Push
+
+Lanjutkan project BotSpace dari kondisi repository saat ini.
+
+Kondisi terakhir:
+
+* Commit sebelumnya:
+  `43f07db398d057a3b71a6d698b6c590c8924ef9a`
+* Commit message:
+  `feat: wire worker module runtime composition`
+* Working tree terakhir clean.
+* Validation sebelumnya berhasil.
+* Push GitHub sebelumnya belum dilakukan sesuai instruksi karena credential belum tersedia.
+
+Sekarang lanjutkan roadmap **B-070: Storage Adapter**.
+
+Tugas:
+
+1. Audit terlebih dahulu roadmap B-070 dan kode repository saat ini.
+2. Jangan langsung membuat schema/storage contract baru jika belum ada contract yang menjadi dasar.
+3. Tentukan storage adapter yang memang sudah didukung oleh arsitektur BotSpace saat ini.
+4. Jika dependency/contract yang diperlukan untuk B-070 sudah tersedia, implementasikan storage adapter secara modular.
+5. Storage adapter harus:
+
+   * memiliki interface/contract yang jelas,
+   * tidak mencampurkan business logic dengan persistence,
+   * dapat digunakan oleh module runtime,
+   * mudah diganti backend storage di masa depan,
+   * tidak merusak module dan runtime yang sudah ada.
+6. Jangan membuat implementasi Telegram adapter/polling/webhook runtime pada tahap ini jika memang belum menjadi bagian B-070.
+7. Jangan mengubah `BotInstallation.status` menjadi runtime process state. Lifecycle state dan process state harus tetap dipisahkan.
+8. Tambahkan unit test untuk behavior storage adapter yang benar-benar diimplementasikan.
+9. Jangan membuat mock/schema palsu hanya agar test PASS.
+10. Jangan mengubah atau menjalankan integration test Gorouter.app.
+11. NVIDIA dan TokenHarbor boleh diverifikasi bila memang tersentuh oleh perubahan, tetapi jangan menambahkan test provider yang tidak diperlukan.
+
+Setelah implementasi selesai, jalankan validation:
+
+* pnpm test
+* pnpm build
+* pnpm typecheck
+* pnpm lint
+* pnpm format:check
+* scripts/check-imports.mjs
+* scripts/check-symlinks.mjs
+* scripts/check-ownership.mjs
+* scripts/check-doc-links.mjs
+* git diff --check
+
+Jika semua PASS:
+12. Buat commit lokal dengan message yang sesuai, misalnya:
+`feat: implement storage adapter foundation`
+gunakan message yang lebih tepat jika perubahan berbeda.
+
+13. Setelah commit berhasil, LANGSUNG coba:
+    `git push origin backend-dev-recovery`
+
+14. Jika push berhasil, tampilkan SHA commit dan status remote.
+
+15. Jika push gagal karena credential GitHub, jangan mengubah konfigurasi credential secara sembarangan. Pastikan commit tetap aman secara lokal dan tampilkan error push secara jelas.
+
+16. Setelah tahap ini selesai, jangan mengerjakan fitur acak. Tampilkan:
+
+* commit SHA,
+* push status,
+* validation status,
+* file yang berubah,
+* remaining issues,
+* roadmap/task berikutnya yang paling tepat berdasarkan dependency repository.
+
+Kerjakan langsung pada repository `/root/botspace`.
 
 
 ```
