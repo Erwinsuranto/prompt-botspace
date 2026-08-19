@@ -612,9 +612,749 @@
 
 
 ```
-# 
+# Prompt: B-040 → B-041 → Bot Runtime Dependency Chain
 ```
+Lanjutkan project BotSpace dari kondisi repository TERAKHIR.
 
+WORKING DIRECTORY:
+`/root/botspace`
+
+BRANCH:
+`backend-dev-recovery`
+
+==================================================
+KONDISI TERAKHIR
+==================================================
+
+B-030 Workspace API/Contract:
+DONE
+
+B-070 Storage Adapter:
+DONE
+
+B-071 File/Share Contract:
+DONE
+
+B-071 File/Share API:
+DONE
+
+B-071 Production Wiring:
+DONE
+
+Production SecretResolver application boundary:
+DONE sejauh yang dapat dilakukan dari repository
+
+Deferred infrastructure verification:
+SUDAH DIAUDIT
+
+B-040 Telegram Account Connection:
+BELUM IMPLEMENTASI
+
+Audit terakhir sudah menghasilkan:
+
+`docs/architecture/ADR-011-telegram-account-connection.md`
+
+dan update documentation/status terkait.
+
+Repository terakhir menunjukkan:
+
+- HEAD dan origin/backend-dev-recovery sudah sinkron.
+- Tidak ada source implementation Telegram yang dibuat secara speculative.
+- B-040 masih menunggu approval contract/architecture decision.
+- B-041 bergantung pada B-040.
+- B-050/B-051/B-052 bergantung pada bot/provider/runtime contract.
+- B-090/B-091/B-092 bergantung pada queue/job/scheduler architecture.
+- B-100 bergantung pada operator/admin contract.
+- B-110/B-111 bergantung pada entitlement/billing contract.
+- B-130/B-131 bergantung pada abuse-control/webhook/security contract.
+- B-140/B-141 bergantung pada telemetry/SLO/alert/runbook contract.
+- B-150/B-151 bergantung pada deployment/release/backup/rollback infrastructure.
+- B-080 AI requirements belum tersedia.
+- B-120 marketplace requirements belum tersedia.
+- share expiry masih deferred.
+- public-share rate limiting masih deferred.
+- public-share audit event masih deferred.
+- PostgreSQL integration masih membutuhkan environment.
+- MinIO/S3 smoke test masih membutuhkan environment.
+- `scripts/check-symlinks.mjs` memang tidak tersedia.
+
+==================================================
+TUJUAN RUN INI
+==================================================
+
+Jangan berhenti hanya karena screenshot/status sebelumnya mengatakan
+"approval required".
+
+Sekarang lakukan audit penuh untuk menentukan apakah approval B-040/ADR-011
+memang benar-benar membutuhkan input eksternal, atau repository sudah memiliki
+cukup informasi untuk menyelesaikan decision tersebut.
+
+Jika approval dapat diselesaikan berdasarkan contract/ADR/deployment decision
+yang SUDAH ada di repository:
+
+→ selesaikan approval secara repository-backed,
+→ implementasikan B-040,
+→ lanjutkan otomatis ke B-041,
+→ lanjutkan ke task berikutnya yang benar-benar UNBLOCKED.
+
+Jika approval memang membutuhkan keputusan manusia/deployment owner yang belum
+tersedia:
+
+→ JANGAN mengarang approval,
+→ JANGAN memilih authentication mechanism secara sembarangan,
+→ JANGAN membuat Telegram implementation speculative.
+
+Tetapi audit SEMUA task lain yang mungkin sudah UNBLOCKED dan kerjakan yang
+bisa dilakukan.
+
+==================================================
+FASE 1 — AUDIT ADR-011
+==================================================
+
+Baca:
+
+- `docs/architecture/ADR-011-telegram-account-connection.md`
+- `docs/architecture/DECISIONS.md`
+- roadmap terbaru,
+- `AI_CONTEXT.md`,
+- `AI_TASKS.md`,
+- `PROJECT_STATUS.md`,
+- `ROADMAP_V2.md`,
+- seluruh contract Telegram/account/provider/runtime yang sudah ada.
+
+Cari:
+
+- status ADR,
+- decision owner,
+- approval mechanism,
+- accepted/rejected status,
+- superseding ADR,
+- existing authentication decision,
+- existing credential/session decision,
+- existing Telegram provider decision,
+- existing deployment decision.
+
+Jangan hanya grep `B-040`.
+
+Cari juga istilah:
+
+- Telegram account
+- account connection
+- Telegram authentication
+- Bot API
+- bot token
+- MTProto
+- session
+- credential
+- SecretResolver
+- connection state
+- account lifecycle
+- provider adapter
+- runtime
+- BotInstallation
+- workspace account
+- account ownership
+- revoke
+- disconnect
+- reconnect
+- health.
+
+==================================================
+FASE 2 — TENTUKAN APAKAH B-040 BISA DIBUKA
+==================================================
+
+Klasifikasikan hasil menjadi:
+
+A. APPROVED
+B. APPROVABLE FROM EXISTING CONTRACT
+C. REQUIRES HUMAN/DEPLOYMENT OWNER DECISION
+D. BLOCKED BY MISSING INFRASTRUCTURE
+
+Jangan mengubah status menjadi APPROVED hanya karena implementation
+terlihat mudah.
+
+Untuk status APPROVED atau APPROVABLE:
+
+jelaskan evidence file/contract yang mendukung.
+
+Jika C:
+
+jelaskan EXACT decision yang masih diperlukan.
+
+Minimal:
+
+1. Telegram authentication mechanism
+2. account identity
+3. credential/session persistence boundary
+4. lifecycle state machine
+5. disconnect/revoke semantics
+6. workspace ownership
+7. runtime handoff boundary
+
+==================================================
+FASE 3 — JIKA B-040 SUDAH APPROVED
+==================================================
+
+Implementasikan B-040 secara modular.
+
+Pisahkan dengan jelas:
+
+- domain model,
+- connection contract,
+- account repository contract,
+- connection service,
+- credential/session boundary,
+- provider adapter,
+- API boundary.
+
+Jangan membuat satu file besar.
+
+Pastikan:
+
+### Account Identity
+
+Telegram account harus memiliki identity yang deterministic.
+
+Pastikan hubungan:
+
+workspace
+→ Telegram account
+→ connection
+
+tidak memungkinkan cross-workspace access.
+
+### Credential Boundary
+
+Gunakan `SecretResolver` yang sudah ada.
+
+Jangan:
+
+- hardcode token,
+- menyimpan raw credential di source,
+- mencetak credential,
+- mengembalikan credential melalui API,
+- memasukkan credential ke error.
+
+### Lifecycle
+
+Implementasikan hanya state yang memang disetujui ADR/contract.
+
+Jangan membuat state tambahan tanpa alasan.
+
+### Disconnect
+
+Disconnect harus memiliki behavior yang jelas.
+
+Pastikan account yang disconnected tidak dapat digunakan oleh runtime sebagai
+connected account.
+
+### Revoke
+
+Jika contract mendukung revoke:
+
+- invalidate credential/session reference,
+- update connection state,
+- pastikan runtime tidak menggunakan credential yang sudah direvoke.
+
+==================================================
+FASE 4 — B-041 CONNECTION HEALTH / STATE MACHINE
+==================================================
+
+SETELAH B-040 selesai dan validation PASS:
+
+Audit B-041.
+
+Implementasikan hanya jika contract B-040 sekarang cukup.
+
+B-041 harus menangani:
+
+- connection health,
+- current state,
+- transition validity,
+- failure state,
+- disconnect state,
+- reconnect semantics jika contract mendukungnya.
+
+Jangan membuat network polling permanen hanya untuk health check jika runtime
+contract belum tersedia.
+
+Pisahkan:
+
+ACCOUNT LIFECYCLE STATE
+
+dari:
+
+RUNTIME PROCESS STATE.
+
+JANGAN mengubah:
+
+`BotInstallation.status`
+
+menjadi process state.
+
+==================================================
+FASE 5 — B-050 / B-051 / B-052
+==================================================
+
+Setelah B-041:
+
+Audit dependency:
+
+- B-050
+- B-051
+- B-052
+
+Jangan mengerjakan semuanya secara membabi buta.
+
+Tentukan:
+
+B-050 membutuhkan apa?
+B-051 membutuhkan apa?
+B-052 membutuhkan apa?
+
+Jika contract/provider/runtime sudah tersedia:
+
+IMPLEMENTASIKAN.
+
+Jika belum:
+
+STOP di dependency tersebut.
+
+Jangan membuat provider contract speculative.
+
+==================================================
+FASE 6 — BOT RUNTIME
+==================================================
+
+Jika B-050/B-051/B-052 ternyata sudah cukup untuk membuka runtime:
+
+audit runtime architecture.
+
+Pisahkan:
+
+1. account connection
+2. bot installation
+3. provider
+4. runtime process
+5. lifecycle
+6. health
+7. restart/reconnect.
+
+Jangan membuat Telegram polling/webhook hanya karena ingin "melanjutkan".
+
+Gunakan adapter/provider boundary yang memang sudah ada.
+
+Jika provider contract belum ada:
+
+jangan implementasikan runtime.
+
+==================================================
+FASE 7 — CARI SEMUA TASK UNBLOCKED
+==================================================
+
+Setelah B-040/B-041 atau blocker ditemukan, jangan berhenti.
+
+Audit roadmap secara keseluruhan.
+
+Untuk setiap task:
+
+B-050
+B-051
+B-052
+B-080
+B-090
+B-091
+B-092
+B-100
+B-110
+B-111
+B-120
+B-130
+B-131
+B-140
+B-141
+B-150
+B-151
+F-080
+F-090
+F-100
+F-110
+F-120
+F-130
+F-140
+F-150
+
+tentukan:
+
+- DONE
+- READY
+- BLOCKED
+- DEFERRED
+
+Jika READY dan contract tersedia:
+
+KERJAKAN.
+
+Jika BLOCKED:
+
+jangan membuat speculative implementation.
+
+==================================================
+FASE 8 — QUEUE / JOB / SCHEDULER
+==================================================
+
+Jika ternyata B-090 atau dependency-nya sudah memiliki contract yang cukup:
+
+audit:
+
+- JobEnvelope,
+- queue adapter,
+- retry,
+- DLQ,
+- replay,
+- execution semantics,
+- scheduler.
+
+Jangan membuat queue system baru jika repository sudah memiliki abstraction.
+
+Jangan memilih Redis/BullMQ/SQS/etc. tanpa architecture decision.
+
+Jika contract belum ada:
+
+tetap BLOCKED.
+
+==================================================
+FASE 9 — OPERATOR / BILLING / SECURITY
+==================================================
+
+Jangan membuat:
+
+- operator system,
+- billing system,
+- entitlement system,
+- abuse system,
+- telemetry system,
+
+secara speculative.
+
+Tetapi jika contract sudah tersedia:
+
+kerjakan implementation yang memang sudah unblocked.
+
+==================================================
+FASE 10 — INFRASTRUCTURE VERIFICATION
+==================================================
+
+Periksa environment.
+
+### PostgreSQL
+
+Cari:
+
+`PERSISTENCE_TEST_DATABASE_URL`
+
+Jika tersedia:
+
+jalankan integration test yang memang sudah ada.
+
+Jika tidak:
+
+`SKIPPED — PERSISTENCE_TEST_DATABASE_URL unavailable`
+
+Jangan membuat database palsu.
+
+### MinIO/S3
+
+Cari environment endpoint/credential TEST ONLY.
+
+Jika tersedia:
+
+jalankan smoke test:
+
+upload
+→ verify
+→ download
+→ verify content
+→ delete
+→ verify deletion
+
+Jika tidak:
+
+`SKIPPED — MinIO/S3 test environment unavailable`
+
+Jangan install infrastructure permanen hanya untuk membuat PASS.
+
+### Secret Manager
+
+Jika managed secret manager nyata tersedia:
+
+jalankan startup/integration verification sesuai architecture.
+
+Jika tidak:
+
+tetap deferred.
+
+==================================================
+FASE 11 — SECURITY
+==================================================
+
+Audit semua perubahan.
+
+Pastikan:
+
+- workspace isolation,
+- account ownership,
+- authorization,
+- credential boundary,
+- SecretResolver,
+- session handling,
+- revoke behavior,
+- error sanitization,
+- log sanitization,
+- no secret leakage.
+
+Cari secara aktif:
+
+- API keys,
+- tokens,
+- passwords,
+- private credentials,
+- session strings.
+
+Jangan mencetak nilainya.
+
+==================================================
+FASE 12 — TEST
+==================================================
+
+Tambahkan test hanya untuk behavior yang benar-benar diimplementasikan.
+
+Minimal bila B-040/B-041 berhasil:
+
+- account ownership,
+- workspace isolation,
+- connect,
+- duplicate connect,
+- disconnect,
+- revoke,
+- invalid state transition,
+- connection failure,
+- health state,
+- unauthorized access,
+- credential failure,
+- secret non-leakage.
+
+Jika runtime dibuka:
+
+tambahkan test runtime lifecycle sesuai contract.
+
+Jangan membuat mock palsu hanya agar test PASS.
+
+==================================================
+FASE 13 — VALIDATION
+==================================================
+
+Jalankan semua command yang benar-benar tersedia:
+
+pnpm test
+pnpm build
+pnpm typecheck
+pnpm lint
+pnpm format:check
+node scripts/check-imports.mjs
+node scripts/check-ownership.mjs
+node scripts/check-doc-links.mjs
+git diff --check
+
+Untuk:
+
+node scripts/check-symlinks.mjs
+
+JANGAN membuat file baru.
+
+Jika tidak tersedia:
+
+SKIPPED — scripts/check-symlinks.mjs unavailable
+
+Jika command tertentu tidak tersedia, laporkan secara jujur.
+
+Jangan mengubah package.json hanya untuk membuat command terlihat tersedia.
+
+==================================================
+FASE 14 — REVIEW DIFF
+==================================================
+
+Sebelum commit:
+
+git status
+git diff --stat
+git diff
+
+Pastikan tidak ada:
+
+- credential,
+- secret,
+- temporary file,
+- generated junk,
+- unrelated refactor,
+- speculative provider,
+- speculative Telegram runtime,
+- perubahan Gorouter.app,
+- perubahan NVIDIA/TokenHarbor yang tidak diperlukan.
+
+==================================================
+FASE 15 — COMMIT + PUSH
+==================================================
+
+Jika ada implementation valid:
+
+buat SATU commit untuk perubahan yang benar-benar dikerjakan dalam run ini.
+
+Gunakan commit message yang sesuai dengan actual scope.
+
+Contoh:
+
+`feat: implement telegram account connection`
+
+atau:
+
+`feat: add telegram connection health state`
+
+atau message lain yang lebih tepat.
+
+Kemudian:
+
+git push origin backend-dev-recovery
+
+Verifikasi:
+
+git rev-parse HEAD
+git rev-parse origin/backend-dev-recovery
+git status
+
+Pastikan:
+
+LOCAL SHA == REMOTE SHA
+
+Jika hanya audit/documentation dan tidak ada source change:
+
+JANGAN membuat empty commit.
+
+Jika push gagal:
+
+jangan mengubah credential sembarangan,
+jangan menghapus commit,
+laporkan error.
+
+==================================================
+FASE 16 — UPDATE DOCUMENTATION
+==================================================
+
+Jika implementation benar-benar selesai:
+
+update status roadmap/documentation yang memang digunakan repository.
+
+Jangan membuat README baru.
+
+Gunakan documentation yang sudah ada:
+
+- AI_CONTEXT.md
+- AI_TASKS.md
+- PROJECT_STATUS.md
+- ROADMAP_V2.md
+- docs/architecture/ADR-011-telegram-account-connection.md
+- docs/architecture/DECISIONS.md
+
+Jangan menghapus history.
+
+Status harus mencerminkan keadaan repository sebenarnya.
+
+==================================================
+FINAL REPORT
+==================================================
+
+Tampilkan:
+
+# B-040
+
+Status:
+DONE / APPROVED / BLOCKED / DECISION REQUIRED
+
+Evidence:
+- contract:
+- ADR:
+- implementation:
+
+# B-041
+
+Status:
+DONE / READY / BLOCKED
+
+# B-050/B-051/B-052
+
+Status masing-masing.
+
+# OTHER READY TASKS
+
+Tampilkan task lain yang ternyata sudah UNBLOCKED dan dikerjakan.
+
+# BLOCKED TASKS
+
+Tampilkan hanya dependency nyata.
+
+# DEFERRED
+
+Tampilkan:
+- AI requirements
+- marketplace requirements
+- rate limiting
+- audit event
+- expiry
+- infrastructure yang memang belum tersedia
+
+# TEST / VALIDATION
+
+Tampilkan hasil setiap command.
+
+# GIT
+
+- commit SHA
+- remote SHA
+- push status
+- working tree
+
+# NEXT ACTION
+
+Berikan SATU task berikutnya yang paling tepat berdasarkan dependency nyata.
+
+==================================================
+STOP CONDITION
+==================================================
+
+Jangan berhenti hanya karena menemukan satu blocker.
+
+Teruskan pekerjaan selama masih ada task yang:
+
+- contract-nya tersedia,
+- dependency-nya selesai,
+- aman diimplementasikan,
+- dan tidak membutuhkan keputusan eksternal.
+
+STOP hanya jika:
+
+1. semua task yang currently READY sudah dikerjakan,
+2. semua task berikutnya benar-benar blocked/deferred,
+3. atau membutuhkan approval/decision/infrastructure yang belum tersedia.
+
+Jangan membuat fitur speculative hanya supaya terlihat progress.
+
+Kerjakan langsung pada `/root/botspace`.
+
+PRINSIP UTAMA:
+
+AUDIT → UNBLOCK → IMPLEMENT → TEST → REVIEW → COMMIT → PUSH → REEVALUATE ROADMAP.
+
+Ulangi siklus tersebut sampai tidak ada pekerjaan aman yang tersisa.
 
 
 ```
