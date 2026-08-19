@@ -600,10 +600,688 @@
 
 
 ```
-# 
+# Prompt: B-040 — Prepare Complete Approval Package, Then Re-Audit
 ```
 
+Lanjutkan project BotSpace dari kondisi repository TERAKHIR.
 
+WORKING DIRECTORY:
+`/root/botspace`
+
+BRANCH:
+`backend-dev-recovery`
+
+==================================================
+KONDISI TERAKHIR
+==================================================
+
+Repository saat ini sudah diaudit dan validation terakhir PASS.
+
+Status:
+
+- B-030 Workspace API/Contract: DONE
+- B-070 Storage Adapter: DONE
+- B-071 File/Share contract: DONE
+- B-071 File/Share API: DONE
+- B-071 production wiring: DONE
+- SecretResolver application boundary: DONE
+- Infrastructure verification yang dapat dilakukan dari environment: DONE
+- Security review terakhir: PASS
+- Working tree: CLEAN
+- Local SHA == remote SHA
+- Tidak ada perubahan source implementation baru yang menunggu commit.
+
+Current blocker:
+
+B-040 Telegram Account Connection
+= BLOCKED
+
+ADR-011 sudah dibuat.
+
+==================================================
+ATURAN PALING PENTING
+==================================================
+
+JANGAN IMPLEMENTASIKAN B-040 SECARA SPECULATIVE.
+
+JANGAN:
+
+- memilih authentication mechanism tanpa approval,
+- membuat Telegram polling,
+- membuat Telegram webhook,
+- membuat Telegram connector,
+- membuat session persistence,
+- membuat credential storage,
+- mengubah BotInstallation.status,
+- membuat provider runtime,
+- mengarang Telegram API contract,
+- mengarang lifecycle state machine,
+- mengarang revoke/disconnect behavior,
+- mengarang API version,
+- mengarang runtime handoff boundary.
+
+JANGAN menganggap keputusan arsitektur sudah disetujui hanya karena
+implementation tersebut terlihat masuk akal.
+
+B-040 hanya boleh berubah menjadi READY setelah keputusan manusia
+benar-benar tersedia.
+
+==================================================
+TUJUAN RUN INI
+==================================================
+
+Karena B-040 masih membutuhkan human approval, gunakan run ini untuk
+menyiapkan APPROVAL PACKAGE B-040/ADR-011 secara lengkap.
+
+Tujuan:
+
+1. Audit seluruh evidence repository.
+2. Tentukan keputusan apa saja yang benar-benar diperlukan.
+3. Jangan membuat keputusan atas nama owner.
+4. Susun opsi yang tersedia.
+5. Jelaskan konsekuensi setiap opsi.
+6. Tunjukkan dependency terhadap existing architecture.
+7. Tunjukkan bagian mana yang sudah fixed oleh repository.
+8. Tunjukkan bagian mana yang masih membutuhkan keputusan manusia.
+9. Buat dokumen approval yang bisa langsung diberikan kepada:
+   - Architecture owner
+   - Telegram/provider owner
+   - Security owner
+   - Deployment owner
+10. Setelah package selesai, lakukan re-audit roadmap untuk memastikan
+    tidak ada task independen lain yang ternyata READY.
+
+==================================================
+BAGIAN 1 — AUDIT ADR-011
+==================================================
+
+Baca:
+
+- ADR-011
+- ADR terkait authentication
+- ADR terkait provider/runtime
+- `docs/architecture/DECISIONS.md`
+- `AI_CONTEXT.md`
+- `AI_TASKS.md`
+- `PROJECT_STATUS.md`
+- `ROADMAP_V2.md`
+- `CHANGELOG.md`
+
+Cari semua reference yang berhubungan dengan:
+
+- Telegram account
+- provider account
+- authentication
+- credentials
+- session
+- connection state
+- disconnect
+- revoke
+- runtime handoff
+- BotInstallation
+- provider lifecycle
+- deployment secret boundary.
+
+Jangan hanya membaca ADR-011.
+
+Pastikan keputusan yang diminta benar-benar konsisten
+dengan architecture yang sudah ada.
+
+==================================================
+BAGIAN 2 — EXISTING ARCHITECTURE
+==================================================
+
+Petakan architecture yang SUDAH FIXED.
+
+Minimal audit:
+
+- account/user model
+- workspace model
+- BotInstallation
+- provider abstraction
+- SecretResolver
+- storage boundary
+- runtime composition
+- API layer
+- authorization
+- persistence
+- background worker/job architecture jika ada
+- frontend assumptions
+- deployment boundary.
+
+Untuk setiap komponen tulis:
+
+- existing contract,
+- existing implementation,
+- dependency terhadap B-040,
+- apakah boleh diubah,
+- apakah harus dipertahankan.
+
+JANGAN membuat implementation baru.
+
+==================================================
+BAGIAN 3 — AUTHENTICATION DECISION
+==================================================
+
+Identifikasi authentication mechanism yang benar-benar diperlukan
+untuk Telegram account connection.
+
+Jangan memilih sendiri.
+
+Jika ada beberapa opsi yang masuk akal, dokumentasikan opsi tersebut,
+misalnya berdasarkan evidence repository:
+
+- API credential,
+- OAuth-like flow,
+- device/login flow,
+- browser/session flow,
+- provider-specific authentication.
+
+Untuk setiap opsi jelaskan:
+
+- bagaimana authentication terjadi,
+- credential apa yang dihasilkan,
+- di mana credential disimpan,
+- bagaimana refresh dilakukan,
+- bagaimana revoke dilakukan,
+- bagaimana disconnect dilakukan,
+- bagaimana runtime memperoleh credential,
+- security implications,
+- deployment implications,
+- frontend implications,
+- backend implications.
+
+Tandai:
+
+`REQUIRES HUMAN DECISION`
+
+untuk keputusan yang belum approved.
+
+==================================================
+BAGIAN 4 — ACCOUNT / SESSION MODEL
+==================================================
+
+Susun decision package untuk:
+
+- Telegram account identity
+- provider account identity
+- connection identity
+- session identity
+- credential identity
+- workspace ownership
+- apakah satu account dapat digunakan beberapa bot
+- apakah satu account dapat berada di beberapa workspace
+- hubungan account → workspace → bot
+- lifecycle connection.
+
+Jangan membuat schema baru.
+
+Hanya dokumentasikan model yang diperlukan untuk keputusan.
+
+Tandai bagian yang membutuhkan approval.
+
+==================================================
+BAGIAN 5 — CREDENTIAL STORAGE
+==================================================
+
+Audit SecretResolver yang sudah ada.
+
+Tentukan secara dokumentatif:
+
+- credential apa yang kemungkinan dibutuhkan,
+- mana yang boleh disimpan,
+- mana yang tidak boleh disimpan,
+- siapa yang boleh resolve,
+- kapan credential boleh diberikan ke runtime,
+- bagaimana credential dicabut,
+- bagaimana credential rotation dilakukan.
+
+JANGAN menyimpan credential.
+
+JANGAN membuat fake credential.
+
+JANGAN mengubah SecretResolver implementation hanya untuk
+menyelesaikan approval package.
+
+==================================================
+BAGIAN 6 — LIFECYCLE STATE MACHINE
+==================================================
+
+Buat proposal state machine untuk B-040 berdasarkan architecture
+yang sudah ada.
+
+Contoh state hanya sebagai bahan analisis, BUKAN keputusan:
+
+- disconnected
+- connecting
+- connected
+- degraded
+- disconnecting
+- revoked
+- error
+
+Jangan langsung memasukkannya ke production code.
+
+Untuk setiap state jelaskan:
+
+- arti state,
+- siapa yang mengubah state,
+- event yang menyebabkan perubahan,
+- apakah state persistent,
+- apakah state berbeda dari runtime process state,
+- bagaimana recovery dilakukan.
+
+Sangat penting:
+
+JANGAN mengubah:
+
+`BotInstallation.status`
+
+menjadi runtime process state.
+
+Jika connection lifecycle membutuhkan model baru,
+dokumentasikan sebagai keputusan yang harus disetujui terlebih dahulu.
+
+==================================================
+BAGIAN 7 — DISCONNECT / REVOKE
+==================================================
+
+Siapkan decision matrix:
+
+Disconnect:
+
+- apa yang terjadi?
+- credential dihapus atau tetap?
+- session invalidated?
+- bot berhenti?
+- runtime handoff bagaimana?
+
+Revoke:
+
+- apa yang terjadi?
+- apakah credential langsung invalid?
+- apakah runtime harus dihentikan?
+- apakah user harus login ulang?
+- apakah semua bot menggunakan account tersebut ikut terpengaruh?
+
+Account removal:
+
+- apa yang terjadi terhadap bot?
+- workspace?
+- credential?
+- session?
+- runtime?
+
+Jangan implementasikan behavior.
+
+==================================================
+BAGIAN 8 — RUNTIME HANDOFF
+==================================================
+
+Audit bagaimana B-040 nantinya menyerahkan connection/account
+ke runtime.
+
+Dokumentasikan boundary:
+
+Account Connection
+        ↓
+Credential/Session
+        ↓
+Provider Adapter
+        ↓
+Bot Runtime
+
+Tentukan pertanyaan:
+
+- siapa owner credential?
+- siapa yang dapat meminta credential?
+- apakah runtime menerima raw credential?
+- apakah runtime menerima opaque handle?
+- bagaimana revoke diinformasikan?
+- bagaimana disconnect diinformasikan?
+- bagaimana runtime recovery?
+
+Jangan membuat runtime implementation.
+
+==================================================
+BAGIAN 9 — API CONTRACT DECISION PACKAGE
+==================================================
+
+Daftarkan endpoint/API behavior yang mungkin dibutuhkan B-040.
+
+Jangan langsung membuat endpoint.
+
+Kelompokkan:
+
+### Connection
+- connect
+- status
+- disconnect
+- reconnect
+
+### Authentication
+- start authentication
+- submit authentication result
+- callback/device completion jika memang diperlukan
+
+### Credential/session
+- refresh
+- revoke
+- rotate jika diperlukan
+
+### Runtime
+- handoff
+- runtime status
+- recovery
+
+Untuk setiap API tulis:
+
+- purpose,
+- input,
+- output,
+- authorization,
+- error cases,
+- persistence,
+- owner,
+- dependency.
+
+Semua yang belum disetujui diberi:
+
+`PROPOSED — REQUIRES APPROVAL`
+
+==================================================
+BAGIAN 10 — SECURITY REVIEW PACKAGE
+==================================================
+
+Minta Security owner memberikan keputusan eksplisit untuk:
+
+- credential storage,
+- secret resolution,
+- session persistence,
+- token exposure,
+- authentication callback security,
+- replay protection,
+- CSRF/state protection jika browser flow,
+- encryption requirements,
+- revoke semantics,
+- audit requirements,
+- logging restrictions.
+
+Jangan membuat security policy sendiri.
+
+Dokumentasikan:
+
+`SECURITY APPROVAL REQUIRED`
+
+untuk keputusan yang belum tersedia.
+
+==================================================
+BAGIAN 11 — DEPLOYMENT DECISION PACKAGE
+==================================================
+
+Deployment owner harus menentukan:
+
+- secret manager,
+- runtime environment,
+- required environment references,
+- network requirements,
+- callback/webhook exposure jika diperlukan,
+- persistent session requirements,
+- restart behavior,
+- rolling deployment behavior,
+- credential rotation behavior.
+
+Jangan memilih infrastructure vendor tanpa evidence repository.
+
+==================================================
+BAGIAN 12 — TELEGRAM/PROVIDER OWNER DECISIONS
+==================================================
+
+Buat daftar pertanyaan yang harus dijawab provider owner.
+
+Minimal:
+
+1. Authentication mechanism resmi apa?
+2. Credential/session apa yang dihasilkan?
+3. Berapa lama session valid?
+4. Bagaimana refresh?
+5. Bagaimana revoke?
+6. Bagaimana disconnect?
+7. Apakah satu account bisa menjalankan beberapa bot?
+8. Apakah credential dapat digunakan concurrent?
+9. Apakah ada rate limit?
+10. Bagaimana reconnect?
+11. Apa failure mode?
+12. Apakah provider menyediakan webhook/polling/device flow?
+13. Apa API contract resminya?
+14. Apa batasan deployment?
+
+Jangan mengarang jawabannya.
+
+==================================================
+BAGIAN 13 — APPROVAL MATRIX
+==================================================
+
+Buat matrix seperti:
+
+| Decision | Architecture | Telegram | Security | Deployment | Status |
+|----------|--------------|----------|----------|------------|--------|
+
+Masukkan minimal:
+
+- authentication mechanism
+- account model
+- session model
+- credential persistence
+- SecretResolver usage
+- lifecycle state machine
+- disconnect
+- revoke
+- API contract
+- runtime handoff
+- deployment requirements
+
+Status harus salah satu:
+
+- APPROVED
+- PENDING
+- BLOCKED
+- NOT REQUIRED
+
+Jangan menulis APPROVED tanpa evidence.
+
+==================================================
+BAGIAN 14 — IMPLEMENTATION READINESS
+==================================================
+
+Setelah approval matrix selesai, tentukan:
+
+B-040 status:
+
+READY
+
+hanya jika SEMUA keputusan wajib sudah approved.
+
+Jika belum:
+
+`BLOCKED — HUMAN APPROVAL REQUIRED`
+
+Kemudian buat daftar implementation sequence setelah approval.
+
+Contoh:
+
+1. domain/account connection model
+2. persistence
+3. authentication adapter
+4. SecretResolver integration
+5. connection lifecycle
+6. API
+7. runtime handoff
+8. security tests
+9. integration tests
+10. deployment verification
+
+Urutkan berdasarkan dependency nyata.
+
+==================================================
+BAGIAN 15 — RE-AUDIT ROADMAP
+==================================================
+
+Setelah approval package selesai:
+
+audit ulang seluruh roadmap.
+
+Cari apakah ada task selain B-040 yang sekarang benar-benar READY.
+
+Jika ada task independent:
+
+JANGAN langsung mengimplementasikan jika tujuan run ini hanya
+approval package.
+
+Cukup laporkan:
+
+- task ID
+- dependency
+- reason READY
+
+Jika tidak ada:
+
+jelaskan bahwa B-040 adalah blocker utama.
+
+==================================================
+BAGIAN 16 — DOKUMENTASI
+==================================================
+
+Update documentation ONLY jika memang diperlukan.
+
+Jika repository menggunakan:
+
+- `AI_TASKS.md`
+- `PROJECT_STATUS.md`
+- `ROADMAP_V2.md`
+- `CHANGELOG.md`
+- `docs/architecture/DECISIONS.md`
+
+update status secara konsisten.
+
+Jangan membuat banyak README.
+
+Jangan membuat dokumen duplikat.
+
+Jika ADR-011 perlu diperbarui untuk memperjelas decision checklist,
+update ADR-011 secara minimal.
+
+Jangan memasukkan keputusan yang belum disetujui sebagai keputusan final.
+
+==================================================
+BAGIAN 17 — VALIDATION
+==================================================
+
+Karena run ini terutama documentation/decision package,
+jangan melakukan source refactor yang tidak diperlukan.
+
+Jika documentation berubah, jalankan:
+
+- `pnpm test`
+- `pnpm build`
+- `pnpm typecheck`
+- `pnpm lint`
+- `pnpm format:check`
+- `node scripts/check-imports.mjs`
+- `node scripts/check-ownership.mjs`
+- `node scripts/check-doc-links.mjs`
+- `git diff --check`
+
+Jangan membuat:
+
+`scripts/check-symlinks.mjs`
+
+karena file tersebut memang tidak tersedia.
+
+Jangan menjalankan integration test Gorouter.app.
+
+NVIDIA dan TokenHarbor tidak perlu disentuh.
+
+==================================================
+BAGIAN 18 — GIT
+==================================================
+
+Jika ada perubahan dokumentasi/ADR yang valid:
+
+1. review diff,
+2. pastikan tidak ada source implementation speculative,
+3. commit satu kali,
+4. push:
+
+`git push origin backend-dev-recovery`
+
+Verifikasi:
+
+- local SHA
+- remote SHA
+- working tree clean
+
+Jika tidak ada perubahan valid:
+
+JANGAN membuat empty commit.
+
+==================================================
+FINAL REPORT
+==================================================
+
+Tampilkan:
+
+### B-040 STATUS
+
+`BLOCKED — HUMAN APPROVAL REQUIRED`
+
+atau READY jika dan hanya jika evidence approval benar-benar tersedia.
+
+### APPROVALS REQUIRED
+
+Buat daftar keputusan yang harus dijawab manusia.
+
+### APPROVAL MATRIX
+
+Tampilkan matrix Architecture / Telegram / Security / Deployment.
+
+### PROPOSED IMPLEMENTATION ORDER
+
+Urutan implementasi setelah approval.
+
+### DOCUMENTATION
+
+Dokumen yang diperbarui.
+
+### VALIDATION
+
+Semua hasil validation.
+
+### GIT
+
+- commit:
+- push:
+- local SHA:
+- remote SHA:
+- working tree:
+
+### OTHER READY TASKS
+
+Jika ada.
+
+### NEXT SINGLE ACTION
+
+Harus berupa:
+
+`Obtain human approval for B-040/ADR-011`
+
+jika B-040 masih blocked.
+
+JANGAN mengatakan project selesai total jika B-040 belum approved.
+
+JANGAN mengimplementasikan B-040 hanya untuk menghilangkan blocker.
+
+Kerjakan langsung pada `/root/botspace`.
 
 ```
 # Prompt: Continue All Unblocked Work While B-040 Awaits Approval
