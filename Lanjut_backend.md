@@ -564,9 +564,376 @@
 
 
 ```
-# 
+# Prompt: B-040 Approval Package — ADR-011
 ```
+# Prompt: BotSpace — Prepare B-040 / ADR-011 Human Approval Package
 
+Lanjutkan project BotSpace dari kondisi repository saat ini.
+
+Repository:
+`/root/botspace`
+
+Branch:
+`backend-dev-recovery`
+
+==================================================
+CURRENT STATE
+==================================================
+
+B-030, B-070, dan B-071 sudah selesai.
+
+Validation terakhir PASS.
+
+Working tree:
+CLEAN
+
+Local SHA:
+sama dengan remote SHA.
+
+B-040 / ADR-011 saat ini BLOCKED karena human approval belum tersedia.
+
+Approval yang masih diperlukan:
+
+- Architecture: belum tersedia
+- Telegram/provider: belum tersedia
+- Security: belum tersedia
+- Deployment: belum tersedia
+
+Decision yang belum disetujui:
+
+- authentication mechanism
+- provider/library
+- account/session model
+- credential lifecycle
+- connect semantics
+- disconnect semantics
+- revoke semantics
+- versioned API contract
+- persistence contract
+- event contract
+- runtime handoff boundary
+
+==================================================
+TUJUAN
+==================================================
+
+JANGAN implementasikan B-040.
+
+JANGAN membuat source-code changes.
+
+JANGAN membuat fake approval.
+
+JANGAN memilih keputusan architecture secara sepihak.
+
+Sekarang hanya siapkan PACKAGE APPROVAL B-040/ADR-011 agar human owner dapat melakukan review dan approval.
+
+==================================================
+STEP 1 — AUDIT CURRENT DOCUMENTATION
+==================================================
+
+Baca dan audit:
+
+- ADR-011
+- B-040 decision package
+- approval matrix
+- AI_CONTEXT.md
+- AI_TASKS.md
+- PROJECT_STATUS.md
+- ROADMAP_V2.md
+- CHANGELOG.md
+- docs/architecture/DECISIONS.md
+- seluruh dokumentasi terkait Telegram account connection
+
+Gunakan keputusan yang SUDAH tertulis di repository.
+
+Jangan mengarang keputusan baru.
+
+==================================================
+STEP 2 — PREPARE DECISION MATRIX
+==================================================
+
+Buat decision matrix yang jelas untuk human reviewer.
+
+Untuk setiap keputusan tampilkan:
+
+1. Decision
+2. Current repository evidence
+3. Proposed option(s), jika memang sudah ada di repository
+4. Consequence
+5. Security impact
+6. Migration/persistence impact
+7. Runtime impact
+8. Owner yang harus approve
+9. Status
+
+Minimal matrix:
+
+### Authentication
+- mechanism
+- provider/library
+- authentication lifecycle
+
+### Account/Session
+- account identity
+- session model
+- connection state
+- reconnect behavior
+
+### Credential Lifecycle
+- storage
+- resolution
+- rotation
+- revoke
+- retention/deletion
+- unavailable-secret behavior
+
+### Connection Semantics
+- connect
+- disconnect
+- revoke
+- reconnect
+
+### API Contract
+- request
+- response
+- errors
+- idempotency
+- concurrency
+
+### Persistence
+- account/session records
+- uniqueness
+- transaction boundary
+- ownership
+- deletion/revoke behavior
+
+### Events
+- event names
+- payload
+- delivery guarantee
+- retry behavior
+
+### Runtime Handoff
+- capability boundary
+- allowed states
+- provider ownership
+- revoke propagation
+- runtime lifecycle separation
+
+==================================================
+STEP 3 — SECURITY REVIEW PACKAGE
+==================================================
+
+Siapkan bagian khusus untuk Security owner.
+
+Pastikan package menjelaskan:
+
+- credential tidak disimpan plaintext jika contract tidak mengizinkannya,
+- credential tidak masuk log,
+- session tidak bocor,
+- revoke semantics,
+- workspace isolation,
+- account ownership,
+- provider boundary,
+- secret resolver boundary,
+- runtime handoff boundary,
+- error sanitization.
+
+Jangan membuat implementation baru.
+
+==================================================
+STEP 4 — DEPLOYMENT REVIEW PACKAGE
+==================================================
+
+Siapkan bagian untuk Deployment owner:
+
+- required configuration,
+- secret references,
+- SecretResolver dependency,
+- runtime configuration,
+- persistence dependency,
+- provider dependency,
+- startup requirements,
+- environment requirements.
+
+Jangan memasukkan secret aktual.
+
+==================================================
+STEP 5 — TELEGRAM/PROVIDER REVIEW PACKAGE
+==================================================
+
+Siapkan bagian untuk Telegram/provider owner:
+
+- authentication mechanism,
+- provider SDK/library,
+- account identity,
+- session lifecycle,
+- connect/disconnect/revoke,
+- reconnect behavior,
+- provider error mapping,
+- runtime ownership,
+- capability limitations.
+
+Jika provider/library belum ditentukan:
+
+JANGAN memilih sendiri.
+
+Tandai:
+
+`DECISION REQUIRED — provider/library not approved`
+
+==================================================
+STEP 6 — ARCHITECTURE REVIEW PACKAGE
+==================================================
+
+Siapkan architecture decision summary:
+
+- domain boundary,
+- application service boundary,
+- provider adapter boundary,
+- SecretResolver boundary,
+- persistence boundary,
+- API boundary,
+- event boundary,
+- runtime handoff boundary.
+
+Pastikan account lifecycle TIDAK dicampur dengan bot runtime lifecycle.
+
+Jangan mengubah:
+
+`BotInstallation.status`
+
+menjadi process/runtime state.
+
+==================================================
+STEP 7 — APPROVAL MATRIX
+==================================================
+
+Buat approval matrix final:
+
+| Decision | Architecture | Telegram/Provider | Security | Deployment | Status |
+|----------|--------------|-------------------|----------|------------|--------|
+
+Setiap decision yang belum disetujui harus tetap:
+
+`PENDING`
+
+Jangan mengubah PENDING menjadi APPROVED.
+
+==================================================
+STEP 8 — DOCUMENTATION
+==================================================
+
+Jika repository memang sudah memiliki format approval/decision package:
+
+gunakan format tersebut.
+
+Jika perlu memperbarui documentation:
+
+ubah hanya documentation yang memang menjadi source of truth untuk B-040.
+
+Jangan membuat banyak README baru.
+
+Gunakan documentation existing.
+
+Jangan membuat commit jika hanya menghasilkan laporan sementara dan repository policy tidak mengharuskannya.
+
+==================================================
+STEP 9 — VALIDATION
+==================================================
+
+Karena task ini documentation/approval preparation:
+
+Jalankan hanya validation yang relevan.
+
+Minimal:
+
+- git status
+- git diff --check
+- documentation/link validation yang tersedia
+
+Jangan menjalankan integration test provider yang tidak diperlukan.
+
+Jangan menjalankan Gorouter.app.
+
+NVIDIA/TokenHarbor tidak perlu disentuh.
+
+==================================================
+STEP 10 — GIT SAFETY
+==================================================
+
+Jika tidak ada perubahan:
+
+- jangan membuat empty commit.
+
+Jika documentation berubah:
+
+- review git diff,
+- pastikan tidak ada secret,
+- pastikan tidak ada fake approval,
+- commit hanya jika perubahan memang diperlukan sebagai official B-040 approval package.
+
+Jangan push jika repository policy meminta human review sebelum documentation approval.
+
+Jika perubahan memang harus dipush sesuai workflow:
+
+`git push origin backend-dev-recovery`
+
+==================================================
+FINAL OUTPUT
+==================================================
+
+Tampilkan:
+
+### B-040 Approval Status
+- Architecture: PENDING / APPROVED
+- Telegram/provider: PENDING / APPROVED
+- Security: PENDING / APPROVED
+- Deployment: PENDING / APPROVED
+
+### Decision Matrix
+Tampilkan semua keputusan yang masih membutuhkan approval.
+
+### Approval Package
+- lokasi document/package:
+- decision count:
+- pending count:
+
+### Security Review
+- credential lifecycle:
+- session lifecycle:
+- workspace isolation:
+- revoke:
+- runtime boundary:
+
+### Validation
+- documentation:
+- links:
+- diff:
+
+### Git
+- changed:
+- commit:
+- push:
+- working tree:
+
+### NEXT SINGLE ACTION
+
+Jika approval masih belum tersedia:
+
+`Obtain human approval for B-040/ADR-011 using the prepared decision package.`
+
+JANGAN implementasikan B-040 sampai approval valid tersedia.
+
+Jika approval valid kemudian tersedia pada repository, baru lanjutkan ke implementation B-040 sesuai keputusan yang telah disetujui.
+
+PENTING:
+- Jangan fake approval.
+- Jangan memilih provider sendiri.
+- Jangan coding B-040 sebelum approval.
+- Jangan mengulang B-030/B-070/B-071.
+- Jangan membuat fitur lain.
+- Kerjakan langsung pada `/root/botspace`.
 
 
 ```
