@@ -91,7 +91,35 @@
 # 
 ```
 
+TASK: FINALIZE AND COMMIT CURRENT WORK
 
+Validation terakhir sudah hijau. Jangan melakukan perubahan kode baru.
+
+1. Periksa git status.
+2. Periksa branch aktif.
+3. Periksa commit terakhir.
+4. Pastikan tidak ada perubahan yang tidak sengaja di luar scope task ini.
+5. Jika semua perubahan memang bagian dari task yang baru selesai:
+   - git add perubahan yang relevan
+   - buat git commit dengan message yang jelas sesuai task
+6. Setelah commit, jalankan:
+   git status --short
+   git log -1 --oneline
+7. Pastikan working tree clean.
+8. Jika remote origin tersedia dan autentikasi berhasil, push branch aktif ke remote.
+9. Setelah push, verifikasi bahwa commit lokal sama dengan commit remote.
+10. Jangan amend, reset, rebase, squash, atau force-push.
+11. Jangan mengubah source code lagi.
+
+LAPORKAN:
+- branch aktif
+- commit hash
+- commit message
+- jumlah file yang di-commit
+- status working tree
+- apakah commit sudah berhasil dipush ke remote
+
+Ini adalah checkpoint wajib sebelum task berikutnya.
 
 ```
 # Bot Runtime & Execution Integrity
