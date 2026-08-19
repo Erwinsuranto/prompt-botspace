@@ -22,9 +22,465 @@
 
 
 ```
-# 
+# Prompt: BotSpace — Complete Deferred Infrastructure Verification
 ```
 
+# Prompt: BotSpace — Complete Deferred Infrastructure Verification
+
+Lanjutkan project BotSpace dari kondisi repository saat ini.
+
+## KONDISI TERAKHIR
+
+* B-030 Workspace API/Contract SUDAH selesai.
+* B-070 Storage Adapter SUDAH selesai.
+* B-071 File/Share contract SUDAH selesai.
+* B-071 File/Share API SUDAH selesai.
+* Production wiring B-071 SUDAH selesai.
+* Production SecretResolver boundary SUDAH diimplementasikan sejauh yang dapat dilakukan dari repository.
+* Working tree terakhir CLEAN.
+* Local dan remote `origin/backend-dev-recovery` sudah sinkron.
+* Jangan mengulang implementasi B-030, B-070, atau B-071 yang sudah selesai.
+* Jangan membuat ulang contract yang sudah ada.
+* Jangan mengubah schema/contract B-071 tanpa alasan yang benar-benar diperlukan.
+
+## TUJUAN
+
+Sekarang selesaikan seluruh deferred infrastructure yang masih dapat dikerjakan secara aman dari repository/environment saat ini.
+
+Prioritas:
+
+1. Production SecretResolver / managed secret boundary.
+2. PostgreSQL-backed integration verification.
+3. MinIO/S3-compatible storage smoke test.
+4. Review public-share rate limiting dan audit-event boundary.
+5. Pastikan share expiry tetap deferred jika contract/schema belum mendukungnya.
+6. Rapikan dokumentasi/status deferred item bila memang diperlukan.
+
+Jangan berhenti pada audit. Kerjakan semua item yang memang memiliki dependency dan environment yang tersedia.
+
+---
+
+## BAGIAN 1 — SECRETRESOLVER PRODUCTION BOUNDARY
+
+Audit kembali:
+
+* `SecretResolver`
+* configuration system
+* composition root
+* production storage configuration
+* object storage adapter
+* deployment configuration
+* environment variable handling.
+
+Pastikan:
+
+1. Production `SecretResolver` menggunakan abstraction yang SUDAH ada.
+2. Jangan membuat abstraction kedua.
+3. Jangan mengunci architecture ke vendor secret manager tertentu jika repository belum menetapkannya.
+4. Gunakan `SECRET_MANAGER_REF` atau configuration/reference mechanism yang memang sudah dibuat oleh implementation terakhir.
+5. Jangan pernah hardcode:
+
+   * password,
+   * API key,
+   * access key,
+   * secret key,
+   * token,
+   * credential.
+6. Jangan mencetak secret ke log.
+7. Jangan memasukkan secret ke error response.
+8. Missing secret harus menghasilkan error startup/configuration yang jelas tetapi tidak membocorkan nilainya.
+9. Test environment tetap dapat menggunakan fake/injected resolver.
+10. Production object storage harus mendapatkan credential melalui resolver/configuration boundary yang benar.
+
+Jika managed secret manager eksternal memang tidak tersedia di VPS/environment ini:
+
+* jangan membuat fake managed-secret production service,
+* jangan memasukkan credential palsu ke production configuration,
+* pastikan boundary production sudah benar,
+* dokumentasikan infrastructure dependency sebagai deferred.
+
+---
+
+## BAGIAN 2 — POSTGRESQL INTEGRATION
+
+Audit seluruh PostgreSQL repository/migration/file-share persistence.
+
+Jika environment menyediakan:
+
+`PERSISTENCE_TEST_DATABASE_URL`
+
+maka jalankan integration test yang memang sudah disediakan repository.
+
+Pastikan:
+
+* migration B-071 dapat diterapkan,
+* file metadata persistence bekerja,
+* workspace ownership tersimpan benar,
+* share-link persistence bekerja,
+* repository read/write/update/revoke behavior bekerja,
+* workspace isolation bekerja,
+* transaction/cleanup behavior sesuai implementation.
+
+Jangan:
+
+* membuat fake PostgreSQL test,
+* mengganti PostgreSQL dengan SQLite,
+* mengubah test supaya terlihat PASS,
+* membuat schema tambahan hanya untuk test,
+* menjalankan migration destruktif terhadap database yang tidak ditujukan untuk test.
+
+Jika `PERSISTENCE_TEST_DATABASE_URL` tidak tersedia:
+
+* jangan membuat database palsu,
+* jangan mengubah test,
+* jalankan test lain yang tersedia,
+* tandai PostgreSQL integration sebagai `SKIPPED/UNAVAILABLE`,
+* tampilkan environment variable yang dibutuhkan tanpa menampilkan credential.
+
+Jika environment tersedia tetapi test gagal:
+
+* diagnosis penyebab sebenarnya,
+* perbaiki hanya jika masalah memang berasal dari implementation BotSpace,
+* jangan menyamarkan failure.
+
+---
+
+## BAGIAN 3 — MINIO / S3-COMPATIBLE STORAGE SMOKE TEST
+
+Audit `ObjectStoragePort` dan production storage adapter yang sudah dibuat.
+
+Gunakan MinIO/S3-compatible storage yang tersedia di environment hanya jika benar-benar dapat diakses.
+
+Smoke test harus memverifikasi lifecycle dasar:
+
+1. create/upload object,
+2. verify object exists,
+3. read/download object,
+4. metadata/content behavior sesuai adapter,
+5. delete/cleanup object,
+6. verify cleanup.
+
+Gunakan credential SYNTHETIC/TEST ONLY.
+
+JANGAN:
+
+* menggunakan credential production,
+* mencetak credential,
+* menyimpan credential test ke source code,
+* commit credential ke repository,
+* mengubah production secret configuration hanya untuk smoke test.
+
+Jika MinIO/S3 endpoint tidak tersedia:
+
+* jangan install service baru secara permanen hanya untuk membuat test PASS,
+* jangan membuat fake smoke test,
+* tandai smoke test sebagai deferred/unavailable,
+* tetap validasi adapter melalui unit test yang sudah tersedia.
+
+Jika MinIO tersedia tetapi adapter gagal:
+
+* diagnosis error,
+* perbaiki adapter hanya jika masalah memang berasal dari implementasi,
+* jalankan kembali smoke test.
+
+Pastikan object yang dibuat smoke test selalu dibersihkan.
+
+---
+
+## BAGIAN 4 — PUBLIC SHARE RATE LIMITING
+
+Audit contract dan architecture yang ada untuk public share access.
+
+JANGAN langsung membuat rate limiter baru tanpa boundary/contract.
+
+Tentukan apakah repository sudah memiliki:
+
+* rate-limit abstraction,
+* request context,
+* public share access boundary,
+* policy interface,
+* middleware boundary,
+* configuration mechanism.
+
+Jika contract sudah tersedia:
+
+* implementasikan rate limiting sesuai contract,
+* pastikan hanya berlaku pada public share access,
+* jangan mengganggu private workspace file operations,
+* tambahkan test untuk allowed/limited behavior,
+* pastikan response tidak membocorkan internal information.
+
+Jika contract BELUM tersedia:
+
+* jangan membuat speculative architecture,
+* jangan menambahkan arbitrary rate-limit schema,
+* jangan membuat database table baru,
+* jangan menambahkan dependency eksternal hanya untuk ini.
+
+Dalam kondisi tersebut, dokumentasikan bahwa public-share rate limiting tetap deferred menunggu approved contract boundary.
+
+---
+
+## BAGIAN 5 — PUBLIC SHARE AUDIT EVENT
+
+Audit apakah repository sudah memiliki:
+
+* audit event abstraction,
+* event publisher,
+* audit repository,
+* request context,
+* event schema.
+
+Jika boundary sudah tersedia:
+
+Implementasikan audit event untuk public share access hanya sesuai contract yang ada.
+
+Minimal behavior yang perlu dipastikan jika contract mendukung:
+
+* public share access,
+* successful access,
+* denied/revoked access jika memang event model mendukungnya.
+
+Jangan menyimpan:
+
+* raw share token,
+* secret,
+* credential,
+* object storage secret.
+
+Gunakan identifier/digest yang memang sesuai contract.
+
+Jika audit event boundary belum tersedia:
+
+* jangan membuat schema baru secara spekulatif,
+* jangan membuat audit system baru,
+* tandai deferred.
+
+---
+
+## BAGIAN 6 — SHARE EXPIRY
+
+JANGAN implementasikan share expiry pada tahap ini.
+
+Alasannya:
+
+* contract/schema saat ini belum mendukung expiry,
+* expiry membutuhkan contract review,
+* expiry membutuhkan migration/schema change,
+* expiry membutuhkan service behavior dan test baru.
+
+Tetap pertahankan status:
+
+`DEFERRED — requires approved contract/schema change`
+
+Jangan menambahkan:
+
+* `expiresAt`,
+* expiry migration,
+* expiry column,
+* expiry token behavior,
+* cleanup scheduler,
+
+kecuali repository memang sudah memiliki contract resmi yang mendukungnya.
+
+---
+
+## BAGIAN 7 — SECURITY REVIEW
+
+Sebelum commit, lakukan targeted review untuk B-071:
+
+Pastikan:
+
+* workspace isolation,
+* authorization,
+* object identifier validation,
+* path traversal protection,
+* unsafe upload path rejection,
+* share token security,
+* token digest handling,
+* object storage internal key tidak bocor,
+* secret tidak masuk log,
+* credential tidak masuk response,
+* revoked share tidak dapat digunakan,
+* cross-workspace access ditolak,
+* storage failures menghasilkan error yang aman.
+
+Jangan mengubah behavior yang sudah benar tanpa alasan.
+
+---
+
+## BAGIAN 8 — VALIDATION LENGKAP
+
+Jalankan seluruh validation yang tersedia:
+
+* `pnpm test`
+* `pnpm build`
+* `pnpm typecheck`
+* `pnpm lint`
+* `pnpm format:check`
+* `node scripts/check-imports.mjs`
+* `node scripts/check-ownership.mjs`
+* `node scripts/check-doc-links.mjs`
+* `git diff --check`
+
+Untuk:
+
+`node scripts/check-symlinks.mjs`
+
+jangan membuat file tersebut.
+
+Jika memang tidak tersedia di repository, catat:
+
+`SKIPPED — scripts/check-symlinks.mjs unavailable`
+
+Jangan membuat script dummy hanya agar validation terlihat lengkap.
+
+Jika PostgreSQL integration environment tersedia, jalankan test PostgreSQL.
+
+Jika tidak tersedia, laporkan:
+
+`SKIPPED — PERSISTENCE_TEST_DATABASE_URL unavailable`
+
+Jika MinIO/S3 smoke environment tersedia, jalankan smoke test.
+
+Jika tidak tersedia, laporkan:
+
+`SKIPPED — MinIO/S3 test environment unavailable`
+
+Jangan menyamarkan skipped test sebagai passed test.
+
+---
+
+## BAGIAN 9 — REVIEW DIFF
+
+Setelah semua pekerjaan:
+
+1. Jalankan `git status`.
+2. Jalankan `git diff --stat`.
+3. Review seluruh diff.
+4. Pastikan tidak ada:
+
+   * credential,
+   * secret,
+   * generated junk,
+   * temporary files,
+   * unrelated refactor,
+   * perubahan Gorouter,
+   * perubahan provider NVIDIA/TokenHarbor yang tidak diperlukan.
+5. Pastikan perubahan hanya berkaitan dengan deferred infrastructure dan verification BotSpace.
+
+Jika ada perubahan yang tidak diperlukan, hapus sebelum commit.
+
+---
+
+## BAGIAN 10 — COMMIT DAN PUSH
+
+Jika implementation/verification menghasilkan perubahan valid dan seluruh validation yang tersedia sudah selesai:
+
+Buat SATU commit lokal.
+
+Gunakan commit message yang paling sesuai dengan perubahan aktual, misalnya:
+
+`chore: complete deferred infrastructure verification`
+
+atau message yang lebih tepat jika scope akhirnya berbeda.
+
+Setelah commit:
+
+`git push origin backend-dev-recovery`
+
+Kemudian verifikasi:
+
+* local HEAD SHA,
+* remote branch SHA,
+* working tree clean.
+
+Pastikan local dan remote SHA sama.
+
+Jika tidak ada perubahan valid untuk di-commit:
+
+* jangan membuat empty commit,
+* tetap tampilkan status,
+* jangan push kosong.
+
+Jika push gagal karena credential/network:
+
+* jangan mengubah credential secara sembarangan,
+* jangan menghapus commit,
+* tampilkan error push,
+* pastikan commit tetap aman lokal.
+
+---
+
+## OUTPUT AKHIR
+
+Setelah selesai tampilkan laporan ringkas tetapi lengkap:
+
+### SecretResolver
+
+* production boundary:
+* status:
+* credential handling:
+
+### PostgreSQL
+
+* migration:
+* integration test:
+* status:
+
+### MinIO/S3
+
+* upload:
+* download/read:
+* cleanup:
+* status:
+
+### Public Share
+
+* authorization:
+* rate limiting:
+* audit event:
+* expiry:
+
+### Validation
+
+* test:
+* build:
+* typecheck:
+* lint:
+* format:
+* imports:
+* ownership:
+* doc links:
+* diff check:
+* symlink check:
+
+### Git
+
+* commit SHA:
+* push status:
+* local/remote SHA:
+* working tree:
+
+### Remaining Deferred
+
+Hanya tampilkan item yang BENAR-BENAR masih belum dapat diselesaikan karena dependency/environment/contract.
+
+### Next Roadmap
+
+Tentukan task berikutnya berdasarkan dependency nyata repository, bukan membuat fitur acak.
+
+PENTING:
+
+* Jangan mengulang B-030.
+* Jangan mengulang B-070.
+* Jangan mengulang B-071 contract/API.
+* Jangan membuat schema/contract speculative.
+* Jangan menyentuh Gorouter.app.
+* Jangan membuat credential palsu untuk production.
+* Jangan menambahkan share expiry tanpa contract/schema.
+* Jangan berhenti hanya pada audit jika implementation memang sudah dapat dilakukan.
+* Kerjakan langsung pada `/root/botspace`.
 
 
 ```
