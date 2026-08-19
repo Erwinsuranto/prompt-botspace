@@ -46,9 +46,98 @@
 
 
 ```
-# 
+# Prompt: B-071 File/Share Contract Design
 ```
 
+# Prompt: B-071 File/Share Contract Design
+
+Lanjutkan project BotSpace dari kondisi repository saat ini.
+
+Konteks yang benar:
+
+* B-030 Workspace API/Contract SUDAH selesai dan tidak perlu disentuh lagi.
+* B-070 Storage Adapter SUDAH selesai.
+* Kita sekarang melanjutkan roadmap **B-071**.
+* Prompt B-071 sebelumnya sudah dijalankan dan melakukan audit.
+* Audit menemukan bahwa implementasi API B-071 belum boleh dilakukan karena contract file/share belum lengkap.
+* Jangan mengulang B-030 atau B-070.
+* Jangan membuat perubahan di luar scope B-071.
+
+Hasil audit B-071 sebelumnya menunjukkan contract yang perlu diselesaikan:
+
+1. File metadata model dan repository contract.
+2. File migration dengan ownership workspace.
+3. File ID/object identifier rules.
+4. Upload/download API request dan response shapes.
+5. File-specific authorization permission.
+6. Share-link state model.
+7. Share token format dan storage policy.
+8. Share access permission.
+9. Share expiry/lifecycle behavior jika memang diperlukan oleh roadmap.
+10. Binary/multipart request handling contract di API layer.
+
+Tugas sekarang:
+
+1. Audit kembali kode B-030 Workspace contract dan B-070 `ObjectStoragePort` yang SUDAH ADA.
+2. Jangan mengubah B-030 atau B-070 kecuali benar-benar diperlukan untuk kompatibilitas contract B-071.
+3. Tentukan contract minimum B-071 berdasarkan kode dan schema yang benar-benar tersedia.
+4. Implementasikan contract/domain foundation untuk file dan share secara modular.
+5. Pastikan setiap file memiliki:
+
+   * workspace ownership,
+   * stable file/object identifier,
+   * metadata yang diperlukan,
+   * hubungan yang jelas dengan object storage.
+6. Tambahkan repository contract untuk file metadata jika memang repository abstraction memang diperlukan oleh arsitektur.
+7. Tambahkan model/state untuk share-link yang diperlukan oleh roadmap.
+8. Definisikan aturan token share secara aman dan deterministic berdasarkan contract yang ada.
+9. Definisikan permission/access rules untuk file dan share.
+10. Definisikan request/response shape untuk upload, download, dan share tanpa mengimplementasikan HTTP endpoint penuh terlebih dahulu.
+11. Binary/multipart handling hanya didefinisikan jika API architecture repository memang sudah memiliki boundary untuk itu.
+12. Jangan mengarang database schema, migration field, permission, expiry, atau persistence behavior yang tidak didukung oleh roadmap/codebase.
+13. Jangan membuat implementation storage baru. Gunakan `ObjectStoragePort` dari B-070.
+14. Jangan membuat Telegram polling/webhook runtime.
+15. Jangan mengubah `BotInstallation.status`.
+16. Jangan mengimplementasikan File/Share API end-to-end pada tahap ini jika contract belum menjadi fondasi yang stabil.
+17. Tambahkan unit test untuk contract/domain behavior yang memang dapat diuji.
+18. Jangan mengubah atau menjalankan integration test Gorouter.app.
+19. NVIDIA dan TokenHarbor tidak perlu disentuh.
+
+Setelah implementasi selesai jalankan:
+
+* pnpm test
+* pnpm build
+* pnpm typecheck
+* pnpm lint
+* pnpm format:check
+* scripts/check-imports.mjs
+* scripts/check-symlinks.mjs
+* scripts/check-ownership.mjs
+* scripts/check-doc-links.mjs
+* git diff --check
+
+Jika semua validation PASS:
+
+20. Review seluruh diff dan pastikan hanya perubahan B-071 contract/domain foundation.
+21. Buat satu commit lokal dengan message yang sesuai, misalnya:
+    `feat: define file share contracts`
+22. Langsung push:
+    `git push origin backend-dev-recovery`
+23. Verifikasi SHA lokal dan remote sama.
+24. Jika push gagal karena credential/network, jangan mengubah credential secara sembarangan. Commit lokal harus tetap aman.
+
+Terakhir tampilkan:
+
+* commit SHA,
+* push status,
+* validation status,
+* file yang berubah,
+* contract yang berhasil ditambahkan,
+* remaining issues,
+* apakah B-071 sekarang siap dilanjutkan ke implementasi API end-to-end,
+* roadmap berikutnya berdasarkan dependency nyata repository.
+
+Kerjakan langsung pada `/root/botspace`.
 
 
 ```
