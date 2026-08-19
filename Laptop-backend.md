@@ -4,9 +4,322 @@
 
 
 ```
-# 
+# implementasi deployment-owned SecretResolver + workload identity/bootstrap authentication
 ```
+# Prompt: B-072 Production Secret Manager Adapter + Workload Identity
 
+Lanjutkan project BotSpace dari kondisi repository TERAKHIR.
+
+## KONDISI TERAKHIR
+
+- B-030 Workspace API/Contract SUDAH selesai.
+- B-070 Storage Adapter SUDAH selesai.
+- B-071 File/Share contract SUDAH selesai.
+- B-071 File/Share API SUDAH selesai.
+- Production wiring B-071 SUDAH selesai.
+- `SecretResolver` application boundary SUDAH tersedia.
+- Secret Manager provider selection SUDAH DI-APPROVE.
+- Deployment-owned provider adapter masih belum selesai.
+- Workload identity/bootstrap authentication masih belum selesai.
+- PostgreSQL integration masih menunggu `PERSISTENCE_TEST_DATABASE_URL`.
+- MinIO/S3 smoke test masih menunggu environment test.
+- Public-share rate limiting masih menunggu approved policy/middleware boundary.
+- Public-share audit event masih menunggu approved event boundary.
+- Share expiry tetap deferred karena contract/schema belum mendukungnya.
+- `scripts/check-symlinks.mjs` memang tidak tersedia.
+- Working tree terakhir CLEAN.
+- Branch: `backend-dev-recovery`.
+- Local dan remote SHA terakhir sinkron.
+
+JANGAN mengulang:
+- B-030
+- B-070
+- B-071 contract
+- B-071 API
+- B-071 production wiring
+
+## TUJUAN
+
+Sekarang implementasikan dependency yang sudah jelas:
+
+**Deployment-owned Secret Manager adapter + workload identity/bootstrap authentication**
+
+Provider Secret Manager sudah disetujui berdasarkan keputusan/hasil audit sebelumnya.
+
+Jangan kembali mempertanyakan atau mengganti provider yang sudah approved.
+
+---
+
+# BAGIAN 1 — AUDIT PROVIDER APPROVED
+
+Audit repository untuk menemukan keputusan provider Secret Manager yang sudah approved.
+
+Cari:
+
+- ADR/deployment decision
+- configuration reference
+- environment variable
+- existing provider dependency
+- existing deployment configuration
+- existing `SecretResolver`
+- composition root
+- production object storage credential flow
+- workload identity configuration
+- bootstrap authentication configuration.
+
+Gunakan keputusan provider yang SUDAH ada.
+
+JANGAN:
+
+- mengganti provider,
+- menambahkan provider kedua,
+- membuat abstraction `SecretResolver` kedua,
+- membuat fake production provider.
+
+---
+
+# BAGIAN 2 — IMPLEMENT DEPLOYMENT-OWNED ADAPTER
+
+Implementasikan adapter konkret untuk provider Secret Manager yang sudah approved.
+
+Arsitektur wajib:
+
+Application:
+
+`SecretResolver`
+
+Infrastructure/deployment:
+
+`ApprovedSecretManagerAdapter`
+
+Application/business layer TIDAK boleh mengetahui detail vendor.
+
+Pastikan:
+
+- vendor SDK hanya berada di infrastructure/deployment boundary,
+- adapter memenuhi interface `SecretResolver` yang sudah ada,
+- dependency injection tetap melalui composition root,
+- tidak ada global singleton tersembunyi jika architecture menggunakan DI,
+- production object storage credential tetap melalui `SecretResolver`.
+
+Jangan mengubah contract B-071.
+
+---
+
+# BAGIAN 3 — WORKLOAD IDENTITY / BOOTSTRAP AUTH
+
+Implementasikan authentication untuk adapter berdasarkan deployment architecture yang tersedia.
+
+Prioritas:
+
+1. Workload identity / managed identity jika deployment configuration memang mendukungnya.
+2. Jika bootstrap reference diperlukan, gunakan configuration/reference yang sudah disepakati.
+3. Jangan hardcode credential.
+4. Jangan menyimpan credential ke source.
+5. Jangan membuat credential palsu untuk production.
+
+Credential yang TIDAK BOLEH masuk repository:
+
+- API key
+- access key
+- secret key
+- password
+- bearer token
+- service-account private key
+- refresh token
+- database password
+- storage credential.
+
+Jika provider SDK mendukung default credential chain/workload identity:
+
+- gunakan mekanisme tersebut,
+- jangan membuat credential loader custom yang tidak diperlukan.
+
+Jika provider membutuhkan environment/reference tertentu:
+
+- dokumentasikan variable/reference yang dibutuhkan,
+- validasi keberadaannya saat startup,
+- jangan mencetak nilainya.
+
+---
+
+# BAGIAN 4 — SECRET RESOLUTION BEHAVIOR
+
+Pastikan adapter mendukung behavior `SecretResolver` yang sudah ditentukan.
+
+Minimal:
+
+- resolve secret berdasarkan reference/name,
+- handle secret tidak ditemukan,
+- handle authentication failure,
+- handle provider/network failure,
+- return error yang aman,
+- jangan membocorkan secret.
+
+Error message hanya boleh menjelaskan:
+
+- secret reference/name secara aman jika memang aman,
+- jenis failure,
+- tindakan yang diperlukan.
+
+Jangan menampilkan secret value.
+
+Jangan menampilkan access token.
+
+Jangan menampilkan credential bootstrap.
+
+---
+
+# BAGIAN 5 — STARTUP VERIFICATION
+
+Periksa production composition root.
+
+Pastikan:
+
+1. Provider adapter dapat dibuat.
+2. Workload identity/bootstrap configuration dapat divalidasi.
+3. `SecretResolver` dapat di-inject.
+4. Object storage configuration dapat mengambil credential melalui resolver.
+5. Configuration failure terjadi sedini mungkin.
+6. Startup error tidak membocorkan secret.
+
+Jika architecture memang membutuhkan resolve secret saat startup:
+
+- lakukan startup verification.
+
+Jika architecture lazy-resolves secret:
+
+- pertahankan lazy behavior,
+- jangan memaksa perubahan lifecycle tanpa alasan.
+
+Tambahkan diagnostic yang aman.
+
+Contoh:
+
+`Secret Manager authentication configuration is invalid`
+
+BUKAN:
+
+`token=xxxxx`
+
+---
+
+# BAGIAN 6 — TEST
+
+Tambahkan/perbaiki test yang benar-benar relevan.
+
+Test minimal:
+
+1. Adapter berhasil dibuat dengan configuration valid.
+2. Adapter menggunakan `SecretResolver` contract yang benar.
+3. Secret berhasil di-resolve.
+4. Secret tidak ditemukan.
+5. Authentication failure.
+6. Provider failure.
+7. Error tidak membocorkan secret.
+8. Test environment menggunakan fake/injected resolver.
+9. Composition root berhasil membangun production dependency graph.
+10. Object storage configuration mendapatkan credential melalui SecretResolver.
+11. Missing Secret Manager configuration ditolak dengan error aman.
+12. Workload identity/bootstrap configuration validation.
+
+Jangan menjalankan real production secret manager dalam unit test.
+
+Jika integration test provider membutuhkan environment nyata:
+
+- hanya jalankan jika environment memang tersedia,
+- jangan membuat credential palsu,
+- jangan mengubah test agar PASS.
+
+---
+
+# BAGIAN 7 — DOCUMENT DEPLOYMENT REQUIREMENTS
+
+Update dokumentasi deployment yang SUDAH ADA jika diperlukan.
+
+Dokumentasikan:
+
+- provider Secret Manager yang approved,
+- configuration/reference yang dibutuhkan,
+- workload identity/bootstrap authentication,
+- permission minimum yang dibutuhkan adapter,
+- startup behavior,
+- test environment behavior,
+- cara mengetahui configuration missing,
+- larangan memasukkan secret ke repository.
+
+Jangan membuat README kedua.
+
+Gunakan README/documentation yang sudah ada.
+
+Jangan memasukkan secret nyata ke documentation.
+
+---
+
+# BAGIAN 8 — SECURITY REVIEW
+
+Lakukan security review khusus Secret Manager.
+
+Pastikan:
+
+- least privilege,
+- workload identity digunakan bila tersedia,
+- tidak ada static credential yang hardcoded,
+- secret tidak masuk log,
+- secret tidak masuk error response,
+- secret tidak masuk test snapshot,
+- secret tidak masuk Git diff,
+- provider credential tidak masuk database,
+- provider credential tidak masuk HTTP response,
+- object storage credential tetap berada di secret boundary.
+
+Audit juga:
+
+- startup logs,
+- exception handling,
+- debug logging,
+- request logging.
+
+Jika menemukan code yang berpotensi mencetak secret:
+
+- perbaiki.
+
+---
+
+# BAGIAN 9 — JANGAN MENYENTUH DEFERRED LAIN
+
+Pada task ini JANGAN mengimplementasikan:
+
+- PostgreSQL integration jika environment belum tersedia,
+- MinIO smoke test jika environment belum tersedia,
+- public-share rate limiting,
+- public-share audit event,
+- share expiry,
+- Telegram polling,
+- Telegram webhook runtime,
+- Gorouter.app,
+- provider NVIDIA,
+- provider TokenHarbor,
+- schema B-071 baru.
+
+Jangan membuat fitur tambahan.
+
+---
+
+# BAGIAN 10 — VALIDATION
+
+Jalankan:
+
+```bash
+pnpm test
+pnpm build
+pnpm typecheck
+pnpm lint
+pnpm format:check
+node scripts/check-imports.mjs
+node scripts/check-ownership.mjs
+node scripts/check-doc-links.mjs
+git diff --check
 
 
 ```
