@@ -13,7 +13,414 @@
 # 
 ```
 
+# Prompt: B-072 Secret Manager Provider Decision + Production Adapter
 
+Lanjutkan project BotSpace dari kondisi repository saat ini.
+
+## KONDISI TERAKHIR
+
+- B-030 Workspace API/Contract SUDAH selesai.
+- B-070 Storage Adapter SUDAH selesai.
+- B-071 File/Share contract SUDAH selesai.
+- B-071 File/Share API SUDAH selesai.
+- Production wiring B-071 SUDAH selesai.
+- Production SecretResolver application boundary SUDAH tersedia.
+- Verification terakhir selesai tanpa perubahan kode.
+- Working tree CLEAN.
+- Local SHA dan remote SHA sama.
+- Branch aktif: `backend-dev-recovery`.
+- Tidak ada commit baru yang perlu dipush.
+- Jangan mengulang B-030, B-070, atau B-071.
+
+## HASIL VERIFICATION TERAKHIR
+
+Deferred items yang masih nyata:
+
+1. Provider managed Secret Manager belum ditetapkan melalui ADR/deployment decision.
+2. Deployment-owned implementation konkret untuk `SecretResolver` belum tersedia karena provider belum dipilih.
+3. PostgreSQL integration masih membutuhkan `PERSISTENCE_TEST_DATABASE_URL`.
+4. MinIO/S3 smoke test masih membutuhkan endpoint dan credential test-only.
+5. Public-share rate limiting masih membutuhkan approved policy/middleware boundary.
+6. Public-share audit event masih membutuhkan approved event/service/repository boundary.
+7. Share expiry tetap deferred karena contract/schema belum mendukungnya.
+8. `scripts/check-symlinks.mjs` tidak tersedia dan jangan dibuat.
+
+## TUJUAN
+
+Sekarang fokus pada dependency pertama:
+
+**Tetapkan provider Secret Manager melalui ADR/deployment decision dan, jika provider sudah dapat ditentukan secara sah dari repository/deployment, implementasikan deployment-owned `SecretResolver` adapter.**
+
+Jangan mengerjakan PostgreSQL, MinIO, rate limiting, audit event, atau share expiry pada tahap ini kecuali hanya melakukan audit dependency yang diperlukan.
+
+---
+
+# BAGIAN 1 — AUDIT ARSITEKTUR
+
+Audit repository terlebih dahulu:
+
+- `SecretResolver`
+- configuration system
+- composition root
+- `main.ts`
+- deployment configuration
+- environment configuration
+- storage credential loading
+- `ObjectStoragePort`
+- production object storage adapter
+- existing ADR/documentation
+- README/documentation terkait deployment
+- existing secret/configuration references
+- package dependencies.
+
+Cari tahu apakah repository/deployment sudah memiliki petunjuk provider Secret Manager tertentu.
+
+Contoh provider hanya boleh dipertimbangkan jika benar-benar didukung oleh repository/deployment decision.
+
+Jangan memilih provider hanya berdasarkan asumsi pribadi.
+
+---
+
+# BAGIAN 2 — PROVIDER DECISION
+
+Jika repository SUDAH secara eksplisit menentukan provider:
+
+- gunakan provider tersebut,
+- dokumentasikan keputusan jika ADR belum ada,
+- jangan mengganti provider.
+
+Jika repository BELUM menentukan provider:
+
+1. Jangan langsung menambahkan SDK vendor.
+2. Jangan membuat implementasi vendor secara spekulatif.
+3. Buat ADR/deployment decision yang menjelaskan:
+   - kebutuhan SecretResolver,
+   - alasan provider perlu ditentukan,
+   - interface yang digunakan application,
+   - deployment-owned boundary,
+   - credential bootstrap model,
+   - rotation/revocation expectation,
+   - local/test environment behavior,
+   - production behavior,
+   - security considerations.
+4. Pilih provider hanya jika ada dasar nyata dari deployment/environment repository.
+5. Jika tidak ada dasar yang cukup untuk memilih provider, jangan memaksakan pilihan.
+6. Tandai provider selection sebagai `DEFERRED — deployment decision required`.
+
+Jangan membuat fake provider hanya agar task dianggap selesai.
+
+---
+
+# BAGIAN 3 — SECRETRESOLVER ADAPTER
+
+Jika provider sudah dapat ditentukan secara valid:
+
+Implementasikan adapter konkret yang memenuhi `SecretResolver` yang SUDAH ADA.
+
+Requirements:
+
+1. Jangan membuat interface `SecretResolver` kedua.
+2. Application/business layer hanya mengenal `SecretResolver`.
+3. Vendor SDK/detail hanya berada di deployment/infrastructure boundary.
+4. Jangan memasukkan vendor-specific type ke business layer.
+5. Jangan hardcode:
+   - API key,
+   - password,
+   - access key,
+   - secret key,
+   - token,
+   - credential.
+6. Credential bootstrap untuk mengakses Secret Manager sendiri harus mengikuti deployment mechanism yang tersedia.
+7. Jangan mencetak secret.
+8. Jangan memasukkan secret ke error message.
+9. Jangan memasukkan secret ke HTTP response.
+10. Jangan menyimpan secret ke database aplikasi.
+11. Jangan menyimpan secret ke repository.
+12. Jangan menulis secret ke file temporary permanen.
+13. Resolver failure harus menghasilkan error yang aman.
+14. Missing secret harus menghasilkan configuration/startup error yang jelas tanpa membocorkan nilainya.
+15. Test environment harus tetap dapat menggunakan fake/in-memory resolver melalui dependency injection.
+
+---
+
+# BAGIAN 4 — PRODUCTION COMPOSITION ROOT
+
+Jika adapter sudah dapat dibuat:
+
+Wire melalui composition root.
+
+Pastikan dependency graph:
+
+`SecretResolver`
+→ production storage credential/configuration
+→ `ObjectStoragePort`
+→ B-071 services
+→ HTTP routes.
+
+Jangan membuat global singleton tersembunyi jika architecture menggunakan dependency injection.
+
+Jangan mengubah:
+
+- B-030 contract,
+- B-070 contract,
+- B-071 schema,
+- B-071 API behavior.
+
+Jika production configuration belum memiliki cara aman untuk menyediakan SecretResolver:
+
+- tambahkan hanya configuration boundary yang memang diperlukan,
+- jangan memasukkan secret langsung ke source.
+
+---
+
+# BAGIAN 5 — STARTUP VALIDATION
+
+Tambahkan atau perbaiki startup validation hanya jika memang dibutuhkan architecture.
+
+Startup harus dapat mendeteksi:
+
+- SecretResolver tidak tersedia,
+- provider configuration tidak lengkap,
+- secret reference tidak tersedia,
+- object storage credential tidak dapat di-resolve.
+
+Error harus:
+
+- jelas,
+- actionable,
+- tidak membocorkan secret.
+
+Jangan melakukan real production secret lookup dalam unit test.
+
+Untuk test:
+
+- gunakan fake resolver,
+- gunakan synthetic secret,
+- pastikan secret tidak muncul di test output.
+
+---
+
+# BAGIAN 6 — TEST
+
+Tambahkan/perbaiki test yang benar-benar relevan:
+
+1. SecretResolver dependency injection.
+2. Provider adapter berhasil melakukan resolve.
+3. Missing secret.
+4. Secret Manager failure.
+5. Error tidak membocorkan secret.
+6. Test environment menggunakan fake resolver.
+7. Production object storage configuration mengambil credential melalui SecretResolver.
+8. Composition root berhasil membuat dependency graph.
+9. Missing production configuration ditolak dengan aman.
+
+Jangan membuat mock yang tidak mencerminkan contract sebenarnya hanya untuk membuat test PASS.
+
+Jika vendor integration test membutuhkan credential/environment nyata:
+
+- jangan membuat credential palsu,
+- jangan memasukkan credential ke source,
+- tandai integration test sebagai deferred/unavailable.
+
+---
+
+# BAGIAN 7 — SECURITY REVIEW
+
+Audit hasil perubahan terhadap:
+
+- secret exposure,
+- credential exposure,
+- logging,
+- error handling,
+- environment variable handling,
+- process startup,
+- object storage credential flow,
+- dependency injection,
+- workspace isolation.
+
+Pastikan tidak ada secret dalam:
+
+- Git diff,
+- commit,
+- logs,
+- HTTP response,
+- exception message,
+- test snapshot,
+- documentation.
+
+Jika menemukan secret nyata di repository:
+
+- jangan menyalin atau menampilkan nilainya,
+- segera hentikan penyebaran secret,
+- laporkan lokasi file secara aman,
+- jangan commit secret tersebut.
+
+---
+
+# BAGIAN 8 — VALIDATION
+
+Jalankan:
+
+- `pnpm test`
+- `pnpm build`
+- `pnpm typecheck`
+- `pnpm lint`
+- `pnpm format:check`
+- `node scripts/check-imports.mjs`
+- `node scripts/check-ownership.mjs`
+- `node scripts/check-doc-links.mjs`
+- `git diff --check`
+
+Jangan menjalankan atau membuat:
+
+`node scripts/check-symlinks.mjs`
+
+karena file tersebut memang tidak tersedia.
+
+Jangan menjalankan integration test Gorouter.app.
+
+NVIDIA dan TokenHarbor tidak perlu disentuh.
+
+---
+
+# BAGIAN 9 — REVIEW DIFF
+
+Sebelum commit:
+
+1. `git status`
+2. `git diff --stat`
+3. review seluruh diff.
+4. Pastikan hanya perubahan yang berkaitan dengan:
+   - Secret Manager decision,
+   - ADR/deployment documentation,
+   - SecretResolver adapter,
+   - production composition,
+   - test yang relevan.
+
+Hapus perubahan unrelated.
+
+Jangan membuat:
+
+- PostgreSQL migration,
+- MinIO infrastructure,
+- rate-limit implementation,
+- audit system,
+- share expiry,
+- Telegram runtime.
+
+---
+
+# BAGIAN 10 — COMMIT + PUSH
+
+Jika provider sudah ditentukan dan implementasi valid serta validation PASS:
+
+Buat satu commit dengan message yang sesuai, misalnya:
+
+`feat: integrate deployment secret manager`
+
+Jika pekerjaan hanya menghasilkan ADR/deployment decision tanpa implementation:
+
+gunakan message yang sesuai, misalnya:
+
+`docs: define secret manager deployment decision`
+
+Kemudian langsung:
+
+`git push origin backend-dev-recovery`
+
+Verifikasi:
+
+- local HEAD SHA,
+- remote SHA,
+- working tree clean.
+
+Jika tidak ada perubahan:
+
+- jangan membuat empty commit,
+- jangan push kosong,
+- laporkan repository tetap sinkron.
+
+Jika push gagal:
+
+- jangan mengubah credential Git sembarangan,
+- jangan menghapus commit,
+- tampilkan error,
+- pastikan commit lokal aman.
+
+---
+
+# OUTPUT AKHIR
+
+Tampilkan:
+
+## Secret Manager Decision
+- provider:
+- decision source:
+- ADR/documentation:
+- status:
+
+## SecretResolver
+- adapter:
+- deployment boundary:
+- composition root:
+- startup validation:
+- status:
+
+## Security
+- secret exposure:
+- credential handling:
+- logging:
+- status:
+
+## Tests
+- unit tests:
+- integration test:
+- skipped/deferred:
+- status:
+
+## Validation
+- test:
+- build:
+- typecheck:
+- lint:
+- format:
+- imports:
+- ownership:
+- docs:
+- diff:
+- symlink check:
+
+## Git
+- commit SHA:
+- push status:
+- local/remote SHA:
+- working tree:
+
+## Remaining Deferred
+Hanya tampilkan dependency yang benar-benar masih membutuhkan:
+
+- environment,
+- infrastructure,
+- approved contract,
+- deployment decision.
+
+## Next Roadmap
+
+Tentukan task berikutnya berdasarkan dependency nyata repository.
+
+PENTING:
+
+- Jangan mengulang B-030.
+- Jangan mengulang B-070.
+- Jangan mengulang B-071.
+- Jangan membuat SecretResolver kedua.
+- Jangan memilih vendor secara spekulatif.
+- Jangan membuat credential palsu.
+- Jangan mengerjakan fitur acak.
+- Jangan menyentuh Gorouter.app.
+- Jangan menambahkan share expiry.
+- Jangan mengubah schema B-071 tanpa kebutuhan resmi.
+- Kerjakan langsung pada `/root/botspace`.
 
 ```
 # Prompt: BotSpace — Deployment Secret Manager Adapter + Infrastructure Verification
