@@ -58,9 +58,97 @@
 
 
 ```
-# 
+# -071: File/Share API + Access Control
 ```
 
+# Prompt: B-071 File/Share API + Access Control
+
+Lanjutkan project BotSpace dari kondisi repository saat ini.
+
+Kondisi terakhir:
+
+* B-070 Storage Adapter sudah selesai.
+* Commit B-070 sudah berhasil dibuat.
+* Push ke `origin/backend-dev-recovery` sudah berhasil.
+* Working tree harus dipertahankan clean sebelum mulai.
+* Jangan mengulang pekerjaan B-070.
+
+Sekarang lanjutkan roadmap **B-071: File/share API + access control**.
+
+Tugas:
+
+1. Audit terlebih dahulu roadmap B-071, contract yang sudah tersedia, `ObjectStoragePort`, storage adapter hasil B-070, module runtime, serta struktur API BotSpace.
+2. Gunakan contract/schema yang sudah ada. Jangan mengarang persistence schema baru jika belum ada dasar yang jelas.
+3. Implementasikan File/Share API secara modular dengan scope workspace.
+4. Sediakan behavior untuk:
+
+   * upload file,
+   * download file,
+   * share file,
+   * workspace-scoped authorization,
+   * metadata file sesuai contract yang tersedia,
+   * access control untuk share link.
+5. Pastikan user/workspace hanya dapat mengakses object yang memang menjadi haknya.
+6. Tambahkan perlindungan:
+
+   * path traversal,
+   * unsafe upload/path input,
+   * invalid object identifier,
+   * akses lintas workspace,
+   * download object yang tidak memiliki izin.
+7. Gunakan `ObjectStoragePort` sebagai abstraction. Jangan membuat storage implementation baru di layer API.
+8. Jangan mencampurkan HTTP/API handling dengan storage implementation atau business logic.
+9. Share-link access control harus mengikuti schema/roadmap yang memang sudah tersedia. Jangan membuat expiry, permission, token, atau field baru tanpa contract yang mendukungnya.
+10. Jangan mengimplementasikan Telegram polling/webhook runtime pada tahap ini.
+11. Jangan mengubah `BotInstallation.status` menjadi process/runtime state.
+12. Tambahkan unit test untuk:
+
+    * upload authorization,
+    * download authorization,
+    * workspace isolation,
+    * share access,
+    * invalid/path traversal input,
+    * object-not-found behavior,
+    * storage adapter interaction.
+13. Jangan membuat mock/schema palsu hanya agar test PASS.
+14. Jangan mengubah atau menjalankan integration test Gorouter.app.
+15. NVIDIA dan TokenHarbor hanya diverifikasi jika benar-benar tersentuh perubahan; jangan menambahkan provider test yang tidak diperlukan.
+
+Setelah implementasi selesai, jalankan validation lengkap:
+
+* pnpm test
+* pnpm build
+* pnpm typecheck
+* pnpm lint
+* pnpm format:check
+* scripts/check-imports.mjs
+* scripts/check-symlinks.mjs
+* scripts/check-ownership.mjs
+* scripts/check-doc-links.mjs
+* git diff --check
+
+Jika semua validation PASS:
+
+16. Review diff terakhir untuk memastikan tidak ada perubahan di luar scope B-071.
+17. Buat satu commit lokal dengan message yang sesuai, misalnya:
+    `feat: add file share api access control`
+    gunakan message yang lebih tepat jika diperlukan.
+18. Setelah commit berhasil, LANGSUNG push:
+    `git push origin backend-dev-recovery`
+19. Pastikan SHA lokal dan remote sama setelah push.
+20. Jika push gagal karena credential/network, jangan mengubah credential secara sembarangan. Commit harus tetap aman secara lokal.
+
+Setelah selesai tampilkan:
+
+* commit SHA,
+* push status,
+* validation status,
+* file yang berubah,
+* remaining issues,
+* roadmap/task berikutnya berdasarkan dependency nyata repository.
+
+Jangan mengerjakan fitur acak di luar B-071.
+Kerjakan langsung pada `/root/botspace`.
 
 
 ```
