@@ -34,9 +34,143 @@
 
 
 ```
-# 
+# Prompt: B-071 Production Wiring + Object Storage + PostgreSQL Routes
 ```
 
+# Prompt: B-071 Production Wiring + Object Storage + PostgreSQL Routes
+
+Lanjutkan project BotSpace dari kondisi repository saat ini.
+
+Kondisi terakhir:
+
+* B-030 Workspace API/Contract SUDAH selesai.
+* B-070 Storage Adapter SUDAH selesai.
+* B-071 File/Share contract SUDAH selesai.
+* B-071 File/Share API implementation SUDAH selesai.
+* Jangan mengulang implementasi contract, repository, service, atau API B-071 yang sudah ada.
+* Working tree harus clean sebelum mulai.
+* Tetap gunakan branch `backend-dev-recovery`.
+
+Hasil audit terakhir menunjukkan remaining issues:
+
+1. `main.ts` belum membuat production `ObjectStoragePort`.
+2. Belum ada production signer/credential boundary.
+3. File/share routes masih membutuhkan `ObjectStoragePort` nyata melalui dependency injection.
+4. Production PostgreSQL-backed HTTP integration belum selesai.
+5. Public share rate limiting dan audit event masih deferred karena boundary belum direview.
+6. Expiry belum didukung karena belum ada pada contract/schema.
+7. `scripts/check-symlinks.mjs` tidak tersedia di repository; jangan membuat pengganti hanya untuk membuat validation PASS.
+
+Sekarang selesaikan **production wiring B-071**.
+
+Tugas:
+
+1. Audit `main.ts`, application composition root, B-070 `ObjectStoragePort`, storage adapter, B-071 repository/service/routes, PostgreSQL adapter, dan configuration system.
+2. Implementasikan production dependency injection untuk `ObjectStoragePort`.
+3. Jangan membuat storage abstraction baru. Gunakan `ObjectStoragePort` yang sudah ada.
+4. Implementasikan production signer/credential boundary sesuai configuration/security architecture yang sudah tersedia.
+5. Jangan hardcode credential, secret, token, endpoint, atau access key di source code.
+6. Configuration harus divalidasi saat startup jika credential wajib untuk production storage.
+7. Pastikan test environment tetap dapat menggunakan injected fake/in-memory adapter tanpa membutuhkan credential nyata.
+8. Wire seluruh dependency B-071 melalui composition root secara eksplisit:
+
+   * PostgreSQL repository,
+   * object storage adapter,
+   * signer/token component,
+   * file/share service,
+   * HTTP routes.
+9. Jangan membuat singleton global tersembunyi jika dependency injection repository sudah menggunakan composition root.
+10. Pastikan production HTTP routes menggunakan dependency yang benar-benar dikonfigurasi, bukan placeholder.
+11. Pastikan workspace authorization tetap diterapkan pada production route.
+12. Pastikan public share route hanya dapat membaca share yang valid.
+13. Jangan menambahkan expiry karena contract/schema saat ini belum mendukungnya.
+14. Jangan menambahkan rate limiting atau audit event secara spekulatif. Audit terlebih dahulu apakah boundary/contract untuk keduanya sudah tersedia. Jika belum, dokumentasikan sebagai deferred.
+15. Jangan mengubah `BotInstallation.status`.
+16. Jangan membuat Telegram polling/webhook runtime.
+17. Jangan menyentuh Gorouter.app integration test.
+18. NVIDIA dan TokenHarbor tidak perlu disentuh.
+
+Production integration:
+
+19. Pastikan PostgreSQL-backed file/share repository dapat digunakan melalui composition root.
+20. Pastikan migration/schema B-071 sudah terhubung dengan persistence initialization yang digunakan repository.
+21. Jangan menjalankan migration destruktif.
+22. Jangan mengubah schema yang tidak berkaitan dengan B-071.
+23. Pastikan error dari database/object storage tidak membocorkan credential, internal path, atau secret ke HTTP response.
+
+Testing:
+
+Tambahkan atau perbaiki test untuk:
+
+* composition root berhasil membuat dependency graph,
+* missing production storage configuration ditolak dengan error yang jelas,
+* test environment tetap dapat menggunakan injected fake storage,
+* file upload menggunakan injected ObjectStoragePort,
+* file download menggunakan injected ObjectStoragePort,
+* PostgreSQL repository integration bila environment tersedia,
+* workspace isolation,
+* share authorization,
+* public share access,
+* storage failure handling.
+
+Jika PostgreSQL test membutuhkan:
+`PERSISTENCE_TEST_DATABASE_URL`
+
+dan environment tersebut tidak tersedia:
+
+* jangan membuat fake PostgreSQL test,
+* jangan mengubah test agar PASS,
+* laporkan sebagai skipped/unavailable sesuai mekanisme repository.
+
+Validation:
+
+Jalankan:
+
+* pnpm test
+* pnpm build
+* pnpm typecheck
+* pnpm lint
+* pnpm format:check
+* scripts/check-imports.mjs
+* scripts/check-ownership.mjs
+* scripts/check-doc-links.mjs
+* git diff --check
+
+Untuk:
+`node scripts/check-symlinks.mjs`
+
+jika file memang tidak ada:
+
+* jangan membuat file pengganti hanya demi validation,
+* catat bahwa check tersebut tidak tersedia di repository.
+
+Setelah semua selesai:
+
+1. Review `git diff`.
+2. Pastikan perubahan hanya terkait production wiring B-071.
+3. Buat satu commit dengan message:
+   `feat: wire production file share dependencies`
+   atau message yang lebih tepat berdasarkan perubahan aktual.
+4. Langsung push:
+   `git push origin backend-dev-recovery`
+5. Verifikasi SHA lokal dan remote sama.
+6. Jika push gagal karena credential/network, jangan mengubah credential sembarangan dan jangan menghapus commit lokal.
+
+Output akhir:
+
+* ringkasan perubahan,
+* production dependency yang berhasil di-wire,
+* storage credential/configuration behavior,
+* route integration status,
+* test/validation status,
+* commit SHA,
+* push status,
+* remaining deferred items,
+* roadmap berikutnya berdasarkan dependency nyata repository.
+
+Jangan mengerjakan fitur acak di luar production wiring B-071.
+
+Kerjakan langsung pada `/root/botspace`.
 
 
 ```
