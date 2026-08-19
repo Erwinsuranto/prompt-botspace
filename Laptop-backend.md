@@ -76,10 +76,181 @@
 
 
 ```
-# 
+# Prompt: B-061 — Command Routing + Module RuntimePrompt: B-061 — Command Routing + Module Runtime
 ```
 
+Implement ROADMAP_V2.md task B-061 — Command routing + module runtime.
 
+IMPORTANT:
+- Work ONLY on B-061.
+- B-060 is already completed and pushed. Treat the existing Module Manifest Registry from B-060 as the source of truth.
+- Do NOT redesign or rewrite B-060 unless a small compatibility fix is strictly required by B-061.
+- Do NOT start B-062 or any later task.
+- Do NOT implement frontend F-060 yet.
+- Preserve all existing contracts and tenant/workspace isolation rules.
+- Do not introduce secrets, bot tokens, credentials, or raw Telegram credentials into logs, errors, tests, fixtures, or responses.
+- Do not weaken existing tests or security checks.
+- Follow the repository architecture, ADRs, MODULES.md, API contracts, and ROADMAP_V2.md.
+- Use the existing domain/repository ports instead of creating duplicate provider/module layers.
+
+TASK:
+Implement B-061:
+"Command routing + module runtime"
+
+Roadmap requirement:
+"Route normalized Telegram updates to enabled modules per bot; per-workspace module configuration."
+
+Expected result:
+"Module commands execute isolated per workspace/bot."
+
+SCOPE:
+
+1. AUDIT EXISTING B-060 IMPLEMENTATION FIRST
+   - Inspect the current Module Manifest Registry implementation.
+   - Identify:
+     - module manifest types
+     - module IDs/names
+     - enabled/disabled semantics
+     - workspace/bot configuration model
+     - repository ports/adapters
+     - existing tests
+   - Reuse these contracts.
+   - Do not invent a second module registry.
+
+2. DEFINE/IMPLEMENT NORMALIZED UPDATE ROUTING
+   - Locate the existing Telegram update normalization/input boundary created by previous tasks.
+   - Use the normalized update/domain representation rather than parsing raw Telegram payloads inside modules.
+   - Introduce a clear command-routing flow:
+       normalized update
+          -> resolve bot/workspace context
+          -> resolve enabled modules
+          -> identify matching module command
+          -> execute module handler
+          -> return safe result
+   - Keep routing deterministic and testable.
+
+3. MODULE RUNTIME
+   - Create a small module runtime abstraction responsible for executing an enabled module command.
+   - A module must receive only the context it needs.
+   - Runtime context must include the resolved tenant/workspace and bot identity.
+   - Never trust a workspace ID supplied by a Telegram/client payload.
+   - Workspace/bot context must come from the trusted server-side resolution path already established in the repository.
+
+4. COMMAND REGISTRATION / DISPATCH
+   - Support module-defined commands based on the B-060 manifest.
+   - Only commands belonging to ENABLED modules for the current bot/workspace may execute.
+   - Disabled modules must not execute.
+   - Unknown commands must produce the existing safe "not handled"/equivalent result rather than an exception.
+   - Multiple modules must not accidentally execute the same command unless the existing architecture explicitly supports deterministic priority/ownership.
+   - If command collisions are possible, detect them deterministically and fail safely.
+
+5. WORKSPACE/BOT ISOLATION
+   - Module configuration must be resolved for the current workspace + bot.
+   - Workspace A must never execute a module configuration belonging to Workspace B.
+   - Bot A must never inherit module configuration from Bot B unless explicitly defined by an existing repository contract.
+   - Do not use a global mutable module configuration cache that can leak tenant state.
+   - If caching is necessary, key it by the correct tenant/workspace/bot scope.
+
+6. ERROR AND SECURITY BEHAVIOR
+   - Follow the existing error envelope/domain error conventions.
+   - Do not expose provider errors, Telegram credentials, bot tokens, secret references, or raw upstream payloads.
+   - Do not log raw Telegram updates if they may contain sensitive data.
+   - Preserve correlation context and workspace/tenant context in structured logs where the existing observability layer supports it.
+   - A module failure must not corrupt the runtime/router state.
+   - One workspace/bot failure must not affect another workspace/bot.
+
+7. TESTS
+   Add focused tests for B-061 covering at minimum:
+
+   A. Enabled module command executes.
+   B. Disabled module command does not execute.
+   C. Unknown command is safely ignored/not handled.
+   D. Workspace isolation:
+      - workspace A cannot execute workspace B module configuration.
+   E. Bot isolation:
+      - bot A cannot accidentally use bot B module configuration.
+   F. Command collision behavior is deterministic/safe.
+   G. Module runtime receives the correct workspace/bot context.
+   H. Module failure is isolated and returned through the existing error/result mechanism.
+   I. No token/secret/raw credential appears in logs/errors.
+   J. Empty/no-module configuration behaves safely.
+   K. Multiple enabled modules can coexist without cross-execution.
+   L. Repeated routing of the same normalized update does not mutate shared global state unexpectedly.
+
+8. ARCHITECTURE
+   - Keep module runtime independent from Telegram SDK-specific details where possible.
+   - Keep Telegram adapter/input parsing separate from domain/module execution.
+   - Use repository ports for persistence/configuration.
+   - Avoid circular dependencies.
+   - Respect package import boundaries.
+   - Do not add unnecessary dependencies.
+
+9. DOCUMENTATION
+   - Update documentation only if B-061 genuinely changes the documented architecture/contract.
+   - Do NOT modify ROADMAP.md.
+   - ROADMAP_V2.md may only be updated if the repository convention requires marking B-061 DONE, and only after all implementation/tests/validation succeed.
+   - Do not create another README or roadmap file.
+
+10. VALIDATION
+   Before declaring B-061 complete, run the repository's appropriate validation suite, including where available:
+
+   pnpm format:check
+   pnpm lint
+   pnpm typecheck
+   node scripts/check-imports.mjs
+   pnpm test
+   pnpm build
+
+   Also run focused B-061 tests explicitly if the workspace supports it.
+
+   Do not hide failures.
+   Do not skip tests just to obtain a green result.
+   If PostgreSQL/runtime integration tests are gated by the existing environment, report exactly which tests were gated and why.
+
+11. GIT SAFETY — VERY IMPORTANT
+   The VPS can disappear, so NEVER leave completed work only as an uncommitted working tree.
+
+   After implementation and successful validation:
+
+   git status --short
+   git diff --check
+
+   Review the diff and ensure there are no unrelated changes.
+
+   Then create a dedicated commit:
+
+   git add <only B-061 files>
+   git commit -m "feat: add module command routing runtime"
+
+   Verify:
+
+   git status --short
+   git log -1 --oneline
+
+   Then PUSH the commit to the current working branch and verify the remote contains it.
+
+   If authentication prevents push:
+   - DO NOT delete/reset/rebase the commit.
+   - Keep the commit safely in local Git history.
+   - Report the exact push failure.
+   - Show the commit SHA and branch.
+   - Do not claim the task is pushed.
+
+12. FINAL REPORT
+   At the end report:
+   - B-061 implementation summary
+   - files changed
+   - tests added
+   - validation results
+   - security/tenant-isolation verification
+   - commit SHA
+   - branch
+   - push result
+   - working-tree status
+   - any remaining risks
+
+Success condition:
+B-061 is complete only when command routing and module runtime work through the existing B-060 module registry, module execution is correctly scoped to workspace+bot, tests pass, validation passes, and the implementation is committed. Push it when credentials are available.
 
 ```
 # 
