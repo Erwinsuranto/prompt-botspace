@@ -52,9 +52,90 @@
 
 
 ```
-# 
+# B-030 Workspace API/Contract
 ```
 
+# Prompt: B-030 Workspace API/Contract + Push
+
+Lanjutkan project BotSpace dari kondisi repository saat ini.
+
+Kondisi terakhir:
+
+* B-070 Storage Adapter sudah selesai.
+* B-071 sudah diaudit tetapi BELUM diimplementasikan karena dependency contract belum tersedia.
+* Working tree terakhir clean.
+* Remote `origin/backend-dev-recovery` sudah sinkron dengan commit terakhir.
+* Jangan mengulang B-070.
+* Jangan mengimplementasikan B-071 secara parsial.
+
+Sekarang fokus menyelesaikan dependency **B-030: Workspace API/Contract**.
+
+Tugas:
+
+1. Audit roadmap B-030 dan seluruh contract/domain/workspace implementation yang sudah ada.
+2. Tentukan scope B-030 berdasarkan kebutuhan nyata repository dan dependency B-071.
+3. Implementasikan Workspace API/contract secara modular dan end-to-end sesuai arsitektur yang sudah ada.
+4. Contract harus menyediakan dasar yang dibutuhkan untuk:
+
+   * workspace identity,
+   * workspace ownership,
+   * workspace-scoped authorization,
+   * workspace access boundaries,
+   * hubungan user/account dengan workspace,
+   * API behavior yang diperlukan oleh file/share system.
+5. Jangan membuat schema baru hanya berdasarkan asumsi. Gunakan schema/model/repository contract yang sudah tersedia jika memang sudah ada.
+6. Jika ada dependency yang belum tersedia, audit dan implementasikan hanya dependency yang memang merupakan bagian langsung dari B-030.
+7. Jangan mengimplementasikan B-071 File/Share API sekarang.
+8. Jangan membuat Telegram polling/webhook runtime.
+9. Jangan mengubah `BotInstallation.status` menjadi runtime process state.
+10. Jangan membuat persistence contract palsu hanya agar dependency terlihat selesai.
+11. Pastikan boundary workspace mencegah akses lintas workspace.
+12. Tambahkan unit test untuk behavior contract yang benar-benar diimplementasikan, terutama:
+
+    * workspace ownership,
+    * workspace authorization,
+    * workspace isolation,
+    * valid/invalid workspace identifier,
+    * access denial.
+13. Jangan mengubah atau menjalankan integration test Gorouter.app.
+14. NVIDIA dan TokenHarbor hanya diverifikasi jika benar-benar tersentuh perubahan.
+
+Setelah implementasi selesai jalankan validation lengkap:
+
+* pnpm test
+* pnpm build
+* pnpm typecheck
+* pnpm lint
+* pnpm format:check
+* scripts/check-imports.mjs
+* scripts/check-symlinks.mjs
+* scripts/check-ownership.mjs
+* scripts/check-doc-links.mjs
+* git diff --check
+
+Jika semua PASS:
+
+15. Review diff dan pastikan hanya perubahan yang diperlukan untuk B-030.
+16. Buat satu commit lokal dengan message yang sesuai, misalnya:
+    `feat: add workspace api contract`
+    gunakan message yang lebih tepat jika diperlukan.
+17. LANGSUNG push:
+    `git push origin backend-dev-recovery`
+18. Setelah push, verifikasi SHA lokal dan remote sama.
+19. Jangan mengubah credential GitHub jika push gagal.
+
+Terakhir tampilkan:
+
+* commit SHA,
+* push status,
+* validation status,
+* file yang berubah,
+* remaining issues,
+* dependency B-071 yang sekarang sudah terpenuhi atau yang masih kurang,
+* roadmap/task berikutnya yang paling tepat.
+
+Jangan mengerjakan fitur acak di luar B-030.
+Kerjakan langsung pada `/root/botspace`.
 
 
 ```
