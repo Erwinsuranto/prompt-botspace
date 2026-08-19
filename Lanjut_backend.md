@@ -560,7 +560,38 @@
 ```
 # 
 ```
+# Prompt: B-040 Approval Gate Check
 
+Lanjutkan dari repository `/root/botspace` pada branch `backend-dev-recovery`.
+
+Periksa status approval B-040/ADR-011.
+
+1. Baca approval package:
+   `docs/architecture/ADR-011-telegram-account-connection.md`
+
+2. Periksa apakah sudah ada approval manusia yang VALID untuk:
+   - Architecture
+   - Telegram/provider
+   - Security
+   - Deployment
+
+3. Jangan menganggap dokumentasi atau hasil audit sebagai approval.
+
+4. Jika approval belum lengkap:
+   - JANGAN mengubah source code.
+   - JANGAN mengimplementasikan B-040.
+   - Jangan membuat commit.
+   - Tampilkan decision yang masih PENDING.
+   - Tetapkan:
+     `NEXT SINGLE ACTION: Obtain human approval for B-040/ADR-011.`
+
+5. Jika approval lengkap dan dapat diverifikasi:
+   - jangan langsung implementasi,
+   - tampilkan keputusan yang telah APPROVED,
+   - tampilkan dependency yang sekarang unlocked,
+   - tentukan implementation task B-040 pertama berdasarkan approval tersebut.
+
+Jangan menyentuh B-030, B-070, B-071, Gorouter.app, NVIDIA, atau TokenHarbor.
 
 
 ```
