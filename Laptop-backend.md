@@ -4,6 +4,7 @@
 
 
 ```
+
 # implementasi deployment-owned SecretResolver + workload identity/bootstrap authentication
 ```
 # Prompt: B-072 Production Secret Manager Adapter + Workload Identity
