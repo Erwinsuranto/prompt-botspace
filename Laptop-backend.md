@@ -28,9 +28,129 @@
 
 
 ```
-# 
+# Prompt: Production SecretResolver Integration
 ```
 
+# Prompt: Production SecretResolver Integration
+
+Lanjutkan project BotSpace dari kondisi repository saat ini.
+
+Kondisi terakhir:
+
+* B-030 Workspace API/Contract SUDAH selesai.
+* B-070 Storage Adapter SUDAH selesai.
+* B-071 File/Share contract SUDAH selesai.
+* B-071 File/Share API SUDAH selesai.
+* Production wiring B-071 SUDAH selesai.
+* Working tree terakhir clean.
+* Branch: `backend-dev-recovery`.
+* Jangan mengulang B-030, B-070, atau implementasi B-071.
+* Jangan mengubah contract/schema B-071 pada tahap ini.
+
+Remaining deferred items terakhir:
+
+1. Deployment infrastructure belum menyediakan managed `SecretResolver` implementation.
+2. PostgreSQL-backed HTTP integration test belum dijalankan karena `PERSISTENCE_TEST_DATABASE_URL` belum tersedia.
+3. MinIO smoke test belum dijalankan dengan credential sintetis.
+4. Public share rate limiting masih deferred.
+5. Public share audit event masih deferred.
+6. Share expiry masih deferred karena belum ada contract/schema.
+7. `scripts/check-symlinks.mjs` tidak tersedia di repository.
+
+Sekarang fokus HANYA pada item pertama:
+
+**Integrasikan `SecretResolver` dengan managed secret manager boundary yang memang sudah tersedia/diinginkan oleh arsitektur repository.**
+
+Tugas:
+
+1. Audit seluruh penggunaan `SecretResolver`, configuration system, composition root, deployment/configuration boundary, dan storage credential handling.
+2. Identifikasi interface/contract `SecretResolver` yang SUDAH ada.
+3. Jangan membuat contract kedua yang menduplikasi `SecretResolver`.
+4. Implementasikan production adapter/boundary untuk managed secret manager hanya jika repository memang sudah memiliki abstraction yang mendukungnya.
+5. Jangan mengunci project ke vendor secret manager tertentu jika architecture belum menetapkannya.
+6. Jangan hardcode:
+
+   * secret,
+   * API key,
+   * access key,
+   * secret key,
+   * token,
+   * credential,
+   * password.
+7. Production storage configuration harus dapat mengambil credential melalui `SecretResolver`.
+8. Test environment harus tetap dapat menggunakan injected fake/test resolver tanpa membutuhkan managed secret manager nyata.
+9. Pastikan missing secret menghasilkan startup/configuration error yang jelas dan aman.
+10. Jangan membocorkan nilai secret dalam:
+
+    * error,
+    * log,
+    * HTTP response,
+    * test output.
+11. Jangan mengubah B-071 database schema.
+12. Jangan mengubah `BotInstallation.status`.
+13. Jangan membuat Telegram polling/webhook runtime.
+14. Jangan menambahkan public share rate limiting atau audit event sekarang.
+15. Jangan menambahkan share expiry sekarang.
+16. Jangan mengubah atau menjalankan integration test Gorouter.app.
+17. NVIDIA dan TokenHarbor tidak perlu disentuh.
+
+Testing:
+
+Tambahkan/perbaiki test untuk:
+
+* SecretResolver dependency injection,
+* secret berhasil di-resolve,
+* missing secret,
+* resolver failure,
+* secret tidak bocor ke error/log,
+* test environment menggunakan fake resolver,
+* production object storage configuration mendapatkan credential melalui resolver.
+
+Jika managed secret manager nyata memang tidak tersedia di environment:
+
+* jangan membuat fake production integration,
+* implementasikan boundary/adapter berdasarkan contract yang tersedia,
+* tandai smoke/infrastructure verification sebagai deferred.
+
+Validation:
+
+* pnpm test
+* pnpm build
+* pnpm typecheck
+* pnpm lint
+* pnpm format:check
+* scripts/check-imports.mjs
+* scripts/check-ownership.mjs
+* scripts/check-doc-links.mjs
+* git diff --check
+
+Jangan menjalankan atau membuat `scripts/check-symlinks.mjs` karena file tersebut memang tidak tersedia.
+
+Jika semua validation yang tersedia PASS:
+
+1. Review `git diff`.
+2. Pastikan perubahan hanya terkait SecretResolver production integration.
+3. Buat satu commit dengan message:
+   `feat: integrate production secret resolver`
+   atau gunakan message yang lebih tepat berdasarkan perubahan aktual.
+4. Langsung push:
+   `git push origin backend-dev-recovery`
+5. Verifikasi SHA lokal dan remote sama.
+6. Jika push gagal karena credential/network, jangan mengubah credential secara sembarangan dan jangan menghapus commit lokal.
+
+Output akhir:
+
+* SecretResolver implementation/boundary yang dibuat,
+* file yang berubah,
+* test/validation status,
+* commit SHA,
+* push status,
+* remaining deferred infrastructure items,
+* roadmap berikutnya berdasarkan dependency nyata repository.
+
+Jangan mengerjakan fitur lain di luar SecretResolver production integration.
+
+Kerjakan langsung pada `/root/botspace`.
 
 
 ```
