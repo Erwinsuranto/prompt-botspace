@@ -555,7 +555,58 @@
 # 
 ```
 
+# Prompt: B-040 Human Approval Gate
 
+Lanjutkan dari `/root/botspace` pada branch `backend-dev-recovery`.
+
+Status saat ini:
+- B-040/ADR-011 masih BLOCKED.
+- Tidak ada B-040 dependency yang unlocked.
+- Working tree clean.
+- Tidak ada source code yang perlu diubah.
+- Human approval lintas Architecture, Telegram/provider, Security, dan Deployment belum tercatat sebagai APPROVED.
+
+JANGAN melakukan implementasi B-040.
+
+Lakukan hanya pemeriksaan approval gate:
+
+1. Baca:
+   `docs/architecture/ADR-011-telegram-account-connection.md`
+
+2. Identifikasi format/catatan approval yang memang sudah digunakan repository.
+
+3. Periksa apakah sudah ada approval manusia yang eksplisit dan dapat diverifikasi untuk B-040.
+
+4. Jika BELUM ada:
+   - jangan mengubah source code,
+   - jangan membuat commit,
+   - jangan membuat approval palsu,
+   - jangan menganggap hasil audit sebagai approval,
+   - tampilkan persis apa yang masih dibutuhkan untuk approval B-040.
+
+5. Jika SUDAH ada approval eksplisit:
+   - verifikasi scope approval,
+   - jangan langsung implementasi,
+   - tampilkan dependency B-040 yang sekarang unlocked,
+   - tampilkan task implementasi pertama yang diizinkan.
+
+Jangan menyentuh:
+- B-030
+- B-070
+- B-071
+- Gorouter.app
+- NVIDIA
+- TokenHarbor
+- provider/runtime lain yang tidak terkait langsung.
+
+Tidak perlu membuat commit jika tidak ada perubahan.
+
+Output hanya:
+- Approval status
+- Approved scope
+- Remaining approval
+- Unlocked dependencies
+- Next single action
 
 ```
 # 
