@@ -70,10 +70,61 @@
 
 
 ```
-# 
+# BotSpace — Continue Module Command Routing
 ```
 
+Lanjutkan implementasi project BotSpace dari kondisi repository saat ini.
 
+Konteks:
+- Commit terakhir sudah berhasil:
+  24ecd5718ef3069f99a3416f594c472a29181bf0
+- Commit message:
+  feat: add module command routing runtime
+- Validation terakhir sudah PASS:
+  - pnpm test: 10 tests passed
+  - pnpm build: 12 packages successful
+  - pnpm typecheck: 12 packages successful
+  - pnpm lint: 12 packages successful
+  - pnpm format:check: PASS
+  - scripts/check-imports.mjs: PASS
+  - scripts/check-symlinks.mjs: PASS
+  - scripts/check-ownership.mjs: PASS
+  - scripts/check-doc-links.mjs: PASS
+  - git diff --check: PASS
+- Jangan mengulang implementasi yang sudah selesai.
+- Jangan mengubah arsitektur yang sudah berjalan hanya untuk merapikan kode.
+- Jangan menjalankan atau mengubah integration test Gorouter.app.
+- Fokus pada BotSpace dan lanjutkan roadmap dari kondisi repository sekarang.
+
+Tugas:
+1. Audit implementasi `module command routing runtime` yang baru selesai.
+2. Identifikasi bagian berikutnya yang memang diperlukan agar module command routing dapat digunakan oleh runtime BotSpace secara nyata.
+3. Implementasikan bagian tersebut secara modular dan konsisten dengan arsitektur repository.
+4. Pastikan routing command:
+   - menggunakan module yang benar,
+   - memiliki boundary yang jelas antara runtime dan adapter,
+   - tidak merusak command/module yang sudah ada,
+   - mudah ditambah untuk module baru di masa depan.
+5. Jangan membuat persistence adapter baru atau storage contract baru jika schema/kontrak produknya memang belum tersedia. Jangan mengarang schema.
+6. Tambahkan atau perbarui unit test hanya untuk behavior yang benar-benar berubah/ditambahkan.
+7. Jalankan validation yang relevan:
+   - tests
+   - build
+   - typecheck
+   - lint
+   - format check
+   - import/symlink/ownership/doc-link checks bila relevan
+   - git diff --check
+8. Jangan melakukan push GitHub. Credential push sebelumnya memang tidak tersedia; cukup pastikan commit lokal siap dibuat.
+9. Setelah selesai, tampilkan:
+   - ringkasan perubahan,
+   - file yang diubah,
+   - hasil test/validation,
+   - masalah yang masih tersisa jika ada,
+   - rekomendasi langkah BotSpace berikutnya.
+10. Jika semua validasi PASS, buat satu commit lokal dengan commit message yang jelas sesuai perubahan.
+
+Kerjakan langsung pada repository saat ini. Jangan berhenti hanya pada audit; implementasikan tahap berikutnya yang memang sudah siap dikerjakan berdasarkan kode yang ada.
 
 ```
 # Prompt: B-061 — Command Routing + Module RuntimePrompt: B-061 — Command Routing + Module Runtime
