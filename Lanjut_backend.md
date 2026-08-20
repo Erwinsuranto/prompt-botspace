@@ -504,10 +504,1012 @@
 
 
 ```
-# 
+# Prompt: B-040 — Owner Approval + Implement Account/Session Connection
 ```
 
+# PROMPT: B-040 — OWNER APPROVAL + IMPLEMENT ACCOUNT/SESSION CONNECTION
 
+Lanjutkan project BotSpace dari kondisi repository SAAT INI di:
+
+/root/botspace
+
+BRANCH:
+backend-dev-recovery
+
+==================================================
+IMPORTANT — OWNER APPROVAL IS GRANTED NOW
+==================================================
+
+Saya sebagai owner project memberikan HUMAN APPROVAL secara eksplisit untuk:
+
+B-040 / ADR-011 — Telegram Account Connection / Account Session Architecture.
+
+Approval ini berlaku untuk memulai IMPLEMENTASI, bukan hanya audit.
+
+JANGAN kembali menjawab:
+- "human approval belum tersedia"
+- "B-040 masih BLOCKED"
+- "obtain human approval"
+- "approval diperlukan"
+- "tidak ada code change karena approval belum ada"
+
+Approval sudah diberikan melalui prompt ini.
+
+Setelah membaca prompt ini:
+
+1. Validasi approval secara singkat.
+2. Buka ADR-011 dan decision package yang sudah tersedia.
+3. Gunakan keputusan yang sudah disepakati di repository sebagai source of truth.
+4. LANGSUNG IMPLEMENTASIKAN B-040.
+5. Jangan mengulang audit penuh yang sebelumnya sudah dilakukan.
+6. Jangan membuat prompt approval baru.
+7. Jangan berhenti setelah membuat dokumentasi.
+8. Jangan hanya membuat plan.
+9. Kerjakan source code sampai implementation B-040 selesai sesuai dependency nyata.
+
+==================================================
+CURRENT STATE
+==================================================
+
+Audit sebelumnya sudah menghasilkan:
+
+- B-030 Workspace API/Contract: DONE.
+- B-070 Storage Adapter: DONE.
+- B-071 File/Share contract: DONE.
+- B-071 File/Share API: DONE.
+- Production wiring B-071: DONE.
+- SecretResolver application boundary: AVAILABLE.
+- Working tree terakhir: CLEAN.
+- Local/remote branch terakhir: synchronized.
+- ADR-011: sudah dibuat dan decision package sudah disiapkan.
+- Formatting ADR-011 sudah diperbaiki.
+- Tidak ada perubahan source code pada audit terakhir.
+- B-040 sebelumnya BLOCKED hanya karena owner approval.
+- Approval SEKARANG SUDAH DIBERIKAN.
+
+Jangan mengulang implementasi:
+- B-030
+- B-070
+- B-071
+
+Jangan mengubah schema/contract B-071 kecuali B-040 secara nyata membutuhkan integrasi yang memang sudah ditentukan oleh ADR/contract.
+
+==================================================
+PRIMARY OBJECTIVE
+==================================================
+
+Implementasikan B-040 / ADR-011 secara nyata.
+
+Scope utama:
+
+ACCOUNT / SESSION CONNECTION ARCHITECTURE
+
+Implementasi harus menyediakan foundation yang aman dan modular untuk:
+
+1. Authentication mechanism boundary.
+2. Provider/library boundary.
+3. Account identity.
+4. Connection identity.
+5. Session model.
+6. Credential lifecycle.
+7. Credential storage boundary.
+8. Connect semantics.
+9. Disconnect semantics.
+10. Reconnect semantics.
+11. Revoke semantics.
+12. Account removal semantics.
+13. Workspace authorization.
+14. Actor attribution.
+15. Versioned API/error behavior.
+16. Persistence boundary.
+17. Event/outbox boundary jika memang sudah ditetapkan contract.
+18. Runtime handoff/capability boundary.
+19. Provider ownership boundary.
+20. Security boundary.
+
+==================================================
+CRITICAL ARCHITECTURE RULE
+==================================================
+
+JANGAN membuat architecture speculative.
+
+Sebelum coding:
+
+- baca ADR-011,
+- baca decision package,
+- baca roadmap terkait B-040,
+- baca contract yang sudah ada,
+- baca existing account/session/provider-related code,
+- baca SecretResolver boundary,
+- baca workspace authorization boundary,
+- baca runtime/provider boundary.
+
+Gunakan architecture yang SUDAH ada.
+
+Jika sebuah keputusan memang sudah ditentukan di ADR-011:
+→ ikuti keputusan tersebut.
+
+Jika ADR-011 tidak menentukan detail implementation tertentu:
+→ pilih implementation MINIMAL yang paling kompatibel dengan repository saat ini.
+
+Jangan membuat vendor-specific implementation tanpa alasan.
+
+Jangan memilih Telegram library/provider baru hanya berdasarkan asumsi.
+
+Jangan menambahkan dependency eksternal jika dependency yang diperlukan belum jelas.
+
+==================================================
+AUTHENTICATION / PROVIDER BOUNDARY
+==================================================
+
+Implementasikan authentication melalui abstraction yang memungkinkan provider berbeda di masa depan.
+
+Architecture harus memungkinkan provider memiliki mekanisme authentication berbeda, misalnya:
+
+- API key,
+- OAuth,
+- device code,
+- browser/session authentication,
+- Telegram account session,
+- provider-specific credential.
+
+Namun:
+
+JANGAN implementasikan semua mekanisme tersebut sekarang.
+
+Buat boundary yang memungkinkan future provider tanpa mengubah core account/session architecture.
+
+Authentication mechanism harus dipisahkan dari:
+
+- account identity,
+- connection identity,
+- session state,
+- credential storage,
+- workspace ownership.
+
+Jangan mencampur provider SDK langsung ke domain model.
+
+==================================================
+ACCOUNT IDENTITY
+==================================================
+
+Account harus memiliki identity yang stabil.
+
+Pisahkan:
+
+- account identity,
+- connection identity,
+- session identity,
+- credential identity jika diperlukan.
+
+Jangan menggunakan raw credential sebagai identity.
+
+Jangan menggunakan token/session secret sebagai public identifier.
+
+Account identity harus dapat digunakan oleh workspace-scoped authorization.
+
+Pastikan satu account dapat memiliki lifecycle yang jelas.
+
+==================================================
+CONNECTION MODEL
+==================================================
+
+Implementasikan connection model sesuai ADR-011.
+
+Connection harus dapat merepresentasikan hubungan:
+
+workspace
+    ↓
+account
+    ↓
+provider/connection
+    ↓
+session
+    ↓
+credential reference
+
+Jangan menyimpan secret mentah sebagai bagian dari object yang dikembalikan API.
+
+Connection harus memiliki state/lifecycle yang eksplisit sesuai keputusan ADR-011.
+
+Jika state machine sudah ditentukan:
+
+- implementasikan state tersebut,
+- validasi transition,
+- tolak transition ilegal.
+
+Jika state machine belum ditentukan secara eksplisit:
+
+gunakan state minimum yang diperlukan dan jangan menambahkan state speculative.
+
+==================================================
+SESSION MODEL
+==================================================
+
+Session harus terpisah dari account identity.
+
+Session harus dapat memiliki:
+
+- stable session identifier,
+- account reference,
+- provider reference,
+- lifecycle state,
+- created/updated timestamps jika contract memang membutuhkannya,
+- credential reference jika memang diperlukan.
+
+Jangan menyimpan:
+
+- raw password,
+- raw API key,
+- raw session token,
+- private authentication material
+
+di response API atau log.
+
+Session lifecycle harus mendukung sesuai ADR:
+
+- connect,
+- active,
+- reconnect,
+- disconnect,
+- revoke,
+- compromised jika memang disepakati,
+- removal jika memang disepakati.
+
+Jangan membuat lifecycle state yang tidak diperlukan.
+
+==================================================
+CREDENTIAL STORAGE
+==================================================
+
+Gunakan SecretResolver boundary yang SUDAH ADA.
+
+JANGAN membuat secret storage abstraction kedua.
+
+Credential architecture harus:
+
+- menyimpan reference, bukan raw secret, pada domain/persistence jika memungkinkan,
+- menggunakan SecretResolver untuk resolve secret,
+- tidak mencetak secret,
+- tidak memasukkan secret ke error,
+- tidak memasukkan secret ke response,
+- tidak memasukkan secret ke event payload,
+- tidak memasukkan secret ke Git.
+
+Jika SecretResolver hanya tersedia sebagai boundary:
+
+gunakan dependency injection.
+
+Jangan hardcode credential.
+
+Jangan membuat fake production credential.
+
+==================================================
+CREDENTIAL LIFECYCLE
+==================================================
+
+Implementasikan lifecycle berdasarkan ADR-011.
+
+Harus jelas:
+
+- kapan credential dibuat,
+- kapan credential digunakan,
+- kapan credential diperbarui,
+- kapan credential dirotasi,
+- kapan credential dicabut,
+- kapan credential dihapus,
+- bagaimana unavailable-secret behavior ditangani.
+
+Jangan menghapus credential secara destruktif jika lifecycle contract belum mendukungnya.
+
+Jika provider revoke diperlukan:
+
+buat provider boundary untuk revoke.
+
+Jangan langsung memanggil provider SDK dari generic domain service.
+
+==================================================
+CONNECT
+==================================================
+
+Implementasikan connection workflow sesuai contract.
+
+Minimal flow harus memiliki boundary:
+
+request
+→ authorization
+→ account/connection creation
+→ authentication
+→ credential resolution/storage boundary
+→ session establishment
+→ persistence
+→ result
+
+Jangan membuat fake successful authentication.
+
+Jika provider SDK/runtime belum tersedia:
+
+implementasikan boundary dan integration point yang memang dapat dilakukan sekarang.
+
+Jangan mengklaim provider connection berhasil jika provider runtime sebenarnya belum tersedia.
+
+Gunakan status yang jujur seperti pending/unsupported/failed sesuai contract.
+
+==================================================
+DISCONNECT
+==================================================
+
+Implementasikan disconnect semantics sesuai ADR.
+
+Pastikan:
+
+- authorization diperiksa,
+- hanya owner/authorized actor yang dapat disconnect,
+- session tidak lagi dianggap active,
+- credential/session cleanup mengikuti lifecycle,
+- provider disconnect dipanggil melalui provider boundary jika tersedia.
+
+Jangan menghapus account secara otomatis hanya karena disconnect kecuali ADR memang menentukan demikian.
+
+==================================================
+RECONNECT
+==================================================
+
+Implementasikan reconnect boundary.
+
+Reconnect harus:
+
+- memeriksa account/connection masih valid,
+- memeriksa credential masih tersedia,
+- menggunakan provider authentication boundary,
+- memperbarui session state,
+- tidak membuat duplicate account secara tidak sengaja.
+
+Gunakan idempotency semantics jika sudah ditentukan ADR.
+
+==================================================
+REVOKE
+==================================================
+
+Implementasikan revoke semantics sesuai keputusan ADR.
+
+Revoke harus berbeda secara jelas dari disconnect jika ADR membedakannya.
+
+Jika credential/session sudah revoked:
+
+- jangan dapat digunakan kembali,
+- jangan diam-diam menjadi active kembali,
+- reconnect harus mengikuti policy yang benar.
+
+Jangan membuat revoke hanya sebagai perubahan boolean jika lifecycle contract membutuhkan state transition yang lebih kuat.
+
+==================================================
+ACCOUNT REMOVAL
+==================================================
+
+Jika ADR-011 menetapkan account removal:
+
+Implementasikan lifecycle yang aman.
+
+Perhatikan:
+
+- workspace ownership,
+- active connections,
+- sessions,
+- credential references,
+- provider revoke,
+- persistence cleanup,
+- event behavior jika memang tersedia.
+
+Jangan melakukan hard delete terhadap data yang masih diperlukan untuk audit/security jika architecture memang membutuhkan retention.
+
+Jangan menghapus data secara spekulatif.
+
+==================================================
+WORKSPACE AUTHORIZATION
+==================================================
+
+Account/connection HARUS workspace-scoped.
+
+Pastikan:
+
+Workspace A
+tidak dapat:
+
+- melihat account Workspace B,
+- melihat connection Workspace B,
+- mengambil session Workspace B,
+- disconnect account Workspace B,
+- revoke account Workspace B,
+- mengubah credential Workspace B.
+
+Gunakan workspace authorization boundary yang sudah ada.
+
+Jangan membuat authorization system kedua.
+
+==================================================
+ACTOR ATTRIBUTION
+==================================================
+
+Operation harus dapat mengidentifikasi actor jika contract/architecture sudah menyediakan request context.
+
+Contoh:
+
+- user actor,
+- admin actor,
+- system actor.
+
+Jangan menggunakan arbitrary string sebagai security identity jika repository sudah memiliki actor abstraction.
+
+Jika actor attribution belum memiliki contract:
+
+jangan membuat sistem IAM baru.
+
+Gunakan boundary yang sudah tersedia atau dokumentasikan dependency yang benar-benar belum tersedia.
+
+==================================================
+API CONTRACT
+==================================================
+
+Jika B-040 memiliki API surface yang ditentukan ADR:
+
+implementasikan endpoint/service contract tersebut.
+
+Pisahkan:
+
+HTTP/API layer
+↓
+application service
+↓
+domain
+↓
+repository/provider/secret boundary
+
+Jangan memasukkan business logic besar ke route handler.
+
+Response tidak boleh mengandung:
+
+- raw credential,
+- secret,
+- private session material,
+- provider access token,
+- password.
+
+Gunakan public-safe representation.
+
+==================================================
+VERSIONED API / ERROR CONTRACT
+==================================================
+
+Implementasikan error contract yang sudah ditentukan ADR.
+
+Pastikan error membedakan minimal:
+
+- invalid request,
+- unauthorized,
+- forbidden,
+- not found,
+- invalid state transition,
+- authentication failure,
+- credential unavailable,
+- provider unavailable,
+- conflict,
+- internal failure.
+
+Jangan membocorkan:
+
+- secret,
+- provider credential,
+- internal filesystem path,
+- database credentials,
+- stack trace production.
+
+Jika API version sudah ada:
+ikuti version tersebut.
+
+Jangan membuat API version kedua.
+
+==================================================
+IDEMPOTENCY
+==================================================
+
+Jika connect/reconnect operation membutuhkan idempotency dan ADR sudah mendefinisikannya:
+
+implementasikan dengan benar.
+
+Jangan membuat duplicate connection ketika request yang sama diulang.
+
+Jika idempotency contract belum tersedia:
+
+jangan membuat sistem idempotency kompleks secara speculative.
+
+Gunakan existing infrastructure jika tersedia.
+
+==================================================
+CONCURRENCY
+==================================================
+
+Perhatikan race condition:
+
+- dua connect bersamaan,
+- disconnect saat reconnect,
+- revoke saat reconnect,
+- account removal saat session aktif.
+
+Gunakan persistence/transaction primitive yang memang tersedia.
+
+Jangan membuat fake locking system.
+
+Jangan menambahkan distributed lock dependency hanya berdasarkan asumsi.
+
+==================================================
+PERSISTENCE
+==================================================
+
+Audit persistence layer yang tersedia.
+
+Jika migration/schema B-040 memang sudah ditentukan ADR:
+
+implementasikan migration sesuai contract.
+
+Jika schema belum ditentukan:
+
+buat schema minimum yang benar-benar diperlukan untuk B-040 dan konsisten dengan architecture repository.
+
+JANGAN mengubah B-071 schema secara unrelated.
+
+Pastikan:
+
+- unique constraints,
+- workspace ownership,
+- stable IDs,
+- state,
+- timestamps,
+- credential references
+
+sesuai kebutuhan nyata.
+
+Jangan menyimpan raw secrets di database.
+
+==================================================
+EVENTS / OUTBOX
+==================================================
+
+Jika ADR-011 sudah menentukan event/outbox contract:
+
+implementasikan sesuai contract.
+
+Event harus aman.
+
+Jangan memasukkan:
+
+- password,
+- access token,
+- raw credential,
+- session secret.
+
+Event payload hanya boleh berisi public-safe identifiers dan state information yang memang dibutuhkan.
+
+Jika outbox infrastructure belum tersedia:
+
+jangan membuat event system besar secara speculative.
+
+Implementasikan hanya boundary yang benar-benar menjadi bagian B-040.
+
+==================================================
+RUNTIME HANDOFF
+==================================================
+
+B-040 harus memisahkan account/session lifecycle dari runtime bot lifecycle.
+
+JANGAN:
+
+- menjalankan Telegram polling otomatis hanya karena account connected,
+- mengubah BotInstallation.status menjadi process state,
+- membuat account connection langsung menjadi bot process.
+
+Account/session:
+
+Account connected
+    ≠
+Bot running
+
+Runtime handoff harus melalui capability/provider boundary.
+
+Jika runtime handoff contract sudah tersedia:
+
+implementasikan integration point.
+
+Jika belum:
+
+jangan membuat runtime orchestration baru.
+
+==================================================
+TELEGRAM / PROVIDER BOUNDARY
+==================================================
+
+B-040 adalah account/session architecture.
+
+Jangan mencampur seluruh Telegram provider implementation ke core.
+
+Gunakan provider abstraction.
+
+Provider-specific code harus modular sehingga provider lain dapat ditambahkan kemudian.
+
+Jika Telegram provider SDK sudah ada:
+
+gunakan boundary tersebut.
+
+Jika belum:
+
+buat interface/adapter boundary yang diperlukan tanpa fake authentication.
+
+JANGAN mengklaim Telegram account benar-benar connected jika SDK/runtime credential exchange belum tersedia.
+
+==================================================
+SECURITY
+==================================================
+
+Lakukan targeted security review terhadap implementation B-040.
+
+Pastikan:
+
+- workspace isolation,
+- authorization,
+- credential secrecy,
+- SecretResolver usage,
+- session isolation,
+- revoke behavior,
+- disconnect behavior,
+- account removal,
+- provider boundary,
+- error sanitization,
+- log sanitization,
+- input validation,
+- ID validation,
+- concurrency safety.
+
+Cari juga:
+
+- hardcoded secret,
+- token,
+- password,
+- private key,
+- credential,
+- accidental debug logs.
+
+Jika ditemukan:
+perbaiki sebelum commit.
+
+==================================================
+TESTING
+==================================================
+
+Tambahkan test yang benar-benar menguji implementation.
+
+Minimal:
+
+1. account creation.
+2. connection creation.
+3. workspace isolation.
+4. unauthorized access.
+5. forbidden cross-workspace access.
+6. session creation.
+7. valid lifecycle transition.
+8. invalid lifecycle transition.
+9. disconnect.
+10. reconnect.
+11. revoke.
+12. credential resolution.
+13. missing credential.
+14. SecretResolver failure.
+15. secret tidak bocor ke error.
+16. secret tidak bocor ke response.
+17. duplicate connection behavior.
+18. concurrency behavior jika contract mendukung.
+19. account removal behavior.
+20. provider failure handling.
+21. runtime handoff boundary jika contract sudah tersedia.
+22. API error mapping jika API endpoint diimplementasikan.
+
+Jangan membuat fake test yang hanya memeriksa object dibuat.
+
+Test harus memverifikasi behavior.
+
+==================================================
+VALIDATION
+==================================================
+
+Setelah implementation selesai jalankan validation repository yang tersedia.
+
+Minimal:
+
+pnpm test
+pnpm build
+pnpm typecheck
+pnpm lint
+pnpm format:check
+node scripts/check-imports.mjs
+node scripts/check-ownership.mjs
+node scripts/check-doc-links.mjs
+git diff --check
+
+Untuk:
+
+node scripts/check-symlinks.mjs
+
+JANGAN membuat script tersebut jika memang tidak ada.
+
+Jika tidak tersedia:
+
+SKIPPED — scripts/check-symlinks.mjs unavailable
+
+Untuk PostgreSQL:
+
+Jika:
+PERSISTENCE_TEST_DATABASE_URL
+
+tersedia, jalankan integration test yang memang tersedia.
+
+Jika tidak:
+
+SKIPPED — PERSISTENCE_TEST_DATABASE_URL unavailable
+
+Jangan membuat database palsu.
+
+Jangan mengganti PostgreSQL dengan SQLite hanya untuk PASS.
+
+==================================================
+BOTSPACE / GOROUTER / PROVIDER SAFETY
+==================================================
+
+JANGAN menyentuh:
+
+- Gorouter.app integration test.
+- Gorouter runtime integration.
+- provider test yang tidak diperlukan.
+
+NVIDIA dan TokenHarbor:
+
+- jangan diubah,
+- jangan ditest ulang kecuali perubahan B-040 benar-benar menyentuh shared code yang berhubungan langsung.
+
+Jangan mengubah provider yang tidak relevan.
+
+==================================================
+DOCUMENTATION
+==================================================
+
+Update ADR-011 hanya jika implementation menemukan keputusan yang perlu dicatat.
+
+Jangan menulis dokumentasi palsu yang mengatakan feature production-ready jika infrastructure/provider belum tersedia.
+
+Dokumentasikan:
+
+- implemented decisions,
+- deferred dependencies,
+- provider/runtime limitations,
+- security boundary,
+- credential boundary.
+
+Jangan membuat banyak README.
+
+Gunakan dokumentasi architecture yang sudah ada.
+
+==================================================
+GIT DISCIPLINE
+==================================================
+
+Sebelum coding:
+
+git status
+
+Pastikan working tree clean.
+
+Setelah coding:
+
+git status
+git diff --stat
+git diff
+
+Review seluruh perubahan.
+
+Hapus:
+
+- temporary files,
+- debug files,
+- generated junk,
+- unrelated refactor,
+- secrets,
+- credentials.
+
+Jangan mengubah file yang tidak berkaitan dengan B-040.
+
+==================================================
+COMMIT
+==================================================
+
+Jika implementation valid dan validation selesai:
+
+buat SATU commit.
+
+Gunakan commit message:
+
+feat: implement account session connection
+
+atau message yang lebih tepat berdasarkan perubahan aktual.
+
+Jangan membuat empty commit.
+
+==================================================
+PUSH
+==================================================
+
+Setelah commit:
+
+git push origin backend-dev-recovery
+
+Kemudian verifikasi:
+
+git rev-parse HEAD
+
+dan remote SHA.
+
+Pastikan:
+
+LOCAL SHA == REMOTE SHA
+
+dan:
+
+working tree CLEAN
+
+Jika push gagal karena credential/network:
+
+- jangan menghapus commit,
+- jangan reset,
+- jangan mengubah credential sembarangan,
+- laporkan error,
+- commit lokal harus tetap aman.
+
+==================================================
+IMPORTANT — DO NOT STOP AT AUDIT
+==================================================
+
+Ini adalah bagian paling penting.
+
+Approval sudah diberikan.
+
+Jangan berhenti dengan:
+
+"Implementation blocked."
+
+Jangan berhenti dengan:
+
+"Human approval required."
+
+Jangan berhenti dengan:
+
+"Need owner decision."
+
+Jangan hanya menghasilkan:
+
+- audit report,
+- roadmap,
+- decision package,
+- list of blockers.
+
+KERJAKAN CODING.
+
+Jika ada dependency yang benar-benar belum tersedia:
+
+1. Implementasikan bagian B-040 yang dapat dikerjakan sekarang.
+2. Integrasikan dengan boundary yang sudah tersedia.
+3. Tandai hanya dependency tersebut sebagai deferred.
+4. Jangan membuat fake implementation.
+5. Jangan memblokir seluruh B-040 hanya karena satu integration dependency eksternal belum tersedia.
+
+==================================================
+DEFINITION OF DONE
+==================================================
+
+B-040 dianggap selesai untuk tahap repository jika:
+
+- owner approval tercatat,
+- account model implemented,
+- connection model implemented,
+- session model implemented,
+- lifecycle implemented,
+- authorization implemented,
+- credential boundary integrated,
+- provider boundary implemented,
+- persistence implemented bila contract/schema memungkinkan,
+- API/application service implemented bila scope ADR mengharuskannya,
+- security tests tersedia,
+- validation selesai,
+- documentation diperbarui bila diperlukan,
+- commit dibuat,
+- push berhasil,
+- local dan remote SHA sama,
+- working tree clean.
+
+Jika sebagian infrastructure provider masih unavailable:
+
+jangan mengklaim external integration PASS.
+
+Tampilkan status:
+
+IMPLEMENTED
+atau
+DEFERRED — external dependency unavailable
+
+secara jelas.
+
+==================================================
+FINAL OUTPUT
+==================================================
+
+Setelah coding selesai, tampilkan laporan ringkas:
+
+### B-040 STATUS
+- Owner approval: APPROVED
+- Account model:
+- Connection model:
+- Session model:
+- Lifecycle:
+- Authorization:
+- Credential boundary:
+- Provider boundary:
+- Persistence:
+- API/application service:
+- Runtime handoff:
+
+### SECURITY
+- Workspace isolation:
+- Credential protection:
+- SecretResolver:
+- Revoke:
+- Disconnect:
+- Error sanitization:
+
+### TEST
+- Unit:
+- Integration:
+- Build:
+- Typecheck:
+- Lint:
+- Format:
+- Imports:
+- Ownership:
+- Docs:
+- Diff check:
+- Symlink check:
+
+### GIT
+- Commit:
+- Push:
+- Local SHA:
+- Remote SHA:
+- Working tree:
+
+### REMAINING DEFERRED
+Hanya tampilkan dependency yang BENAR-BENAR masih membutuhkan:
+- external provider,
+- deployment infrastructure,
+- unavailable environment,
+- atau contract yang memang belum tersedia.
+
+### NEXT ROADMAP
+Tentukan task berikutnya berdasarkan dependency nyata setelah B-040 selesai.
+
+JANGAN mengulang audit B-040 dari awal.
+
+JANGAN meminta approval lagi.
+
+LANGSUNG CODING setelah approval ini.
+
+Kerjakan langsung pada:
+
+/root/botspace
 
 ```
 # 
