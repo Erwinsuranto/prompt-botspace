@@ -530,6 +530,454 @@
 ```
 # 
 ```
+# Prompt: BotSpace — Fix Current Validation Blocker and Continue Directly to Coding
+
+Lanjutkan project BotSpace dari kondisi repository SAAT INI.
+
+KONDISI TERAKHIR YANG SUDAH DIKETAHUI:
+
+- Branch aktif: backend-dev-recovery
+- Repository working tree saat ini CLEAN.
+- Tidak ada code change dari percobaan terakhir.
+- Tidak ada commit baru.
+- Tidak ada push baru.
+- B-030 SUDAH SELESAI.
+- B-070 SUDAH SELESAI.
+- B-071 SUDAH SELESAI.
+- Production wiring B-071 SUDAH SELESAI.
+- SecretResolver application boundary SUDAH tersedia.
+- Deferred infrastructure verification SUDAH dilakukan.
+- B-040/ADR-011 MASIH BLOCKED karena membutuhkan human approval.
+- Jangan mengulang audit B-040.
+- Jangan meminta approval berulang-ulang.
+- Jangan membuat implementation B-040 sebelum approval resmi tersedia.
+- Jangan membuat approval palsu.
+- Jangan membuat contract speculative.
+
+HASIL ANALISIS ROADMAP TERAKHIR:
+
+Task berikut diketahui masih bergantung pada B-040 atau dependency yang belum disetujui/tersedia:
+
+- B-041
+- B-050
+- B-051
+- B-052
+- frontend F-040
+- frontend F-050
+- frontend F-051
+- F-060
+- B-090
+- B-092/F-090
+- B-100/F-100
+- B-110/B-111/F-110
+- B-130/B-131/F-130
+- B-140/B-141/F-140
+- B-150/B-151/F-150
+- B-080/B-120
+- B-003 jika membutuhkan environment/runtime yang memang tidak tersedia.
+
+JANGAN mengulang analisis panjang terhadap daftar tersebut kecuali ada bukti dependency repository sudah berubah.
+
+==================================================
+BAGIAN 1 — PERBAIKI VALIDATION BLOCKER SAAT INI
+==================================================
+
+Validation terakhir menunjukkan:
+
+pnpm format:check
+
+GAGAL pada:
+
+docs/architecture/ADR-011-telegram-account-connection.md
+
+Masalahnya adalah formatting/prettier pada tabel dokumentasi tersebut.
+
+Ini adalah masalah dokumentasi/formatting yang sudah ada di HEAD, bukan alasan untuk melakukan full audit lagi.
+
+Tugas:
+
+1. Buka file:
+   docs/architecture/ADR-011-telegram-account-connection.md
+
+2. Periksa formatting yang menyebabkan:
+   pnpm format:check
+   gagal.
+
+3. Perbaiki HANYA formatting dokumentasi yang diperlukan agar file sesuai formatter repository.
+
+4. Jangan mengubah:
+   - keputusan architecture,
+   - scope B-040,
+   - approval status,
+   - contract,
+   - API,
+   - schema,
+   - source code,
+   - security behavior,
+   - provider,
+   - Telegram runtime.
+
+5. Jangan mengubah isi substantif ADR hanya demi membuat format PASS.
+
+6. Setelah perbaikan jalankan:
+
+   pnpm format:check
+
+7. Jika PASS, lanjutkan validation ringan:
+
+   git diff --check
+
+8. Review diff.
+
+Jika perubahan hanya formatting dokumentasi:
+- boleh commit karena merupakan fix nyata terhadap validation blocker.
+- jangan membuat empty commit.
+
+Gunakan commit message yang sesuai, misalnya:
+
+docs: fix ADR-011 formatting
+
+Jika repository policy membutuhkan commit terpisah, gunakan satu commit saja.
+
+Push ke:
+
+git push origin backend-dev-recovery
+
+Verifikasi local SHA == remote SHA.
+
+==================================================
+BAGIAN 2 — JANGAN MENGULANG FULL AUDIT
+==================================================
+
+SETELAH FORMAT BLOCKER SELESAI:
+
+JANGAN menjalankan full repository audit lagi.
+
+JANGAN mengulang:
+- audit B-040,
+- audit ADR-011,
+- audit B-071,
+- audit B-070,
+- audit SecretResolver,
+- audit dependency graph secara panjang.
+
+Lakukan hanya dependency check singkat terhadap roadmap terbaru.
+
+Tujuannya hanya untuk menemukan apakah ADA task CODING yang sekarang benar-benar unlocked.
+
+==================================================
+BAGIAN 3 — CARI TASK CODING YANG BENAR-BENAR UNLOCKED
+==================================================
+
+Gunakan source of truth repository:
+
+- ROADMAP_V2.md
+- AI_TASKS.md
+- ADR/documentation yang relevan
+- dependency markers/task status
+- git history terbaru.
+
+Cari task dengan kondisi:
+
+- implementation allowed,
+- dependency terpenuhi,
+- tidak membutuhkan human approval,
+- tidak membutuhkan provider contract yang belum disetujui,
+- tidak membutuhkan infrastructure yang tidak tersedia,
+- tidak bergantung pada B-040,
+- tidak bergantung transitively pada B-040.
+
+PENTING:
+
+Jangan menganggap task unlocked hanya karena namanya ada di roadmap.
+
+Verifikasi dependency aktual.
+
+Jika ditemukan SATU task coding yang benar-benar unlocked:
+
+LANGSUNG KERJAKAN.
+
+Jangan berhenti pada laporan audit.
+
+==================================================
+BAGIAN 4 — IMPLEMENTASI TASK UNLOCKED
+==================================================
+
+Jika ada task coding unlocked:
+
+1. Baca requirement task tersebut.
+2. Audit hanya file yang relevan dengan task tersebut.
+3. Implementasikan secara modular.
+4. Jangan membuat architecture baru jika abstraction yang dibutuhkan sudah tersedia.
+5. Jangan membuat duplicate contract.
+6. Jangan mengubah behavior unrelated.
+7. Jangan menyentuh B-040.
+8. Jangan mengubah BotInstallation.status menjadi runtime process state.
+9. Jangan menyentuh Gorouter.app.
+10. NVIDIA dan TokenHarbor hanya boleh disentuh jika task tersebut memang secara langsung membutuhkan provider tersebut.
+11. Jangan membuat credential palsu.
+12. Jangan memasukkan secret/API key/token ke repository.
+13. Tambahkan test yang relevan dengan implementation.
+
+Setelah coding selesai:
+
+pnpm test
+pnpm build
+pnpm typecheck
+pnpm lint
+pnpm format:check
+node scripts/check-imports.mjs
+node scripts/check-ownership.mjs
+node scripts/check-doc-links.mjs
+git diff --check
+
+Jangan membuat:
+
+scripts/check-symlinks.mjs
+
+Jika tidak tersedia, cukup catat:
+
+SKIPPED — scripts/check-symlinks.mjs unavailable
+
+Jika ada test integration yang membutuhkan environment yang tidak tersedia:
+- jangan membuat fake environment,
+- jangan mengubah test agar PASS,
+- tandai SKIPPED/UNAVAILABLE.
+
+==================================================
+BAGIAN 5 — REVIEW DAN COMMIT
+==================================================
+
+Jika coding berhasil:
+
+1. git status
+2. git diff --stat
+3. review seluruh git diff
+4. pastikan hanya task yang dipilih.
+5. pastikan tidak ada:
+   - secret,
+   - credential,
+   - temporary file,
+   - generated junk,
+   - unrelated refactor,
+   - Gorouter changes,
+   - provider changes yang tidak diperlukan.
+
+Kemudian buat SATU commit.
+
+Gunakan commit message sesuai perubahan aktual.
+
+Kemudian:
+
+git push origin backend-dev-recovery
+
+Verifikasi:
+
+git rev-parse HEAD
+git rev-parse origin/backend-dev-recovery
+
+Keduanya HARUS sama.
+
+Pastikan:
+
+git status
+
+menunjukkan working tree clean.
+
+==================================================
+BAGIAN 6 — JIKA TIDAK ADA TASK CODING YANG UNLOCKED
+==================================================
+
+Jika setelah dependency check singkat ternyata TIDAK ADA task coding yang dapat dikerjakan tanpa B-040:
+
+JANGAN:
+
+- mengulang audit,
+- mengulang ADR-011,
+- mengarang task,
+- mengimplementasikan B-040 tanpa approval,
+- membuat contract speculative,
+- membuat fake dependency,
+- membuat commit kosong.
+
+Sebagai gantinya:
+
+1. Pastikan format blocker sudah diperbaiki.
+2. Pastikan repository clean dan remote sinkron.
+3. Buat PREPARED IMPLEMENTATION PACKAGE untuk B-040/ADR-011.
+
+Package tersebut hanya boleh berupa dokumentasi/persiapan yang tidak mengubah architecture decision.
+
+Isi package:
+
+- scope B-040,
+- dependency yang sudah tersedia,
+- dependency yang masih diperlukan,
+- decision yang membutuhkan owner approval,
+- file/module yang kemungkinan akan diubah setelah approval,
+- migration impact,
+- security impact,
+- Telegram/provider impact,
+- deployment impact,
+- test plan,
+- rollback considerations,
+- exact approval decisions yang harus diberikan owner.
+
+JANGAN menulis implementation code B-040.
+
+JANGAN membuat source-code changes untuk B-040.
+
+JANGAN membuat schema/migration B-040.
+
+Tujuannya agar setelah human approval tersedia, coding dapat dimulai tanpa melakukan audit ulang dari nol.
+
+==================================================
+BAGIAN 7 — APPROVAL GATE
+==================================================
+
+B-040 memiliki approval gate.
+
+Status harus dipertahankan:
+
+B-040/ADR-011: BLOCKED — human approval required.
+
+Approval harus mencakup keputusan nyata mengenai:
+
+- authentication mechanism,
+- provider/library boundary,
+- account/session identity model,
+- connection identity,
+- session lifecycle,
+- credential storage/resolution,
+- connect semantics,
+- disconnect semantics,
+- revoke semantics,
+- reconnect semantics,
+- workspace authorization,
+- actor attribution,
+- API versioning,
+- error contract,
+- idempotency,
+- concurrency,
+- persistence schema,
+- migration,
+- event model,
+- event delivery,
+- runtime handoff,
+- provider ownership,
+- deployment ownership.
+
+Jangan memilih keputusan tersebut sendiri jika roadmap mensyaratkan owner approval.
+
+==================================================
+BAGIAN 8 — VALIDATION AKHIR
+==================================================
+
+Jika hanya documentation formatting yang berubah:
+
+Jalankan minimal:
+
+pnpm format:check
+git diff --check
+
+Jika coding task unlocked dikerjakan:
+
+jalankan full validation:
+
+pnpm test
+pnpm build
+pnpm typecheck
+pnpm lint
+pnpm format:check
+node scripts/check-imports.mjs
+node scripts/check-ownership.mjs
+node scripts/check-doc-links.mjs
+git diff --check
+
+Jangan menjalankan atau membuat:
+
+node scripts/check-symlinks.mjs
+
+==================================================
+BAGIAN 9 — OUTPUT AKHIR
+==================================================
+
+Tampilkan laporan ringkas:
+
+### Current Status
+- B-040:
+- ADR-011:
+- Format blocker:
+- Working tree:
+
+### Coding Task
+- Task yang ditemukan:
+- Dependency:
+- Status:
+- Apakah coding dilakukan:
+
+### Changes
+- file berubah:
+- implementation:
+- tests:
+
+### Validation
+- test:
+- build:
+- typecheck:
+- lint:
+- format:
+- imports:
+- ownership:
+- docs:
+- diff:
+
+### Git
+- commit:
+- push:
+- local SHA:
+- remote SHA:
+- working tree:
+
+### Remaining Blockers
+Hanya tampilkan blocker nyata.
+
+### NEXT SINGLE ACTION
+
+Jika task coding unlocked:
+tulis task berikutnya.
+
+Jika tidak ada:
+tulis persis:
+
+NEXT SINGLE ACTION:
+Obtain human approval for B-040/ADR-011.
+
+JANGAN melakukan audit ulang setelah output tersebut.
+
+==================================================
+ATURAN PALING PENTING
+==================================================
+
+- Jangan mengulang audit panjang.
+- Jangan mengulang B-040 tanpa approval.
+- Jangan mengulang B-070.
+- Jangan mengulang B-071.
+- Jangan mengulang SecretResolver.
+- Jangan membuat fake dependency.
+- Jangan membuat contract speculative.
+- Jangan menyentuh Gorouter.app.
+- Jangan membuat credential palsu.
+- Jangan mengubah BotInstallation.status.
+- Jangan membuat empty commit.
+- Jangan berhenti pada audit jika ADA task coding yang benar-benar unlocked.
+- Jika ADA task unlocked → LANGSUNG CODING → TEST → COMMIT → PUSH.
+- Jika TIDAK ADA task unlocked → jangan memaksa coding; siapkan approval package B-040.
+- Jangan mengulang pekerjaan yang sudah selesai.
+
+Kerjakan langsung di:
+
+/root/botspace
 
 
 
