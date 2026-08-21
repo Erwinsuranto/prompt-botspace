@@ -462,9 +462,714 @@
 
 
 ```
-# 
+# Prompt: B-047 — Production Composition Root Deployment Wiring
 ```
+Lanjutkan project BotSpace dari kondisi repository SAAT INI:
 
+/root/botspace
+
+Branch:
+backend-dev-recovery
+
+==================================================
+KONDISI TERAKHIR
+==================================================
+
+B-040 — Account Session Connection:
+SELESAI.
+
+B-041 — Provider Session Adapter + Runtime Handoff:
+SELESAI.
+
+B-042 — Runtime Execution:
+SELESAI.
+
+B-043 — Real Telegram Runtime Driver:
+SELESAI.
+
+B-044 — Real Telegram SDK-backed TelegramClientFactory:
+SELESAI.
+
+B-045 — Production Worker Bootstrap + Update Routing:
+SELESAI.
+
+B-046 — Persistence-backed Installation Discovery +
+worker credential wiring:
+SELESAI.
+
+B-046 validation terakhir:
+- Unit: PASS
+- Build: PASS
+- Typecheck: PASS
+- Lint: PASS
+- Format: PASS
+- Imports: PASS
+- Ownership: PASS
+- Docs: PASS
+- Diff: PASS
+- Working tree: CLEAN
+- Commit/push: berhasil
+
+Remaining deferred yang SUDAH DIKETAHUI:
+- Managed secret-manager implementation nyata belum tersedia.
+- PostgreSQL integration membutuhkan PERSISTENCE_TEST_DATABASE_URL.
+- Real Telegram integration membutuhkan credential/test environment.
+- Distributed multi-worker coordination/lock belum ada infrastructure.
+- Update retry/DLQ belum memiliki contract.
+- Event/outbox runtime lifecycle belum memiliki infrastructure.
+- Multi-bot multiplexing pada satu Telegram connection masih out of scope.
+
+==================================================
+NEXT ROADMAP
+==================================================
+
+B-047 — production composition root deployment wiring.
+
+Tujuan:
+
+Menyediakan root composition yang benar-benar meng-inject:
+
+configuration
+    ↓
+persistence
+    ↓
+managed secret resolver boundary
+    ↓
+workspace/installation discovery
+    ↓
+credential resolver
+    ↓
+TelegramClientFactory
+    ↓
+Telegram RuntimeExecutionDriver
+    ↓
+worker runtime
+
+B-047 harus menyelesaikan wiring deployment,
+BUKAN membuat architecture baru.
+
+==================================================
+ATURAN KERAS
+==================================================
+
+JANGAN mengulang:
+
+- B-040
+- B-041
+- B-042
+- B-043
+- B-044
+- B-045
+- B-046
+- B-030
+- B-070
+- B-071
+
+Jangan membuat:
+
+- InstallationDiscovery kedua.
+- CredentialResolver kedua.
+- SecretResolver interface kedua.
+- TelegramClientFactory kedua.
+- RuntimeExecutionDriver kedua.
+- repository kedua.
+- worker bootstrap kedua.
+- queue baru.
+- scheduler baru.
+- retry/DLQ baru.
+- distributed lock baru.
+- outbox system baru.
+
+Gunakan abstraction yang SUDAH ADA.
+
+==================================================
+BAGIAN 1 — TARGETED AUDIT
+==================================================
+
+Audit composition root dan deployment entrypoint.
+
+Cari dan pahami:
+
+- main.ts
+- worker entrypoint
+- configuration loader
+- persistence composition
+- BotInstallationRepository
+- InstallationDiscovery B-046
+- SecretResolver
+- CapabilityCredentialResolver
+- ProviderSessionDriver
+- TelegramClientFactory B-044
+- RuntimeExecutionDriver B-043/B-045
+- runtime registry
+- workspace repository/service
+- existing deployment configuration
+- existing environment/config documentation.
+
+Jangan melakukan full repository audit.
+
+Tentukan:
+
+1. dependency mana yang sudah production-ready,
+2. dependency mana yang hanya test/fake,
+3. dependency mana yang masih deferred karena infrastructure,
+4. dependency mana yang harus di-wire di composition root.
+
+==================================================
+BAGIAN 2 — ROOT CONFIGURATION
+==================================================
+
+Pastikan production configuration dibangun melalui SATU
+composition boundary yang jelas.
+
+Configuration harus mencakup dependency yang memang sudah tersedia,
+misalnya:
+
+- database configuration,
+- Telegram provider configuration,
+- SecretResolver reference,
+- runtime configuration,
+- worker configuration.
+
+Jangan membaca process.env secara acak di service/module.
+
+Jika repository sudah memiliki configuration abstraction:
+
+→ gunakan abstraction tersebut.
+
+Jika configuration helper sudah ada:
+
+→ jangan membuat helper kedua.
+
+==================================================
+BAGIAN 3 — PERSISTENCE
+==================================================
+
+Composition root harus membuat persistence dependency melalui
+adapter/repository yang SUDAH ADA.
+
+Target:
+
+configuration
+→ database/persistence adapter
+→ BotInstallationRepository
+→ InstallationDiscovery
+
+Worker tidak boleh:
+
+- membuat koneksi database sendiri,
+- membuat repository sendiri,
+- membaca SQL langsung,
+- mengetahui detail database.
+
+Jika PostgreSQL production adapter sudah ada:
+
+→ wire adapter tersebut.
+
+Jika production PostgreSQL infrastructure belum tersedia:
+
+→ jangan membuat fake production database.
+
+Tetap gunakan abstraction existing dan tandai infrastructure verification
+sebagai DEFERRED.
+
+==================================================
+BAGIAN 4 — SECRETRESOLVER
+==================================================
+
+Audit SecretResolver boundary yang SUDAH ADA.
+
+Composition root harus menerima SecretResolver melalui dependency
+injection.
+
+Jangan membuat SecretResolver interface baru.
+
+Jika managed secret manager vendor BELUM ditentukan atau belum tersedia:
+
+→ jangan memilih vendor secara speculative.
+
+Gunakan existing production boundary/reference mechanism.
+
+Jika hanya fake/test resolver yang tersedia:
+
+→ gunakan fake hanya pada test composition.
+
+Production composition TIDAK BOLEH diam-diam menggunakan fake resolver.
+
+Jangan hardcode:
+
+- token,
+- API key,
+- password,
+- access key,
+- secret key,
+- Telegram credential.
+
+==================================================
+BAGIAN 5 — INSTALLATION DISCOVERY
+==================================================
+
+Wire InstallationDiscovery hasil B-046 ke worker.
+
+Target:
+
+Persistence
+→ BotInstallationRepository
+→ InstallationDiscovery
+→ Worker bootstrap
+
+Jangan membuat discovery baru.
+
+Pastikan discovery tetap:
+
+- workspace-aware,
+- ownership-aware,
+- eligibility-aware,
+- persistence-backed.
+
+==================================================
+BAGIAN 6 — CREDENTIAL RESOLVER
+==================================================
+
+Wire existing CapabilityCredentialResolver/
+credential resolver ke runtime.
+
+Target:
+
+Installation
+→ credential/session reference
+→ existing resolver
+→ credential
+→ TelegramClientFactory
+
+Credential tidak boleh:
+
+- masuk log,
+- masuk error message,
+- masuk HTTP response,
+- disimpan ulang,
+- ditulis ke Git.
+
+Jika resolver gagal untuk installation tertentu:
+
+→ installation tersebut gagal secara terisolasi.
+
+Jangan menghentikan seluruh worker jika architecture B-045
+memang mendukung per-installation isolation.
+
+==================================================
+BAGIAN 7 — TELEGRAM CLIENT FACTORY
+==================================================
+
+Composition root HARUS menggunakan TelegramClientFactory dari B-044.
+
+Jangan instantiate Telegram SDK langsung di worker.
+
+Target:
+
+CredentialResolver
+→ TelegramClientFactory
+→ TelegramClient
+→ RuntimeExecutionDriver
+
+Jika provider-specific library dependency memang belum tersedia:
+
+→ jangan membuat fake production Telegram client.
+
+Tandai real provider integration sebagai DEFERRED.
+
+==================================================
+BAGIAN 8 — RUNTIME DRIVER
+==================================================
+
+Wire RuntimeExecutionDriver yang SUDAH dibuat pada B-043/B-045.
+
+Jangan membuat driver baru.
+
+Pastikan dependency graph:
+
+InstallationDiscovery
++
+CredentialResolver
++
+TelegramClientFactory
++
+RuntimeExecutionDriver
++
+runtime registry
++
+worker bootstrap
+
+dapat dibuat dari SATU composition root.
+
+==================================================
+BAGIAN 9 — NO INSTALLATION
+==================================================
+
+Production worker harus dapat startup ketika:
+
+eligible installations = 0
+
+Ini bukan fatal error.
+
+Worker harus:
+
+- startup,
+- log sanitized status,
+- tetap ready untuk lifecycle yang memang sudah didukung.
+
+Jangan membuat polling loop baru hanya untuk menunggu installation.
+
+Jangan membuat scheduler baru.
+
+==================================================
+BAGIAN 10 — FAILURE ISOLATION
+==================================================
+
+Pastikan dependency wiring tidak menyebabkan satu installation
+menghentikan worker global.
+
+Contoh:
+
+Installation A → STARTED
+Installation B → credential failure
+Installation C → STARTED
+
+Worker tetap hidup.
+
+Jangan membuat retry queue.
+
+Jangan membuat DLQ.
+
+Jangan membuat distributed lock.
+
+==================================================
+BAGIAN 11 — SHUTDOWN
+==================================================
+
+Audit graceful shutdown existing.
+
+Composition root harus mengembalikan lifecycle dependency yang dapat
+ditutup secara benar.
+
+Pastikan:
+
+SIGTERM/SIGINT
+→ stop worker
+→ stop runtimes
+→ close Telegram clients jika supported
+→ close persistence resources
+→ exit cleanly
+
+Gunakan lifecycle abstraction yang SUDAH ADA.
+
+Jangan membuat shutdown manager kedua jika existing lifecycle sudah tersedia.
+
+==================================================
+BAGIAN 12 — CONFIGURATION VALIDATION
+==================================================
+
+Validasi hanya configuration yang memang wajib.
+
+Jika production configuration invalid:
+
+→ fail fast dengan error yang jelas.
+
+Namun:
+
+JANGAN mencetak nilai secret.
+
+Contoh yang aman:
+
+"Telegram credential reference is missing"
+
+Bukan:
+
+"Telegram token = ..."
+
+Test environment harus tetap dapat menggunakan dependency injection.
+
+==================================================
+BAGIAN 13 — TEST COMPOSITION ROOT
+==================================================
+
+Tambahkan unit/integration-style composition test yang tidak membutuhkan
+real Telegram credential.
+
+Test:
+
+1. production dependency graph dapat dibangun dengan injected fakes,
+2. InstallationDiscovery ter-wire,
+3. CredentialResolver ter-wire,
+4. TelegramClientFactory ter-wire,
+5. RuntimeExecutionDriver ter-wire,
+6. zero installation startup,
+7. multiple installation composition,
+8. credential failure isolation,
+9. invalid configuration ditolak,
+10. SecretResolver failure tidak membocorkan secret,
+11. graceful shutdown dependency graph,
+12. no duplicate runtime dependency construction.
+
+Gunakan fake/test implementations hanya di test.
+
+Jangan membuat fake production implementation.
+
+==================================================
+BAGIAN 14 — ENVIRONMENT-GATED TEST
+==================================================
+
+Jika:
+
+PERSISTENCE_TEST_DATABASE_URL
+
+tersedia:
+
+→ jalankan integration test PostgreSQL yang memang sudah ada.
+
+Jika tidak tersedia:
+
+→ SKIPPED — PERSISTENCE_TEST_DATABASE_URL unavailable
+
+Jangan membuat database palsu.
+
+Real Telegram:
+
+Jika credential/test environment tidak tersedia:
+
+→ DEFERRED — real Telegram credentials/test environment unavailable
+
+Jangan membuat token palsu.
+
+==================================================
+BAGIAN 15 — SECURITY REVIEW
+==================================================
+
+Review seluruh composition root untuk:
+
+- secret leakage,
+- credential leakage,
+- workspace isolation,
+- installation ownership,
+- configuration injection,
+- provider credential boundary,
+- sanitized errors,
+- sanitized logs.
+
+Pastikan production composition tidak menggunakan test fake secara tidak sengaja.
+
+==================================================
+BAGIAN 16 — VALIDATION
+==================================================
+
+Jalankan:
+
+pnpm test
+pnpm build
+pnpm typecheck
+pnpm lint
+pnpm format:check
+
+Kemudian:
+
+node scripts/check-imports.mjs
+node scripts/check-ownership.mjs
+node scripts/check-doc-links.mjs
+git diff --check
+
+Jangan menjalankan:
+
+node scripts/check-symlinks.mjs
+
+karena script tersebut memang diketahui tidak tersedia.
+
+Jika command validation tidak tersedia:
+
+→ SKIPPED/UNAVAILABLE
+
+Jangan membuat script dummy.
+
+==================================================
+BAGIAN 17 — DIFF REVIEW
+==================================================
+
+Review:
+
+git status
+git diff --stat
+git diff
+
+Pastikan perubahan hanya:
+
+- composition root,
+- deployment configuration wiring,
+- dependency injection,
+- lifecycle wiring,
+- composition tests,
+- documentation yang benar-benar diperlukan.
+
+Hapus:
+
+- debug code,
+- temporary files,
+- generated files,
+- unrelated refactor,
+- secrets.
+
+Jangan menyentuh:
+
+- Gorouter.app,
+- NVIDIA provider,
+- TokenHarbor,
+- B-070,
+- B-071,
+- B-030.
+
+==================================================
+BAGIAN 18 — COMMIT
+==================================================
+
+Jika implementation valid dan validation PASS:
+
+buat SATU commit.
+
+Gunakan message:
+
+feat: wire production composition root
+
+atau message yang lebih tepat berdasarkan perubahan aktual.
+
+Jangan membuat empty commit.
+
+==================================================
+BAGIAN 19 — PUSH
+==================================================
+
+Setelah commit:
+
+git push origin backend-dev-recovery
+
+Kemudian verifikasi:
+
+git rev-parse HEAD
+
+git status
+
+dan remote SHA.
+
+Pastikan:
+
+LOCAL SHA == REMOTE SHA
+
+Working tree:
+
+CLEAN
+
+Jika push gagal:
+
+- jangan reset,
+- jangan hapus commit,
+- jangan mengubah Git credential sembarangan,
+- tampilkan error,
+- commit lokal harus tetap aman.
+
+==================================================
+DEFINITION OF DONE
+==================================================
+
+B-047 selesai jika:
+
+- production composition root jelas,
+- configuration dependency ter-wire,
+- persistence dependency ter-wire,
+- InstallationDiscovery B-046 ter-wire,
+- SecretResolver boundary ter-wire,
+- credential resolver ter-wire,
+- TelegramClientFactory B-044 ter-wire,
+- RuntimeExecutionDriver ter-wire,
+- worker bootstrap menggunakan dependency graph tersebut,
+- zero-installation startup aman,
+- failure isolation aman,
+- graceful shutdown ter-wire,
+- test composition PASS,
+- Unit PASS,
+- Build PASS,
+- Typecheck PASS,
+- Lint PASS,
+- Format PASS,
+- Imports PASS,
+- Ownership PASS,
+- Docs PASS,
+- Diff PASS,
+- PostgreSQL PASS atau SKIPPED dengan alasan nyata,
+- Real Telegram PASS atau DEFERRED dengan alasan nyata,
+- commit berhasil,
+- push berhasil,
+- local SHA == remote SHA,
+- working tree CLEAN.
+
+==================================================
+FINAL OUTPUT
+==================================================
+
+Tampilkan:
+
+### B-047 STATUS
+
+Composition root:
+Configuration:
+Persistence:
+InstallationDiscovery:
+SecretResolver:
+CredentialResolver:
+TelegramClientFactory:
+RuntimeExecutionDriver:
+Worker bootstrap:
+Graceful shutdown:
+
+### SECURITY
+
+Secret handling:
+Credential handling:
+Workspace isolation:
+Installation ownership:
+Error sanitization:
+Log sanitization:
+
+### TEST
+
+Unit:
+PostgreSQL:
+Real Telegram:
+Build:
+Typecheck:
+Lint:
+Format:
+Imports:
+Ownership:
+Docs:
+Diff:
+
+### GIT
+
+Commit:
+Push:
+Local SHA:
+Remote SHA:
+Working tree:
+
+### REMAINING DEFERRED
+
+Hanya tampilkan dependency nyata yang belum tersedia.
+
+### NEXT ROADMAP
+
+Tentukan task berikutnya berdasarkan dependency nyata.
+Jangan membuat fitur speculative.
+
+Kerjakan langsung pada:
+
+/root/botspace
 
 
 ```
