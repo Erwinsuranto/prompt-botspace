@@ -456,10 +456,684 @@
 
 
 ```
-# 
+# Prompt: B-048 — Deployment Adapter + Operational Readiness
 ```
 
+Lanjutkan project BotSpace dari kondisi repository SAAT INI:
 
+/root/botspace
+
+Branch:
+backend-dev-recovery
+
+==================================================
+KONDISI TERAKHIR
+==================================================
+
+B-040 — Account Session Connection:
+SELESAI.
+
+B-041 — Provider Session Adapter + Runtime Handoff:
+SELESAI.
+
+B-042 — Runtime Execution:
+SELESAI.
+
+B-043 — Real Telegram Runtime Driver:
+SELESAI.
+
+B-044 — Real Telegram SDK-backed TelegramClientFactory:
+SELESAI.
+
+B-045 — Production Worker Bootstrap + Update Routing:
+SELESAI.
+
+B-046 — Persistence-backed Installation Discovery +
+Worker Credential Wiring:
+SELESAI.
+
+B-047 — Production Composition Root:
+SELESAI.
+
+Validation terakhir B-047:
+- Unit: PASS
+- Build: PASS
+- Typecheck: PASS
+- Lint: PASS
+- Format: PASS
+- Imports: PASS
+- Ownership: PASS
+- Docs: PASS
+- Diff: PASS
+- Working tree: CLEAN
+- Commit/push: berhasil
+
+==================================================
+REMAINING DEFERRED TERAKHIR
+==================================================
+
+1. Managed secret-manager client nyata belum tersedia.
+   SecretResolver boundary sudah tersedia.
+
+2. Deployment adapter untuk production PostgreSQL persistence
+   belum dibuat.
+
+3. PostgreSQL integration test masih membutuhkan:
+   PERSISTENCE_TEST_DATABASE_URL
+
+4. Real Telegram integration masih membutuhkan:
+   credential/test environment nyata.
+
+5. Distributed multi-worker coordination/lock belum memiliki
+   infrastructure.
+
+6. Update retry/DLQ belum memiliki contract.
+
+7. Event/outbox runtime lifecycle belum memiliki infrastructure.
+
+8. Multi-bot multiplexing pada satu connection masih out of scope.
+
+==================================================
+TARGET B-048
+==================================================
+
+B-048 — deployment adapter + operational readiness.
+
+Tujuan:
+
+Membuat THIN deployment adapter yang menghubungkan API
+persistence yang sudah ada ke worker runtime production.
+
+Target architecture:
+
+deployment configuration
+        ↓
+deployment adapter
+        ↓
+createPostgresPersistence()
+        ↓
+WorkerPersistenceResource
+        ↓
+existing composition root
+        ↓
+worker runtime
+
+PENTING:
+
+B-048 BUKAN membuat persistence architecture baru.
+
+B-048 hanya membuat adapter deployment yang membungkus API
+yang SUDAH ADA.
+
+==================================================
+ATURAN KERAS
+==================================================
+
+JANGAN mengulang:
+
+- B-040
+- B-041
+- B-042
+- B-043
+- B-044
+- B-045
+- B-046
+- B-047
+- B-030
+- B-070
+- B-071
+
+Jangan membuat:
+
+- persistence abstraction kedua,
+- WorkerPersistenceResource kedua,
+- database repository kedua,
+- SecretResolver kedua,
+- Telegram driver kedua,
+- worker bootstrap kedua,
+- runtime driver kedua,
+- queue baru,
+- retry system baru,
+- DLQ baru,
+- distributed lock baru,
+- outbox system baru.
+
+Gunakan abstraction yang SUDAH ADA.
+
+==================================================
+BAGIAN 1 — TARGETED AUDIT
+==================================================
+
+Audit hanya bagian yang relevan dengan B-048:
+
+- createPostgresPersistence
+- WorkerPersistenceResource
+- existing persistence adapter
+- worker package
+- composition root B-047
+- configuration loader
+- deployment configuration
+- workspace scope
+- existing worker bootstrap
+- package boundaries
+- import rules
+- deployment documentation.
+
+Jangan melakukan full repository rewrite.
+
+Tentukan secara eksplisit:
+
+1. API persistence yang sudah tersedia.
+2. API worker resource yang sudah tersedia.
+3. dependency yang masih perlu dijembatani.
+4. lokasi terbaik untuk deployment adapter.
+5. apakah adapter harus berada di package deployment,
+   infrastructure, atau worker composition berdasarkan
+   struktur repository yang SUDAH ADA.
+
+Jangan memindahkan package hanya demi preferensi pribadi.
+
+==================================================
+BAGIAN 2 — CREATE POSTGRES PERSISTENCE ADAPTER
+==================================================
+
+Implementasikan thin adapter menggunakan:
+
+createPostgresPersistence()
+
+jika function tersebut memang sudah tersedia.
+
+Target:
+
+DATABASE_URL
+    ↓
+deployment configuration
+    ↓
+createPostgresPersistence()
+    ↓
+WorkerPersistenceResource
+
+Adapter harus:
+
+- menerima configuration melalui dependency injection,
+- tidak membaca environment variable secara acak,
+- tidak membuat repository business baru,
+- tidak mengandung business logic,
+- tidak mengubah domain model,
+- tidak mengubah repository contract,
+- tidak membuat database abstraction baru.
+
+Jika createPostgresPersistence() belum memiliki API yang cukup:
+
+→ audit terlebih dahulu.
+
+Jika perubahan API benar-benar diperlukan untuk compatibility:
+
+→ lakukan perubahan minimum.
+
+Jangan refactor besar.
+
+==================================================
+BAGIAN 3 — ENVIRONMENT CONFIGURATION
+==================================================
+
+Gunakan configuration mechanism yang SUDAH ADA.
+
+Production deployment harus mendukung configuration seperti:
+
+DATABASE_URL
+WORKER_WORKSPACE_SCOPE
+
+dan secret-manager reference jika memang sudah digunakan oleh
+B-047.
+
+Jangan hardcode:
+
+- database URL,
+- username,
+- password,
+- Telegram token,
+- secret,
+- API key.
+
+Jangan mencetak DATABASE_URL ke log.
+
+Jika configuration invalid:
+
+→ fail fast dengan error yang jelas dan sanitized.
+
+Contoh:
+
+"DATABASE_URL is required for production persistence"
+
+Bukan menampilkan nilai DATABASE_URL.
+
+==================================================
+BAGIAN 4 — WORKER WORKSPACE SCOPE
+==================================================
+
+Pastikan deployment adapter meneruskan:
+
+WORKER_WORKSPACE_SCOPE
+
+ke worker runtime/resource sesuai abstraction existing.
+
+Workspace scope harus tetap:
+
+- explicit,
+- validated,
+- isolated,
+- tidak boleh mengambil workspace lain secara otomatis.
+
+Jangan mengubah ownership model.
+
+Jangan membuat worker mengambil SEMUA workspace jika existing
+architecture memang menggunakan scoped worker.
+
+Jika workspace scope memang optional menurut architecture:
+
+→ gunakan behavior existing.
+
+Jangan mengarang policy baru.
+
+==================================================
+BAGIAN 5 — PERSISTENCE RESOURCE LIFECYCLE
+==================================================
+
+Pastikan persistence resource memiliki lifecycle yang benar.
+
+Startup:
+
+configuration
+→ create persistence
+→ worker startup
+
+Shutdown:
+
+worker stop
+→ persistence cleanup/close
+
+Gunakan lifecycle abstraction yang SUDAH ADA.
+
+Jangan membuat shutdown manager kedua.
+
+Jangan membuat connection pool global tersembunyi.
+
+Jangan membuka koneksi database di setiap update.
+
+==================================================
+BAGIAN 6 — FAILURE HANDLING
+==================================================
+
+Pastikan kegagalan persistence startup ditangani dengan benar.
+
+Contoh:
+
+DATABASE_URL invalid
+→ startup fails clearly
+
+Database unavailable
+→ startup fails safely
+
+Credential resolver gagal
+→ startup fails safely jika dependency memang required
+
+Jangan:
+
+- retry infinite,
+- membuat queue,
+- membuat DLQ,
+- membuat fallback SQLite,
+- membuat in-memory database production,
+- membuat fake PostgreSQL production.
+
+Jika infrastructure belum tersedia, error harus jelas dan sanitized.
+
+==================================================
+BAGIAN 7 — TEST COMPOSITION
+==================================================
+
+Tambahkan test untuk deployment adapter.
+
+Minimal:
+
+1. valid configuration menghasilkan WorkerPersistenceResource.
+
+2. DATABASE_URL missing ditolak.
+
+3. invalid configuration ditolak.
+
+4. workspace scope diteruskan dengan benar.
+
+5. persistence lifecycle dapat dibuat.
+
+6. shutdown/cleanup dipanggil.
+
+7. database credential tidak masuk error/log.
+
+8. adapter tidak membuat dependency kedua.
+
+Gunakan fake/test persistence hanya di TEST COMPOSITION.
+
+Jangan membuat fake production adapter.
+
+==================================================
+BAGIAN 8 — POSTGRESQL INTEGRATION
+==================================================
+
+Periksa:
+
+PERSISTENCE_TEST_DATABASE_URL
+
+Jika tersedia:
+
+→ jalankan integration test PostgreSQL yang SUDAH ADA.
+
+Pastikan test benar-benar menggunakan PostgreSQL.
+
+Jika tidak tersedia:
+
+→
+
+SKIPPED — PERSISTENCE_TEST_DATABASE_URL unavailable
+
+Jangan:
+
+- membuat SQLite fallback,
+- membuat database palsu,
+- mengubah test agar PASS,
+- mengubah production adapter agar memakai fake.
+
+Jika test gagal:
+
+→ diagnosis penyebab sebenarnya.
+
+==================================================
+BAGIAN 9 — SECRET MANAGER
+==================================================
+
+JANGAN implementasikan managed secret-manager vendor baru pada B-048.
+
+SecretResolver boundary dari B-047 tetap digunakan.
+
+Jika managed secret-manager nyata belum tersedia:
+
+→ tetap DEFERRED.
+
+Jangan:
+
+- memilih vendor secara speculative,
+- menambahkan SDK vendor,
+- hardcode secret,
+- membuat fake production secret manager.
+
+B-048 hanya memastikan deployment adapter compatible dengan
+SecretResolver/configuration boundary yang SUDAH ADA.
+
+==================================================
+BAGIAN 10 — REAL TELEGRAM
+==================================================
+
+JANGAN mengimplementasikan Telegram integration baru.
+
+Jika credential/test environment belum tersedia:
+
+REAL TELEGRAM:
+
+DEFERRED — credential/test environment unavailable
+
+Jangan membuat:
+
+- fake production Telegram,
+- token palsu,
+- webhook,
+- polling tambahan,
+- Telegram SDK baru.
+
+==================================================
+BAGIAN 11 — OUT OF SCOPE
+==================================================
+
+Jangan mengerjakan:
+
+- distributed lock,
+- multi-worker coordination,
+- retry,
+- DLQ,
+- event/outbox,
+- multi-bot multiplexing,
+- rate limiting,
+- share expiry,
+- audit event,
+- provider baru,
+- UI baru,
+- Gorouter.app.
+
+Semua tetap deferred jika belum memiliki dependency yang nyata.
+
+==================================================
+BAGIAN 12 — SECURITY REVIEW
+==================================================
+
+Review perubahan B-048 untuk:
+
+- DATABASE_URL leakage,
+- password leakage,
+- secret leakage,
+- credential leakage,
+- workspace isolation,
+- configuration validation,
+- sanitized errors,
+- sanitized logs.
+
+Pastikan:
+
+git diff
+
+tidak mengandung:
+
+- password,
+- API key,
+- database credential,
+- Telegram token,
+- secret manager credential.
+
+==================================================
+BAGIAN 13 — VALIDATION
+==================================================
+
+Jalankan:
+
+pnpm test
+pnpm build
+pnpm typecheck
+pnpm lint
+pnpm format:check
+
+Kemudian:
+
+node scripts/check-imports.mjs
+node scripts/check-ownership.mjs
+node scripts/check-doc-links.mjs
+git diff --check
+
+Jangan menjalankan:
+
+node scripts/check-symlinks.mjs
+
+karena script tersebut memang tidak tersedia.
+
+Jika PostgreSQL environment tersedia:
+
+→ jalankan integration test PostgreSQL.
+
+Jika tidak:
+
+→ SKIPPED — PERSISTENCE_TEST_DATABASE_URL unavailable
+
+Jangan menyamarkan SKIPPED menjadi PASS.
+
+==================================================
+BAGIAN 14 — DIFF REVIEW
+==================================================
+
+Setelah validation:
+
+git status
+git diff --stat
+git diff
+
+Pastikan perubahan hanya:
+
+- deployment adapter,
+- persistence wiring compatibility,
+- configuration validation,
+- lifecycle wiring,
+- deployment adapter tests,
+- dokumentasi yang memang diperlukan.
+
+Hapus:
+
+- debug code,
+- temporary files,
+- generated files,
+- unrelated refactor,
+- duplicate abstraction.
+
+Jangan menyentuh:
+
+- Gorouter.app,
+- NVIDIA,
+- TokenHarbor,
+- B-070,
+- B-071,
+- Telegram runtime architecture yang sudah selesai.
+
+==================================================
+BAGIAN 15 — COMMIT
+==================================================
+
+Jika implementation valid dan validation PASS:
+
+buat SATU commit.
+
+Gunakan:
+
+feat: add postgres deployment adapter
+
+atau commit message yang lebih tepat berdasarkan perubahan aktual.
+
+Jangan membuat empty commit.
+
+==================================================
+BAGIAN 16 — PUSH
+==================================================
+
+Setelah commit:
+
+git push origin backend-dev-recovery
+
+Kemudian verifikasi:
+
+git rev-parse HEAD
+git status
+
+dan remote SHA.
+
+Pastikan:
+
+LOCAL SHA == REMOTE SHA
+
+Working tree:
+
+CLEAN
+
+Jika push gagal:
+
+- jangan reset,
+- jangan hapus commit,
+- jangan mengubah Git credential sembarangan,
+- tampilkan error,
+- commit lokal harus tetap aman.
+
+==================================================
+DEFINITION OF DONE
+==================================================
+
+B-048 selesai jika:
+
+- thin deployment adapter tersedia,
+- createPostgresPersistence() ter-wire,
+- WorkerPersistenceResource ter-wire,
+- DATABASE_URL configuration ter-wire,
+- WORKER_WORKSPACE_SCOPE ter-wire jika memang diperlukan,
+- lifecycle startup/shutdown benar,
+- configuration validation benar,
+- secret tidak bocor,
+- PostgreSQL integration PASS atau SKIPPED dengan alasan nyata,
+- Unit PASS,
+- Build PASS,
+- Typecheck PASS,
+- Lint PASS,
+- Format PASS,
+- Imports PASS,
+- Ownership PASS,
+- Docs PASS,
+- Diff PASS,
+- commit berhasil,
+- push berhasil,
+- local SHA == remote SHA,
+- working tree CLEAN.
+
+==================================================
+FINAL OUTPUT
+==================================================
+
+Tampilkan:
+
+### B-048 STATUS
+
+Deployment adapter:
+Persistence:
+Configuration:
+Workspace scope:
+Lifecycle:
+Security:
+
+### TEST
+
+Unit:
+PostgreSQL:
+Build:
+Typecheck:
+Lint:
+Format:
+Imports:
+Ownership:
+Docs:
+Diff:
+
+### GIT
+
+Commit:
+Push:
+Local SHA:
+Remote SHA:
+Working tree:
+
+### REMAINING DEFERRED
+
+Hanya tampilkan dependency nyata yang belum tersedia.
+
+### NEXT ROADMAP
+
+Tentukan task berikutnya berdasarkan dependency nyata repository.
+
+Jangan membuat fitur speculative.
+
+Kerjakan langsung pada:
+
+/root/botspace
 
 ```
 # Prompt: B-047 — Production Composition Root Deployment Wiring
