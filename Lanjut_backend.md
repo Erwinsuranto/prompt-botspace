@@ -486,10 +486,925 @@
 
 
 ```
-# 
+# Prompt: B-043 — Real Telegram RuntimeExecutionDriver + Runtime Integration
 ```
 
+Lanjutkan project BotSpace dari kondisi repository SAAT INI:
 
+/root/botspace
+
+Branch:
+backend-dev-recovery
+
+==================================================
+KONDISI TERAKHIR — B-042 SUDAH SELESAI
+==================================================
+
+B-040 Account Session Connection:
+SUDAH SELESAI.
+
+B-041 Provider Session Adapter + Runtime Handoff:
+SUDAH SELESAI.
+
+B-042 Runtime Execution:
+SUDAH SELESAI.
+
+Hasil B-042 terakhir:
+
+- RuntimeExecutionPort sudah tersedia/terintegrasi.
+- ProviderSessionDriver sudah terhubung.
+- Runtime worker/orchestration sudah tersedia.
+- Start/stop/restart lifecycle sudah diimplementasikan.
+- Duplicate runtime prevention sudah tersedia.
+- Workspace isolation sudah dijaga.
+- Disabled/revoked session protection sudah tersedia.
+- SecretResolver digunakan melalui secure boundary.
+- Raw credential tidak dibawa melalui runtime handoff.
+- Error handling sudah disanitasi.
+- Composition root sudah di-wire.
+- Unit test/runtime test PASS.
+- Build PASS.
+- Typecheck PASS.
+- Lint PASS.
+- Format PASS.
+- Imports PASS.
+- Ownership PASS.
+- Docs PASS.
+- Diff check PASS.
+
+Commit B-042:
+52a3f52
+
+Push:
+OK
+
+Local SHA == Remote SHA
+
+Working tree:
+CLEAN
+
+Deferred dari B-042:
+
+1. Real Telegram RuntimeExecutionDriver
+   - polling/webhook nyata,
+   - real provider credential exchange.
+
+2. Event/outbox runtime emission
+   - outbox infrastructure belum tersedia.
+
+3. Durable/distributed runtime scheduling
+   - queue/lock infrastructure belum diperlukan/dipilih.
+
+NEXT ROADMAP:
+B-043 — Real Telegram RuntimeExecutionDriver.
+
+==================================================
+ATURAN PALING PENTING
+==================================================
+
+JANGAN mengulang:
+
+- B-040
+- B-041
+- B-042
+
+Gunakan implementation existing sebagai source of truth.
+
+Jangan membuat architecture kedua.
+
+Jangan membuat RuntimeExecutionPort kedua.
+
+Jangan membuat ProviderSessionDriver kedua.
+
+Jangan membuat SecretResolver kedua.
+
+Jangan membuat worker system kedua.
+
+Jangan membuat queue/lock infrastructure speculative.
+
+==================================================
+ATURAN PROVIDER
+==================================================
+
+WAJIB:
+
+Jangan menjalankan atau membuat integration test Gorouter.app.
+
+Jangan menggunakan Gorouter.app sebagai provider verification.
+
+NVIDIA dan TokenHarbor.ai boleh diverifikasi hanya jika benar-benar tersentuh oleh perubahan, tetapi tidak perlu dijadikan target test.
+
+Fokus B-043 hanya pada:
+
+REAL TELEGRAM PROVIDER RUNTIME.
+
+==================================================
+TUJUAN B-043
+==================================================
+
+Implementasikan provider driver nyata:
+
+ProviderSessionDriver
+        ↓
+Telegram RuntimeExecutionDriver
+        ↓
+Telegram provider/library
+        ↓
+polling/webhook runtime
+
+Driver harus menggunakan boundary B-041/B-042.
+
+Core BotSpace tidak boleh mengetahui detail SDK Telegram.
+
+Target:
+
+RuntimeExecutionPort
+        ↓
+ProviderSessionDriver
+        ↓
+TelegramRuntimeExecutionDriver
+        ↓
+Telegram SDK/library
+
+Bukan:
+
+Runtime
+        ↓
+Telegram SDK langsung
+
+==================================================
+1. TARGETED AUDIT
+==================================================
+
+Jangan melakukan full repository audit.
+
+Audit hanya:
+
+- B-041 ProviderSessionDriver.
+- B-042 RuntimeExecutionPort.
+- B-042 runtime worker.
+- RuntimeHandoff.
+- Session model.
+- Connection model.
+- Account model.
+- BotInstallation.
+- SecretResolver.
+- provider registry/factory.
+- composition root.
+- dependency manifest/package.json.
+- existing Telegram dependency jika ada.
+- existing configuration.
+- existing event/update abstraction.
+- existing runtime lifecycle.
+- existing tests.
+
+Cari terlebih dahulu apakah Telegram library/provider implementation SUDAH ada.
+
+JANGAN install dependency baru sebelum memastikan:
+
+1. library belum tersedia,
+2. architecture memang membutuhkan library tersebut,
+3. library yang dipilih kompatibel dengan project,
+4. tidak ada library existing yang sudah melakukan fungsi sama.
+
+Jika library Telegram sudah tersedia:
+→ gunakan library tersebut.
+
+Jika tidak tersedia:
+→ jangan memilih library secara sembarangan.
+
+==================================================
+2. TELEGRAM PROVIDER DRIVER
+==================================================
+
+Implementasikan concrete:
+
+TelegramRuntimeExecutionDriver
+
+atau nama yang paling sesuai dengan naming repository.
+
+Driver harus memenuhi contract existing.
+
+Driver bertanggung jawab untuk:
+
+- initialize Telegram runtime,
+- establish authenticated provider session,
+- start polling/webhook sesuai capability,
+- receive updates,
+- process lifecycle,
+- stop runtime,
+- cleanup resource,
+- expose safe runtime errors.
+
+Provider-specific implementation harus tetap berada di provider/infrastructure boundary.
+
+Jangan memasukkan Telegram SDK object ke:
+
+- domain,
+- service,
+- API response,
+- generic runtime DTO,
+- database model.
+
+==================================================
+3. AUTHENTICATION / SESSION
+==================================================
+
+Gunakan session yang berasal dari:
+
+B-040/B-041.
+
+Jangan membuat authentication system baru.
+
+Jangan menyimpan raw credential di:
+
+- RuntimeHandoff,
+- RuntimeExecutionPort,
+- Runtime status,
+- event,
+- log,
+- database metadata yang tidak ditujukan untuk credential.
+
+Gunakan SecretResolver jika credential harus di-resolve.
+
+Jika Telegram library membutuhkan credential/session material:
+
+→ resolve melalui existing secure boundary.
+
+Credential hanya berada di memory selama diperlukan.
+
+==================================================
+4. TELEGRAM BOT TOKEN
+==================================================
+
+Audit bagaimana Telegram bot credential/session direpresentasikan di repository.
+
+Jangan mengasumsikan field baru.
+
+Jika existing session model sudah menyediakan credential reference:
+→ gunakan reference tersebut.
+
+Jika existing SecretResolver menyimpan secret:
+→ resolve secret berdasarkan reference.
+
+Jangan memasukkan token langsung ke configuration source code.
+
+Jangan menampilkan token.
+
+Jangan membuat test token production.
+
+==================================================
+5. RUNTIME START
+==================================================
+
+Implementasikan start yang:
+
+- validasi runtime handoff,
+- validasi workspace/account/connection/session/install identity,
+- memastikan installation memang boleh running,
+- memastikan session masih valid,
+- resolve credential melalui secure boundary,
+- membuat Telegram provider client,
+- start runtime,
+- menyimpan runtime handle/reference hanya pada runtime layer.
+
+Jika runtime sudah running:
+
+→ jangan membuat runtime kedua.
+
+Gunakan idempotency/concurrency mechanism dari B-042.
+
+==================================================
+6. RUNTIME STOP
+==================================================
+
+Stop harus:
+
+- graceful,
+- idempotent,
+- menghentikan polling/webhook,
+- unregister handler jika diperlukan,
+- release connection/resource,
+- membersihkan runtime handle,
+- tidak menghapus account,
+- tidak menghapus connection,
+- tidak menghapus session,
+- tidak revoke credential.
+
+Runtime stop ≠ session revoke.
+
+==================================================
+7. RESTART
+==================================================
+
+Gunakan lifecycle B-042.
+
+Restart harus:
+
+- stop existing runtime,
+- cleanup,
+- start runtime baru,
+- tidak membuat duplicate runtime.
+
+Perhatikan race:
+
+- start + start,
+- start + stop,
+- stop + stop,
+- restart + stop,
+- revoke + running,
+- disconnect + running.
+
+Jangan membuat distributed locking infrastructure baru.
+
+Gunakan concurrency mechanism yang sudah tersedia.
+
+==================================================
+8. POLLING VS WEBHOOK
+==================================================
+
+Audit kemampuan library dan architecture.
+
+Pilih mode yang memang didukung repository.
+
+Jika polling adalah mode yang sudah cocok:
+
+→ implementasikan polling.
+
+Jika webhook boundary sudah tersedia dan memang siap:
+
+→ implementasikan webhook.
+
+JANGAN membangun polling DAN webhook sekaligus jika salah satunya belum diperlukan.
+
+Jika library/provider hanya memungkinkan salah satu:
+→ gunakan yang tersedia.
+
+Jika real provider execution membutuhkan dependency yang benar-benar belum tersedia:
+
+JANGAN membuat fake production implementation.
+
+Implementasikan boundary yang dapat dilakukan dan tandai:
+
+DEFERRED:
+Real Telegram RuntimeExecutionDriver — dependency unavailable.
+
+==================================================
+9. UPDATE HANDLING
+==================================================
+
+Audit bagaimana runtime menerima Telegram updates.
+
+Jika B-042 sudah memiliki generic runtime callback/event boundary:
+
+→ gunakan boundary tersebut.
+
+Telegram-specific update object harus dikonversi di provider adapter.
+
+Jangan membocorkan Telegram SDK types ke core.
+
+Contoh:
+
+Telegram Update
+    ↓
+Telegram adapter
+    ↓
+Generic RuntimeUpdate
+    ↓
+Bot runtime
+
+Jika generic update contract belum tersedia:
+
+Jangan membuat event architecture besar.
+
+Buat abstraction minimum yang benar-benar diperlukan untuk menjalankan driver.
+
+==================================================
+10. ERROR HANDLING
+==================================================
+
+Map provider error menjadi safe internal runtime error.
+
+Bedakan minimal jika library dapat membedakan:
+
+- authentication failure,
+- invalid token/session,
+- provider unavailable,
+- network failure,
+- polling failure,
+- webhook failure,
+- rate limit,
+- runtime shutdown,
+- unexpected provider error.
+
+Jangan membocorkan:
+
+- bot token,
+- session token,
+- credential,
+- HTTP Authorization header,
+- raw secret,
+- internal provider request details.
+
+Error log harus aman.
+
+==================================================
+11. RECONNECT
+==================================================
+
+Audit apakah existing runtime contract sudah memiliki reconnect semantics.
+
+Jika sudah:
+
+→ implementasikan sesuai contract.
+
+Jika belum:
+
+→ jangan membuat reconnect framework besar.
+
+Gunakan behavior minimum yang dibutuhkan oleh Telegram library.
+
+Perhatikan:
+
+- transient network failure,
+- authentication failure,
+- intentional stop.
+
+Authentication failure jangan terus-menerus retry.
+
+Intentional stop tidak boleh otomatis restart.
+
+==================================================
+12. GRACEFUL SHUTDOWN
+==================================================
+
+Pastikan runtime dapat dihentikan ketika:
+
+- stop command,
+- runtime shutdown,
+- application shutdown,
+- session revoked,
+- installation disabled,
+- provider failure.
+
+Gunakan existing lifecycle.
+
+Jangan membuat process manager baru.
+
+==================================================
+13. SESSION INVALIDATION
+==================================================
+
+Jika session:
+
+- revoked,
+- disconnected,
+- invalid,
+- credential unavailable,
+
+runtime tidak boleh terus menggunakan session tersebut.
+
+Jika Telegram runtime aktif:
+
+→ lakukan stop.
+
+Jangan mengubah lifecycle account secara otomatis kecuali existing contract memang mengharuskannya.
+
+==================================================
+14. WORKSPACE ISOLATION
+==================================================
+
+WAJIB diuji.
+
+Workspace A:
+
+account A
+connection A
+session A
+installation A
+runtime A
+
+tidak boleh mengakses:
+
+account B
+connection B
+session B
+installation B
+runtime B
+
+Pastikan driver tidak hanya percaya pada ID dari caller.
+
+Gunakan authorization/ownership boundary B-040/B-041/B-042.
+
+Jangan membuat authorization system kedua.
+
+==================================================
+15. INSTALLATION STATE
+==================================================
+
+Jangan menggunakan:
+
+BotInstallation.status
+
+sebagai runtime process state.
+
+Installation lifecycle tetap terpisah dari:
+
+RuntimeState.
+
+Runtime hanya boleh start jika installation state sesuai dengan existing contract.
+
+Jangan mengubah schema/state machine installation kecuali benar-benar diperlukan oleh existing contract.
+
+==================================================
+16. PROVIDER FACTORY / REGISTRY
+==================================================
+
+Jika repository sudah memiliki provider registry:
+
+tambahkan Telegram driver di sana.
+
+Contoh konsep:
+
+provider = telegram
+driver = TelegramRuntimeExecutionDriver
+
+Jangan membuat factory kedua.
+
+Jika provider registry belum ada:
+
+buat abstraction minimum hanya jika B-043 benar-benar membutuhkannya.
+
+Jangan membuat generic plugin framework besar.
+
+==================================================
+17. COMPOSITION ROOT
+==================================================
+
+Wire production:
+
+TelegramRuntimeExecutionDriver
+        ↓
+ProviderSessionDriver
+        ↓
+RuntimeExecutionPort
+        ↓
+Worker
+
+Pastikan dependency injection eksplisit.
+
+Test environment harus dapat menggunakan:
+
+FakeProviderSessionDriver
+FakeRuntimeExecutionDriver
+
+tanpa Telegram credential.
+
+Jangan menggunakan environment production dalam unit tests.
+
+==================================================
+18. TESTING
+==================================================
+
+Tambahkan unit tests yang benar-benar memverifikasi:
+
+1. Telegram driver construction.
+2. Valid runtime handoff.
+3. Invalid runtime handoff rejected.
+4. Start runtime.
+5. Start idempotency.
+6. Duplicate runtime prevention.
+7. Stop runtime.
+8. Stop idempotency.
+9. Restart runtime.
+10. Provider authentication failure.
+11. Provider network failure.
+12. Provider unavailable.
+13. Credential unavailable.
+14. SecretResolver failure.
+15. Session revoked.
+16. Session disconnected.
+17. Installation disabled.
+18. Workspace isolation.
+19. Cross-workspace rejection.
+20. Runtime cleanup.
+21. Intentional stop does not reconnect.
+22. Runtime failure state.
+23. Credential tidak masuk log.
+24. Credential tidak masuk error.
+25. Credential tidak masuk runtime handoff.
+26. Telegram SDK object tidak bocor ke core.
+27. Composition root wiring.
+
+Jika provider library menyediakan testable fake client:
+
+→ gunakan untuk unit test.
+
+Jika tidak:
+
+→ buat adapter-level test double, bukan fake production provider.
+
+==================================================
+19. REAL TELEGRAM INTEGRATION TEST
+==================================================
+
+JANGAN menggunakan production Telegram account.
+
+Jika repository/environment memiliki explicit test-only Telegram credentials:
+
+→ hanya jalankan real integration test jika memang sudah menjadi bagian testing architecture.
+
+Jika tidak tersedia:
+
+→ SKIPPED — real Telegram credentials/environment unavailable.
+
+Jangan membuat credential palsu.
+
+Jangan memasukkan token ke repository.
+
+Jangan menjalankan real Telegram test hanya untuk membuat laporan terlihat lengkap.
+
+==================================================
+20. EVENT / OUTBOX
+==================================================
+
+Audit event/outbox.
+
+Jika infrastructure belum tersedia:
+
+JANGAN membuat outbox system baru.
+
+Runtime event emission tetap:
+
+DEFERRED — outbox infrastructure unavailable.
+
+Jika event contract sudah tersedia dan mudah diintegrasikan tanpa infrastructure baru:
+
+gunakan contract existing.
+
+Jangan memasukkan credential ke event payload.
+
+==================================================
+21. DURABLE SCHEDULING
+==================================================
+
+Jangan implementasikan:
+
+- Redis lock,
+- distributed scheduler,
+- durable queue,
+- persistent worker orchestration,
+
+pada B-043 jika infrastructure tersebut belum tersedia.
+
+Tetap:
+
+DEFERRED — durable runtime scheduling requires approved infrastructure.
+
+==================================================
+22. SECURITY REVIEW
+==================================================
+
+Review khusus:
+
+- credential leakage,
+- token leakage,
+- session leakage,
+- workspace isolation,
+- cross-account runtime,
+- revoked session,
+- disabled installation,
+- duplicate runtime,
+- stale runtime,
+- reconnect loop,
+- provider error sanitization,
+- shutdown behavior.
+
+Pastikan tidak ada:
+
+token di log
+token di event
+token di error
+token di test snapshot
+token di API response
+
+==================================================
+23. VALIDATION
+==================================================
+
+Setelah coding:
+
+Jalankan:
+
+pnpm test
+pnpm build
+pnpm typecheck
+pnpm lint
+pnpm format:check
+
+Kemudian:
+
+node scripts/check-imports.mjs
+node scripts/check-ownership.mjs
+node scripts/check-doc-links.mjs
+git diff --check
+
+JANGAN menjalankan:
+
+node scripts/check-symlinks.mjs
+
+karena script tersebut tidak tersedia.
+
+Jangan membuat script pengganti.
+
+Jika PostgreSQL integration membutuhkan:
+
+PERSISTENCE_TEST_DATABASE_URL
+
+dan tidak tersedia:
+
+SKIPPED — PERSISTENCE_TEST_DATABASE_URL unavailable.
+
+Jangan membuat fake database.
+
+==================================================
+24. GIT REVIEW
+==================================================
+
+Sebelum commit:
+
+git status
+git diff --stat
+git diff
+
+Pastikan hanya perubahan B-043.
+
+Hapus:
+
+- debug,
+- temporary files,
+- credentials,
+- tokens,
+- generated files,
+- unrelated refactor.
+
+Jangan menyentuh:
+
+- Gorouter.app,
+- NVIDIA provider implementation yang tidak relevan,
+- TokenHarbor implementation yang tidak relevan.
+
+==================================================
+25. COMMIT
+==================================================
+
+Jika implementation valid dan validation selesai:
+
+buat SATU commit.
+
+Gunakan:
+
+feat: implement telegram runtime driver
+
+atau message yang lebih tepat berdasarkan perubahan aktual.
+
+Jangan membuat empty commit.
+
+==================================================
+26. PUSH
+==================================================
+
+Setelah commit:
+
+git push origin backend-dev-recovery
+
+Kemudian verifikasi:
+
+git rev-parse HEAD
+
+dan remote branch SHA.
+
+Pastikan:
+
+LOCAL SHA == REMOTE SHA
+
+Working tree:
+
+CLEAN
+
+Jika push gagal:
+
+- jangan reset,
+- jangan menghapus commit,
+- jangan mengubah credential Git sembarangan,
+- laporkan error,
+- commit lokal harus tetap aman.
+
+==================================================
+DEFINITION OF DONE
+==================================================
+
+B-043 selesai jika:
+
+- TelegramRuntimeExecutionDriver tersedia.
+- ProviderSessionDriver terintegrasi.
+- RuntimeExecutionPort terintegrasi.
+- Telegram provider client dapat dibuat melalui secure boundary.
+- Start/stop/restart berjalan.
+- Duplicate runtime dicegah.
+- Workspace isolation terjaga.
+- Revoked/disconnected session tidak menjalankan runtime.
+- Disabled installation tidak menjalankan runtime.
+- Error provider disanitasi.
+- Credential tidak bocor.
+- Graceful shutdown tersedia.
+- Unit tests tersedia.
+- Validation PASS.
+- Commit dibuat.
+- Push berhasil.
+- Local SHA == Remote SHA.
+- Working tree CLEAN.
+
+Jika real Telegram library/credential/environment belum tersedia:
+
+IMPLEMENTED:
+- driver boundary,
+- provider integration architecture,
+- runtime lifecycle,
+- secure credential resolution,
+- tests,
+- composition wiring.
+
+DEFERRED:
+- actual Telegram network execution,
+- real polling/webhook,
+- real provider credential exchange,
+
+hanya jika dependency nyata memang unavailable.
+
+==================================================
+FINAL OUTPUT
+==================================================
+
+Tampilkan:
+
+### B-043 STATUS
+- TelegramRuntimeExecutionDriver:
+- ProviderSessionDriver:
+- RuntimeExecutionPort:
+- Start:
+- Stop:
+- Restart:
+- Reconnect:
+- Graceful shutdown:
+
+### SECURITY
+- Credential handling:
+- SecretResolver:
+- Workspace isolation:
+- Session validation:
+- Installation validation:
+- Error sanitization:
+
+### TEST
+- Unit:
+- Integration:
+- Build:
+- Typecheck:
+- Lint:
+- Format:
+- Imports:
+- Ownership:
+- Docs:
+- Diff:
+
+### DEFERRED
+Hanya item yang benar-benar membutuhkan external dependency/environment.
+
+### GIT
+- Commit:
+- Push:
+- Local SHA:
+- Remote SHA:
+- Working tree:
+
+### NEXT ROADMAP
+Tentukan task berikutnya berdasarkan dependency nyata setelah B-043.
+
+PENTING:
+
+Jangan kembali ke B-040.
+Jangan kembali ke B-041.
+Jangan kembali ke B-042.
+Jangan meminta human approval untuk task yang sudah jelas.
+Jangan membuat fake production Telegram runtime.
+Jangan menjalankan test Gorouter.app.
+Jangan membuat queue/lock infrastructure speculative.
+Jangan mengerjakan fitur acak.
+
+Kerjakan langsung pada:
+
+/root/botspace
 
 ```
 # Prompt: B-042 — Runtime Execution + Provider Driver
