@@ -450,10 +450,614 @@
 
 
 ```
-# 
+# Prompt: B-049 — Worker Process Entrypoint Finalization + Deployment Runbook
 ```
 
+Lanjutkan project BotSpace dari kondisi repository SAAT INI:
 
+/root/botspace
+
+Branch:
+backend-dev-recovery
+
+==================================================
+KONDISI TERAKHIR
+==================================================
+
+B-040 — Account Session Connection:
+SELESAI.
+
+B-041 — Provider Session Adapter + Runtime Handoff:
+SELESAI.
+
+B-042 — Runtime Execution:
+SELESAI.
+
+B-043 — Real Telegram Runtime Driver:
+SELESAI.
+
+B-044 — Real Telegram SDK-backed TelegramClientFactory:
+SELESAI.
+
+B-045 — Production Worker Bootstrap + Update Routing:
+SELESAI.
+
+B-046 — Persistence-backed Installation Discovery +
+Worker Credential Wiring:
+SELESAI.
+
+B-047 — Production Composition Root:
+SELESAI.
+
+B-048 — Deployment Adapter + Operational Readiness:
+SELESAI.
+
+Validation terakhir:
+- Unit: PASS
+- Build: PASS
+- Typecheck: PASS
+- Lint: PASS
+- Format: PASS
+- Imports: PASS
+- Ownership: PASS
+- Docs: PASS
+- Diff: PASS
+- Working tree: CLEAN
+- Commit/push berhasil.
+
+==================================================
+REMAINING DEFERRED
+==================================================
+
+1. Managed secret-manager client nyata belum tersedia.
+2. Direct-run production deployment input masih perlu dirapikan.
+3. PostgreSQL integration membutuhkan:
+   PERSISTENCE_TEST_DATABASE_URL
+4. Real Telegram integration membutuhkan credential/test environment.
+5. Distributed multi-worker coordination/lock belum tersedia.
+6. Update retry/DLQ contract belum tersedia.
+7. Event/outbox runtime lifecycle infrastructure belum tersedia.
+8. Multi-bot multiplexing pada satu connection tetap out of scope.
+
+Jangan mencoba menyelesaikan dependency tersebut secara speculative.
+
+==================================================
+TARGET B-049
+==================================================
+
+B-049 — worker process entrypoint finalization +
+deployment runbook.
+
+Tujuan:
+
+Membuat entrypoint worker production menjadi jalur resmi
+untuk menjalankan worker runtime yang SUDAH tersedia.
+
+Target:
+
+environment/config
+    ↓
+loadConfigFromEnv
+    ↓
+createPostgresPersistence
+    ↓
+SecretResolver boundary
+    ↓
+startWorkerRoot
+    ↓
+existing worker runtime
+
+Deployment runbook harus menjelaskan cara menjalankan
+worker production tanpa membuat architecture baru.
+
+==================================================
+ATURAN KERAS
+==================================================
+
+JANGAN mengulang:
+
+- B-040
+- B-041
+- B-042
+- B-043
+- B-044
+- B-045
+- B-046
+- B-047
+- B-048
+
+Jangan membuat:
+
+- worker runtime kedua,
+- Telegram driver kedua,
+- persistence abstraction kedua,
+- SecretResolver kedua,
+- composition root kedua,
+- queue baru,
+- retry system,
+- DLQ,
+- distributed lock,
+- outbox system,
+- multi-bot multiplexing.
+
+Gunakan implementation yang SUDAH ADA.
+
+==================================================
+BAGIAN 1 — TARGETED AUDIT
+==================================================
+
+Audit:
+
+- worker package,
+- worker entrypoint yang sudah ada,
+- startWorkerRoot,
+- loadConfigFromEnv,
+- createPostgresPersistence,
+- SecretResolver,
+- WorkerPersistenceResource,
+- existing runtime composition,
+- package scripts,
+- Dockerfile jika tersedia,
+- deployment files,
+- README/deployment documentation.
+
+Tentukan:
+
+1. Entry point worker production yang paling tepat.
+2. Apakah entrypoint sudah ada tetapi belum final.
+3. Function/API yang harus dipanggil.
+4. Configuration yang wajib tersedia.
+5. Lifecycle startup/shutdown yang sudah disediakan.
+6. Dokumentasi deployment yang sudah ada dan perlu diperbarui.
+
+Jangan melakukan full repository rewrite.
+
+==================================================
+BAGIAN 2 — WORKER PROCESS ENTRYPOINT
+==================================================
+
+Finalisasikan worker process entrypoint.
+
+Entrypoint harus:
+
+1. Load configuration melalui configuration mechanism yang sudah ada.
+2. Validasi configuration sebelum runtime dimulai.
+3. Membuat persistence melalui createPostgresPersistence().
+4. Menggunakan SecretResolver boundary yang sudah ada.
+5. Memanggil startWorkerRoot() atau composition API resmi yang
+   sudah tersedia.
+6. Menjaga workspace scope sesuai configuration.
+7. Menangani startup failure dengan exit status yang benar.
+8. Menangani SIGTERM/SIGINT jika lifecycle abstraction sudah
+   mendukungnya.
+9. Menjalankan graceful shutdown menggunakan lifecycle yang
+   sudah ada.
+10. Tidak membuka koneksi database secara manual jika
+    persistence factory sudah menangani lifecycle.
+11. Tidak membuat Telegram polling/webhook baru.
+
+Jangan membuat duplicate bootstrap.
+
+==================================================
+BAGIAN 3 — CONFIGURATION
+==================================================
+
+Gunakan configuration API yang SUDAH ADA.
+
+Configuration minimal yang diperlukan hanya berdasarkan
+implementation repository.
+
+Kemungkinan termasuk:
+
+DATABASE_URL
+WORKER_WORKSPACE_SCOPE
+SECRET_MANAGER_REF
+
+Tetapi JANGAN menganggap semua variable tersebut wajib jika
+kode existing menentukan behavior berbeda.
+
+Audit source of truth terlebih dahulu.
+
+Rules:
+
+- tidak hardcode credential,
+- tidak hardcode database URL,
+- tidak hardcode Telegram token,
+- tidak mencetak secret,
+- error harus sanitized,
+- missing required configuration harus fail fast.
+
+==================================================
+BAGIAN 4 — PROCESS LIFECYCLE
+==================================================
+
+Pastikan worker process memiliki lifecycle production yang jelas:
+
+START
+→ load configuration
+→ validate
+→ create dependencies
+→ start worker
+→ remain running
+
+SHUTDOWN
+→ receive termination signal
+→ stop worker runtime
+→ cleanup persistence/resources
+→ exit cleanly
+
+Gunakan lifecycle abstraction yang sudah ada.
+
+Jangan membuat shutdown framework baru.
+
+Jika runtime memang belum memiliki signal/shutdown abstraction
+yang cukup:
+
+→ implementasikan perubahan minimum hanya untuk entrypoint.
+
+Jangan melakukan refactor runtime besar.
+
+==================================================
+BAGIAN 5 — ERROR HANDLING
+==================================================
+
+Pastikan process failure dapat didiagnosis tanpa membocorkan:
+
+- password,
+- API key,
+- Telegram token,
+- database credential,
+- secret.
+
+Error startup harus menjelaskan kategori masalah.
+
+Contoh:
+
+"Worker configuration is invalid"
+
+atau
+
+"Worker persistence initialization failed"
+
+Bukan menampilkan nilai credential.
+
+Pastikan process exit non-zero ketika startup gagal.
+
+==================================================
+BAGIAN 6 — PACKAGE SCRIPT
+==================================================
+
+Audit package.json.
+
+Jika architecture repository menggunakan script khusus worker,
+pastikan ada command production yang jelas.
+
+Contoh pola:
+
+pnpm worker
+
+atau script existing yang lebih tepat.
+
+JANGAN menambahkan banyak command duplikat.
+
+Pilih SATU entrypoint resmi untuk production worker berdasarkan
+struktur repository.
+
+Jika command sudah ada:
+
+→ gunakan dan rapikan bila perlu.
+
+==================================================
+BAGIAN 7 — DEPLOYMENT RUNBOOK
+==================================================
+
+Perbarui dokumentasi deployment yang SUDAH ADA.
+
+Jangan membuat banyak README baru.
+
+Gunakan README.md/documentasi deployment existing.
+
+Dokumentasikan:
+
+1. prerequisite production,
+2. environment variables,
+3. cara install dependency,
+4. cara build,
+5. cara menjalankan worker,
+6. cara menjalankan worker sebagai process/service jika
+   repository memang menyediakan mekanismenya,
+7. graceful restart,
+8. log location/behavior,
+9. health/readiness verification jika endpoint/command
+   memang sudah tersedia,
+10. troubleshooting startup failure.
+
+Jangan mengarang:
+
+- systemd service yang belum tersedia,
+- Docker deployment yang belum digunakan,
+- Kubernetes deployment,
+- cloud-specific infrastructure.
+
+Dokumentasikan hanya deployment mechanism yang benar-benar
+didukung repository.
+
+==================================================
+BAGIAN 8 — DIRECT-RUN PRODUCTION
+==================================================
+
+Pastikan direct-run production path jelas.
+
+Target:
+
+configuration
+→ persistence
+→ worker runtime
+
+Jangan membuat deployment-specific abstraction baru jika
+existing composition root sudah dapat digunakan.
+
+Jika production runbook membutuhkan build artifact:
+
+→ gunakan build output existing.
+
+Jika membutuhkan workspace scope:
+
+→ dokumentasikan configuration existing.
+
+==================================================
+BAGIAN 9 — TEST
+==================================================
+
+Tambahkan test hanya untuk behavior yang benar-benar baru.
+
+Minimal:
+
+1. entrypoint configuration validation.
+2. missing required configuration ditolak.
+3. dependency composition berhasil.
+4. worker startup failure menghasilkan failure yang benar.
+5. shutdown lifecycle tidak meninggalkan resource.
+6. secret tidak bocor ke error/log.
+
+Jika entrypoint sulit ditest langsung karena process boundary:
+
+→ extract hanya helper configuration/composition kecil
+   menggunakan abstraction yang existing.
+
+Jangan membuat duplicate runtime abstraction.
+
+==================================================
+BAGIAN 10 — REAL TELEGRAM
+==================================================
+
+Jangan menjalankan real Telegram integration jika credential
+environment belum tersedia.
+
+Jika credential tidak tersedia:
+
+REAL TELEGRAM:
+DEFERRED — credential/test environment unavailable
+
+Jangan membuat fake production Telegram.
+
+==================================================
+BAGIAN 11 — POSTGRESQL
+==================================================
+
+Jika:
+
+PERSISTENCE_TEST_DATABASE_URL
+
+tersedia:
+
+→ jalankan PostgreSQL integration test yang SUDAH ADA.
+
+Jika tidak:
+
+→ SKIPPED — PERSISTENCE_TEST_DATABASE_URL unavailable
+
+Jangan:
+
+- menggunakan SQLite,
+- membuat fake PostgreSQL,
+- mengubah test agar PASS.
+
+==================================================
+BAGIAN 12 — DEFERRED INFRASTRUCTURE
+==================================================
+
+Tetap deferred:
+
+- managed secret-manager vendor integration,
+- distributed lock,
+- retry/DLQ,
+- outbox,
+- multi-worker coordination,
+- multi-bot multiplexing.
+
+Jangan membuat implementation speculative.
+
+==================================================
+BAGIAN 13 — VALIDATION
+==================================================
+
+Jalankan:
+
+pnpm test
+pnpm build
+pnpm typecheck
+pnpm lint
+pnpm format:check
+
+Kemudian:
+
+node scripts/check-imports.mjs
+node scripts/check-ownership.mjs
+node scripts/check-doc-links.mjs
+git diff --check
+
+Jangan menjalankan:
+
+node scripts/check-symlinks.mjs
+
+karena script tersebut memang tidak tersedia.
+
+Jika PostgreSQL environment tersedia:
+→ jalankan integration test.
+
+Jika tidak:
+→ SKIPPED — PERSISTENCE_TEST_DATABASE_URL unavailable
+
+Real Telegram:
+→ tetap deferred jika credential tidak tersedia.
+
+==================================================
+BAGIAN 14 — DIFF REVIEW
+==================================================
+
+Review:
+
+git status
+git diff --stat
+git diff
+
+Pastikan perubahan hanya:
+
+- worker entrypoint,
+- configuration wiring jika diperlukan,
+- lifecycle wiring minimum,
+- package script jika diperlukan,
+- deployment documentation,
+- test yang relevan.
+
+Hapus:
+
+- debug code,
+- temporary files,
+- generated files,
+- unrelated refactor,
+- duplicate abstraction.
+
+==================================================
+BAGIAN 15 — COMMIT
+==================================================
+
+Jika perubahan valid dan validation selesai:
+
+Buat SATU commit.
+
+Gunakan message:
+
+feat: finalize worker process entrypoint
+
+atau message yang lebih tepat berdasarkan perubahan aktual.
+
+Jangan membuat empty commit.
+
+==================================================
+BAGIAN 16 — PUSH
+==================================================
+
+Setelah commit:
+
+git push origin backend-dev-recovery
+
+Kemudian verifikasi:
+
+git rev-parse HEAD
+
+git status
+
+Pastikan local SHA == remote SHA.
+
+Working tree harus:
+
+CLEAN
+
+Jika push gagal:
+
+- jangan reset,
+- jangan hapus commit,
+- jangan mengubah Git credential sembarangan,
+- tampilkan error secara jelas.
+
+==================================================
+DEFINITION OF DONE
+==================================================
+
+B-049 selesai jika:
+
+- production worker entrypoint resmi tersedia,
+- configuration loading benar,
+- persistence composition benar,
+- SecretResolver boundary tetap digunakan,
+- workspace scope benar,
+- startup failure aman,
+- graceful shutdown benar,
+- package command jelas,
+- deployment runbook diperbarui,
+- Unit PASS,
+- Build PASS,
+- Typecheck PASS,
+- Lint PASS,
+- Format PASS,
+- Imports PASS,
+- Ownership PASS,
+- Docs PASS,
+- Diff PASS,
+- commit berhasil,
+- push berhasil,
+- local SHA == remote SHA,
+- working tree CLEAN.
+
+==================================================
+FINAL OUTPUT
+==================================================
+
+### B-049 STATUS
+
+Entrypoint:
+Configuration:
+Persistence:
+SecretResolver:
+Lifecycle:
+Deployment runbook:
+
+### TEST
+
+Unit:
+PostgreSQL:
+Build:
+Typecheck:
+Lint:
+Format:
+Imports:
+Ownership:
+Docs:
+Diff:
+
+### GIT
+
+Commit:
+Push:
+Local SHA:
+Remote SHA:
+Working tree:
+
+### REMAINING DEFERRED
+
+Hanya tampilkan dependency nyata yang belum tersedia.
+
+### NEXT ROADMAP
+
+Tentukan task berikutnya berdasarkan dependency nyata repository.
+
+Jangan membuat fitur speculative.
+
+Kerjakan langsung pada:
+
+/root/botspace
 
 ```
 # Prompt: B-048 — Deployment Adapter + Operational Readiness
