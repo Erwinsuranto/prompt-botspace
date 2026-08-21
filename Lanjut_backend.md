@@ -444,10 +444,673 @@
 
 
 ```
-# 
+# Prompt: B-050 — Module Runtime Composition
 ```
 
+Lanjutkan project BotSpace dari kondisi repository SAAT INI:
 
+/root/botspace
+
+Branch:
+backend-dev-recovery
+
+==================================================
+KONDISI TERAKHIR
+==================================================
+
+B-040 — Account Session Connection:
+SELESAI.
+
+B-041 — Provider Session Adapter + Runtime Handoff:
+SELESAI.
+
+B-042 — Runtime Execution:
+SELESAI.
+
+B-043 — Real Telegram Runtime Driver:
+SELESAI.
+
+B-044 — Telegram SDK-backed TelegramClientFactory:
+SELESAI.
+
+B-045 — Production Worker Bootstrap + Update Routing:
+SELESAI.
+
+B-046 — Persistence-backed Installation Discovery +
+Worker Credential Wiring:
+SELESAI.
+
+B-047 — Production Composition Root:
+SELESAI.
+
+B-048 — Deployment Adapter + Operational Readiness:
+SELESAI.
+
+B-049 — Worker Process Entrypoint Finalization +
+Deployment Runbook:
+SELESAI.
+
+Validation terakhir:
+- Unit: PASS
+- Build: PASS
+- Typecheck: PASS
+- Lint: PASS
+- Format: PASS
+- Imports: PASS
+- Ownership: PASS
+- Docs: PASS
+- Diff: PASS
+- Working tree: CLEAN
+- Commit/push berhasil.
+
+==================================================
+ROADMAP TERAKHIR
+==================================================
+
+B-049 menyatakan dua dependency nyata masih memblokir
+direct-run production penuh:
+
+1. ADR-010 managed secret-manager:
+   masih menunggu keputusan/vendor infrastructure.
+
+2. Infrastructure eksternal:
+   PostgreSQL integration environment,
+   real Telegram credential/environment,
+   distributed coordination/lock,
+   retry/DLQ,
+   outbox/event infrastructure.
+
+JANGAN mencoba menyelesaikan dependency tersebut secara
+speculative.
+
+Roadmap berikutnya yang direkomendasikan:
+
+B-050 — module runtime composition.
+
+B-050 dapat dikerjakan sekarang karena dependency internal
+untuk module runtime sudah tersedia.
+
+==================================================
+TARGET B-050
+==================================================
+
+Implementasikan module runtime composition yang membuat
+worker runtime memiliki module runtime nyata.
+
+Target architecture:
+
+worker process
+    ↓
+startWorkerRoot
+    ↓
+load/create module runtime
+    ↓
+module registry
+    ↓
+module context resolver
+    ↓
+enabled-module repository
+    ↓
+module handlers
+    ↓
+runWorkerProcess
+
+Tujuan utama:
+
+`runWorkerProcess` tidak lagi berhenti pada runtime shell/
+composition placeholder.
+
+Worker harus mempunyai module runtime composition yang nyata
+menggunakan abstraction yang SUDAH tersedia di repository.
+
+==================================================
+ATURAN KERAS
+==================================================
+
+JANGAN mengulang:
+
+- B-040
+- B-041
+- B-042
+- B-043
+- B-044
+- B-045
+- B-046
+- B-047
+- B-048
+- B-049
+
+Jangan membuat runtime kedua.
+
+Jangan membuat worker bootstrap kedua.
+
+Jangan membuat Telegram driver kedua.
+
+Jangan membuat persistence abstraction kedua.
+
+Jangan membuat SecretResolver kedua.
+
+Jangan membuat HTTP framework baru.
+
+Jangan membuat queue.
+
+Jangan membuat retry/DLQ.
+
+Jangan membuat distributed lock.
+
+Jangan membuat outbox.
+
+Jangan membuat multi-bot multiplexing.
+
+Jangan membuat managed secret-manager vendor secara speculative.
+
+Gunakan architecture dan abstraction yang sudah ada.
+
+==================================================
+BAGIAN 1 — TARGETED AUDIT
+==================================================
+
+Audit terlebih dahulu:
+
+- `runWorkerProcess`
+- `startWorkerRoot`
+- worker runtime package
+- module runtime package
+- module registry
+- module context
+- context resolver
+- enabled-module repository
+- module handler interfaces
+- module lifecycle
+- installation/workspace context
+- existing module implementations
+- composition root
+- worker entrypoint
+- existing tests.
+
+Cari secara khusus:
+
+1. Apakah module registry sudah ada?
+2. Apakah module handler contract sudah ada?
+3. Apakah context resolver sudah ada?
+4. Apakah enabled-module repository sudah ada?
+5. Apakah module runtime sudah memiliki interface/factory?
+6. Apakah `runWorkerProcess` sekarang menerima module runtime?
+7. Bagian mana yang masih placeholder/no-op?
+8. Apakah B-061 sudah menjadi dependency nyata?
+
+Jangan langsung coding sebelum dependency internal tersebut
+dipahami.
+
+==================================================
+BAGIAN 2 — MODULE RUNTIME COMPOSITION
+==================================================
+
+Buat composition yang menghubungkan:
+
+module registry
++
+context resolver
++
+enabled-module repository
++
+module handlers
+
+menjadi module runtime yang dapat digunakan worker.
+
+Gunakan interface yang SUDAH ADA.
+
+Jika factory/composition abstraction sudah tersedia:
+
+→ gunakan abstraction tersebut.
+
+Jika belum ada tetapi memang dibutuhkan untuk composition:
+
+→ buat abstraction minimum pada boundary yang tepat.
+
+Jangan membuat abstraction kedua yang duplikatif.
+
+==================================================
+BAGIAN 3 — MODULE REGISTRY
+==================================================
+
+Audit module registry.
+
+Registry harus menjadi source of truth untuk module yang
+tersedia di runtime.
+
+Pastikan:
+
+- module identifier deterministic,
+- module registration tidak duplicate,
+- handler mapping jelas,
+- module lookup memiliki error yang aman,
+- module tidak dapat mengambil handler module lain secara
+  tidak sengaja.
+
+Jika registry contract belum cukup:
+
+→ identifikasi dependency yang benar-benar diperlukan.
+
+Jika dependency tersebut adalah B-061:
+
+→ jangan mengarang B-061.
+
+Implementasikan hanya composition yang dapat dilakukan
+berdasarkan contract existing.
+
+==================================================
+BAGIAN 4 — ENABLED MODULE
+==================================================
+
+Gunakan enabled-module repository yang sudah ada.
+
+Worker runtime harus dapat menentukan module mana yang aktif
+untuk workspace/installation berdasarkan repository tersebut.
+
+Rules:
+
+- jangan hardcode enabled module,
+- jangan bypass repository,
+- jangan menganggap semua module selalu enabled,
+- jangan mengubah persistence schema hanya untuk B-050,
+- jangan membuat fake repository production.
+
+Jika repository membutuhkan persistence environment nyata:
+
+→ gunakan abstraction existing.
+
+Jangan membuat PostgreSQL test palsu.
+
+==================================================
+BAGIAN 5 — MODULE CONTEXT
+==================================================
+
+Pastikan setiap module handler mendapatkan context yang benar.
+
+Context minimal hanya berdasarkan abstraction existing.
+
+Audit apakah context berisi:
+
+- workspace identity,
+- installation identity,
+- bot identity,
+- provider/session context,
+- configuration,
+- logger,
+- dependencies yang memang dibutuhkan.
+
+Jangan memasukkan credential mentah ke module context jika
+tidak diperlukan.
+
+Jangan memasukkan secret manager credential ke context.
+
+Workspace/installation boundary harus tetap dipertahankan.
+
+==================================================
+BAGIAN 6 — CONTEXT RESOLVER
+==================================================
+
+Integrasikan context resolver yang sudah ada.
+
+Resolver harus:
+
+1. resolve context berdasarkan runtime identity,
+2. menghormati workspace boundary,
+3. tidak mengambil context lintas workspace,
+4. gagal secara aman ketika context tidak ditemukan,
+5. tidak membocorkan credential/secret,
+6. tidak membuat global mutable context.
+
+Jika context resolver sudah production-ready:
+
+→ jangan refactor tanpa alasan.
+
+==================================================
+BAGIAN 7 — MODULE HANDLER DISPATCH
+==================================================
+
+Hubungkan module runtime ke handler dispatch yang sudah ada.
+
+Target:
+
+incoming runtime event
+    ↓
+resolve installation/workspace context
+    ↓
+determine enabled modules
+    ↓
+lookup registered module
+    ↓
+resolve handler
+    ↓
+execute handler
+    ↓
+return outcome
+
+Jangan membuat event system baru.
+
+Gunakan event/update abstraction yang sudah tersedia dari
+B-045 dan runtime sebelumnya.
+
+Jika event dispatch contract belum tersedia:
+
+→ jangan membuat event bus speculative.
+
+Implementasikan hanya composition boundary yang tersedia.
+
+==================================================
+BAGIAN 8 — FAILURE ISOLATION
+==================================================
+
+Pastikan kegagalan satu module tidak merusak composition
+runtime secara global jika existing architecture memang
+mendukung isolation.
+
+Contoh:
+
+module A gagal
+→ module B tidak otomatis kehilangan registry/context.
+
+Namun jangan membuat error isolation framework baru jika
+runtime existing sudah memiliki policy.
+
+Gunakan error semantics existing.
+
+==================================================
+BAGIAN 9 — LIFECYCLE
+==================================================
+
+Module runtime harus mengikuti lifecycle worker yang sudah
+tersedia.
+
+Target:
+
+worker start
+→ module runtime initialized
+→ registry ready
+→ context dependencies ready
+→ worker process running
+
+shutdown:
+→ worker runtime shutdown
+→ module runtime cleanup jika abstraction tersedia.
+
+Jangan membuat lifecycle framework kedua.
+
+Jika module handler tidak memiliki lifecycle:
+
+→ jangan menambahkan lifecycle method hanya untuk memenuhi
+target B-050.
+
+==================================================
+BAGIAN 10 — PRODUCTION VS TEST
+==================================================
+
+Production composition:
+
+gunakan dependency nyata yang sudah tersedia.
+
+Test composition:
+
+gunakan injected fake/in-memory implementation yang memang
+sudah menjadi pattern repository.
+
+Jangan membuat production fake.
+
+Jangan memasukkan Telegram credential nyata ke test.
+
+Jangan memasukkan database credential nyata ke source.
+
+==================================================
+BAGIAN 11 — B-061 BOUNDARY
+==================================================
+
+Audit B-061 secara khusus.
+
+Jika B-061 hanya merupakan contract/module registry +
+handler contract yang memang SUDAH tersedia sebagian:
+
+→ gunakan yang sudah ada.
+
+Jika B-061 merupakan dependency yang BELUM tersedia:
+
+→ jangan mengimplementasikan seluruh B-061 sekarang.
+
+Tentukan minimum contract yang benar-benar dibutuhkan B-050.
+
+Jangan membuat speculative API.
+
+==================================================
+BAGIAN 12 — TEST
+==================================================
+
+Tambahkan test untuk behavior baru yang benar-benar
+diimplementasikan.
+
+Minimal:
+
+1. module registry composition.
+2. duplicate module registration ditolak jika contract
+   mendukung behavior tersebut.
+3. enabled module resolution.
+4. context resolver integration.
+5. workspace isolation.
+6. handler lookup.
+7. handler dispatch.
+8. missing module behavior.
+9. missing context behavior.
+10. module runtime startup.
+11. module runtime failure behavior.
+12. worker → module runtime integration.
+
+Jangan membuat mock hanya untuk mendapatkan PASS.
+
+Gunakan fake/in-memory implementation existing jika tersedia.
+
+==================================================
+BAGIAN 13 — VALIDATION
+==================================================
+
+Jalankan:
+
+pnpm test
+pnpm build
+pnpm typecheck
+pnpm lint
+pnpm format:check
+
+Kemudian:
+
+node scripts/check-imports.mjs
+node scripts/check-ownership.mjs
+node scripts/check-doc-links.mjs
+git diff --check
+
+Jangan menjalankan:
+
+node scripts/check-symlinks.mjs
+
+karena script tersebut memang tidak tersedia.
+
+Jika PostgreSQL integration membutuhkan:
+
+PERSISTENCE_TEST_DATABASE_URL
+
+dan variable tidak tersedia:
+
+SKIPPED — PERSISTENCE_TEST_DATABASE_URL unavailable
+
+Jangan membuat database palsu.
+
+Real Telegram integration:
+
+SKIPPED/DEFERRED — credential/test environment unavailable
+
+Jangan membuat credential palsu.
+
+==================================================
+BAGIAN 14 — SECURITY REVIEW
+==================================================
+
+Review perubahan B-050 untuk:
+
+- workspace isolation,
+- installation isolation,
+- module authorization,
+- context leakage,
+- secret leakage,
+- credential logging,
+- cross-workspace access,
+- handler lookup,
+- invalid module identifier,
+- error sanitization.
+
+Pastikan tidak ada secret/token/password masuk ke:
+
+- log,
+- error response,
+- module context yang tidak diperlukan,
+- test snapshot.
+
+==================================================
+BAGIAN 15 — DIFF REVIEW
+==================================================
+
+Sebelum commit:
+
+git status
+git diff --stat
+git diff
+
+Pastikan perubahan hanya terkait:
+
+- module runtime composition,
+- registry/context wiring jika memang diperlukan,
+- enabled module resolution,
+- handler dispatch,
+- test,
+- dokumentasi bila memang diperlukan.
+
+Hapus:
+
+- debug code,
+- temporary files,
+- generated junk,
+- unrelated refactor.
+
+Jangan menyentuh:
+
+- Gorouter.app,
+- NVIDIA,
+- TokenHarbor,
+- B-071,
+- SecretResolver vendor implementation,
+- deployment infrastructure.
+
+==================================================
+BAGIAN 16 — COMMIT
+==================================================
+
+Jika implementasi valid dan validation selesai:
+
+Buat SATU commit.
+
+Gunakan:
+
+feat: implement module runtime composition
+
+atau message yang lebih tepat berdasarkan perubahan aktual.
+
+Jangan membuat empty commit.
+
+==================================================
+BAGIAN 17 — PUSH
+==================================================
+
+Setelah commit:
+
+git push origin backend-dev-recovery
+
+Kemudian verifikasi:
+
+git rev-parse HEAD
+git status
+
+Jika memungkinkan, verifikasi remote SHA juga.
+
+Target:
+
+local SHA == remote SHA
+working tree == CLEAN
+
+Jika push gagal:
+
+- jangan reset,
+- jangan menghapus commit,
+- jangan mengubah Git credential sembarangan,
+- tampilkan error secara jelas.
+
+==================================================
+FINAL OUTPUT
+==================================================
+
+### B-050 STATUS
+
+Module registry:
+Module context:
+Enabled modules:
+Handler dispatch:
+Worker integration:
+Lifecycle:
+
+### TEST
+
+Unit:
+Build:
+Typecheck:
+Lint:
+Format:
+Imports:
+Ownership:
+Docs:
+Diff:
+
+### INTEGRATION
+
+PostgreSQL:
+Real Telegram:
+
+### GIT
+
+Commit:
+Push:
+Local SHA:
+Remote SHA:
+Working tree:
+
+### REMAINING DEFERRED
+
+Hanya tampilkan dependency yang benar-benar belum tersedia.
+
+### NEXT ROADMAP
+
+Tentukan task berikutnya berdasarkan dependency nyata
+repository.
+
+PENTING:
+
+Jangan mengerjakan fitur acak.
+
+Jangan mengulang B-049.
+
+Jangan mengimplementasikan vendor secret-manager.
+
+Jangan membuat infrastructure speculative.
+
+Kerjakan langsung pada:
+
+/root/botspace
 
 ```
 # Prompt: B-049 — Worker Process Entrypoint Finalization + Deployment Runbook
