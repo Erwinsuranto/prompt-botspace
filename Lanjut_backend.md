@@ -492,10 +492,897 @@
 
 
 ```
-# 
+# Prompt: B-042 — Runtime Execution + Provider Driver
 ```
 
+Lanjutkan project BotSpace dari kondisi repository SAAT INI:
 
+/root/botspace
+
+Branch:
+backend-dev-recovery
+
+==================================================
+KONDISI TERAKHIR — B-041 SUDAH SELESAI
+==================================================
+
+B-040 Account Session Connection:
+SUDAH SELESAI.
+
+B-041 Provider Session Adapter + Runtime Handoff:
+SUDAH SELESAI.
+
+Hasil B-041 terakhir:
+
+- Provider session adapter boundary implemented.
+- ProviderSessionDriver/runtime handoff boundary implemented.
+- Session lifecycle terhubung ke adapter.
+- SecretResolver boundary digunakan.
+- Runtime handoff menggunakan identifier/reference aman.
+- Raw credential tidak dibawa dalam handoff.
+- Workspace isolation dipertahankan.
+- Error sanitization diterapkan.
+- Test PASS.
+- Build PASS.
+- Typecheck PASS.
+- Lint PASS.
+- Format PASS.
+- Imports PASS.
+- Ownership PASS.
+- Docs PASS.
+- Diff check PASS.
+- PostgreSQL integration SKIPPED jika environment tidak tersedia.
+- Real Telegram provider driver + real session credential exchange masih deferred jika library/credential nyata belum tersedia.
+- Real bot runtime polling/webhook masih deferred jika runtime environment belum tersedia.
+- Outbox/event delivery masih deferred jika infrastructure belum tersedia.
+- Secret manager vendor integration masih deferred jika deployment dependency belum tersedia.
+
+Commit terakhir:
+0e30a28
+
+Push:
+OK
+
+Local SHA == Remote SHA
+
+Working tree:
+CLEAN
+
+JANGAN mengulang B-040.
+JANGAN mengulang B-041.
+JANGAN meminta approval untuk B-040/B-041.
+
+==================================================
+TARGET SEKARANG
+==================================================
+
+Implementasikan:
+
+B-042 — Runtime Execution
+
+Fokus:
+
+ProviderSessionDriver
+        ↓
+Runtime Execution Capability
+        ↓
+Bot Runtime
+        ↓
+Polling/Webhook/Worker execution
+        ↓
+Lifecycle + stop/restart/revoke
+
+Tujuan B-042 adalah membuat runtime execution boundary nyata tanpa mencampurkan:
+
+- account lifecycle,
+- session lifecycle,
+- provider authentication,
+- bot installation lifecycle,
+- runtime process lifecycle.
+
+==================================================
+ATURAN UTAMA
+==================================================
+
+Jangan membuat fake production Telegram runtime.
+
+Jika provider/library nyata tersedia:
+→ gunakan secara modular.
+
+Jika provider/library nyata BELUM tersedia:
+→ implementasikan runtime execution abstraction, worker lifecycle, driver contract, composition wiring, dan tests yang dapat dilakukan sekarang.
+
+Jangan menyatakan real Telegram runtime berhasil jika sebenarnya dependency eksternal belum tersedia.
+
+Pisahkan:
+
+IMPLEMENTED
+
+dan
+
+DEFERRED — external dependency unavailable
+
+secara jelas.
+
+==================================================
+1. TARGETED INSPECTION
+==================================================
+
+Audit hanya bagian yang relevan:
+
+- B-040 session implementation.
+- B-041 provider session adapter.
+- ProviderSessionDriver.
+- RuntimeHandoffPort.
+- BotInstallation.
+- Worker module.
+- runtime module.
+- process/runtime abstraction yang sudah ada.
+- composition root.
+- configuration.
+- SecretResolver.
+- provider ownership boundary.
+- existing queue/worker abstraction.
+- existing polling/webhook capability jika tersedia.
+- roadmap B-042.
+
+Jangan melakukan full repository audit.
+
+Gunakan implementation B-040 dan B-041 sebagai source of truth.
+
+==================================================
+2. RUNTIME EXECUTION CONTRACT
+==================================================
+
+Pastikan runtime memiliki boundary yang jelas.
+
+Target arsitektur:
+
+Account
+  ↓
+Connection
+  ↓
+Session
+  ↓
+ProviderSessionDriver
+  ↓
+RuntimeHandoff
+  ↓
+RuntimeExecutionPort
+  ↓
+Bot Runtime
+
+RuntimeExecutionPort minimal harus dapat menangani lifecycle yang memang dibutuhkan:
+
+- start
+- stop
+- restart
+- status/health jika architecture membutuhkan
+- graceful shutdown
+- failure handling
+
+Jangan membuat method yang tidak diperlukan.
+
+Jangan membuat duplicate runtime abstraction jika repository sudah memiliki abstraction yang sesuai.
+
+==================================================
+3. BOTINSTALLATION VS RUNTIME STATE
+==================================================
+
+Sangat penting:
+
+JANGAN mengubah:
+
+BotInstallation.status
+
+menjadi runtime process state.
+
+Installation lifecycle dan runtime lifecycle harus tetap berbeda.
+
+Contoh konsep:
+
+BotInstallation:
+- configured
+- enabled
+- disabled
+- revoked
+- dll sesuai existing contract
+
+Runtime:
+- starting
+- running
+- stopping
+- stopped
+- failed
+
+Jangan menambahkan state baru jika contract existing sudah cukup.
+
+Jika runtime state abstraction belum ada:
+→ buat boundary minimum yang benar-benar diperlukan.
+
+==================================================
+4. PROVIDER SESSION DRIVER
+==================================================
+
+Gunakan ProviderSessionDriver dari B-041.
+
+Driver bertanggung jawab terhadap provider-specific execution.
+
+Core runtime tidak boleh mengetahui detail SDK provider.
+
+Target:
+
+Runtime
+   ↓
+ProviderSessionDriver
+   ↓
+Telegram/provider implementation
+
+Bukan:
+
+Runtime
+   ↓
+Telegram SDK directly
+
+Provider-specific objects tidak boleh bocor ke:
+
+- domain,
+- API response,
+- generic runtime interface,
+- database model.
+
+==================================================
+5. REAL TELEGRAM PROVIDER
+==================================================
+
+Audit dependency Telegram/provider.
+
+Jika library Telegram nyata SUDAH tersedia:
+
+- implementasikan driver nyata,
+- gunakan existing dependency,
+- jangan menambahkan library kedua yang melakukan fungsi sama,
+- jangan membuat fake Telegram client,
+- jangan menggunakan production credential dalam unit test.
+
+Driver harus dapat:
+
+- establish provider runtime,
+- receive/update events jika library mendukung,
+- graceful stop,
+- reconnect jika provider/runtime contract mendukung,
+- report failure secara aman.
+
+Jika library nyata BELUM tersedia:
+
+JANGAN menginstall dependency hanya berdasarkan tebakan.
+
+Implementasikan:
+
+- ProviderSessionDriver contract,
+- runtime execution boundary,
+- worker orchestration,
+- lifecycle,
+- fake/in-memory driver untuk unit tests,
+- composition boundary.
+
+Kemudian:
+
+DEFERRED:
+Real Telegram provider driver/runtime execution — provider library/environment unavailable.
+
+==================================================
+6. RUNTIME HANDOFF
+==================================================
+
+Gunakan handoff dari B-041.
+
+Handoff harus tetap scoped:
+
+- workspaceId
+- accountId
+- connectionId
+- sessionId
+- provider
+- installationId jika tersedia
+
+Jangan membawa:
+
+- password
+- API key
+- access token
+- session token
+- raw credential
+- provider secret
+
+Runtime harus resolve credential melalui secure boundary bila memang diperlukan.
+
+Jangan menambahkan credential ke runtime handoff DTO hanya agar implementation lebih mudah.
+
+==================================================
+7. SECRETRESOLVER
+==================================================
+
+Gunakan SecretResolver existing.
+
+Jangan membuat resolver kedua.
+
+Runtime/provider driver harus mendapatkan credential hanya melalui boundary yang benar.
+
+Pastikan:
+
+- missing secret → safe failure.
+- resolver error → safe failure.
+- secret tidak masuk log.
+- secret tidak masuk event.
+- secret tidak masuk runtime status.
+- secret tidak masuk API response.
+- secret tidak masuk error string.
+
+Jangan mencetak credential untuk debugging.
+
+==================================================
+8. RUNTIME WORKER
+==================================================
+
+Jika worker module sudah tersedia:
+
+gunakan worker tersebut.
+
+Jangan membuat worker system kedua.
+
+Worker harus dapat:
+
+1. menerima runtime handoff,
+2. memvalidasi workspace/session/install identity,
+3. start runtime,
+4. track runtime state,
+5. stop runtime,
+6. handle runtime failure,
+7. cleanup resource.
+
+Jika queue sudah tersedia:
+→ gunakan queue.
+
+Jika queue belum tersedia:
+→ jangan membuat queue infrastructure besar secara speculative.
+
+Gunakan synchronous capability/boundary yang architecture repository sudah dukung.
+
+==================================================
+9. START
+==================================================
+
+Start runtime harus:
+
+- authorization-safe,
+- idempotent sesuai contract,
+- tidak membuat duplicate runtime,
+- tidak membuat duplicate provider session,
+- tidak menjalankan runtime untuk installation yang disabled/revoked,
+- tidak menggunakan session workspace lain.
+
+Jika runtime sudah running:
+
+→ jangan membuat process kedua.
+
+Ikuti existing idempotency semantics.
+
+==================================================
+10. STOP
+==================================================
+
+Stop harus:
+
+- graceful,
+- idempotent,
+- membersihkan runtime resource,
+- tidak menghapus session credential,
+- tidak mengubah account lifecycle secara tidak semestinya.
+
+Stop runtime ≠ revoke account.
+
+Stop runtime ≠ delete connection.
+
+Stop runtime ≠ delete session.
+
+==================================================
+11. RESTART
+==================================================
+
+Restart harus aman terhadap race condition.
+
+Perhatikan:
+
+- restart saat starting,
+- restart saat stopping,
+- stop saat starting,
+- revoke saat running,
+- disconnect saat runtime running,
+- installation disable saat runtime running.
+
+Jangan membuat duplicate runtime.
+
+Gunakan concurrency mechanism yang sudah tersedia.
+
+Jangan menambahkan distributed lock dependency speculative.
+
+==================================================
+12. REVOKE / DISCONNECT
+==================================================
+
+Integrasikan lifecycle B-040/B-041.
+
+Jika session:
+
+- revoked,
+- disconnected,
+- invalid,
+- credential unavailable,
+
+runtime tidak boleh terus berjalan menggunakan credential/session yang sudah tidak valid.
+
+Jika runtime sedang berjalan dan session direvoke:
+
+→ lakukan graceful stop sesuai capability yang tersedia.
+
+Jangan mengubah account/session state hanya karena runtime stop.
+
+==================================================
+13. FAILURE HANDLING
+==================================================
+
+Runtime failure harus diterjemahkan menjadi safe internal state.
+
+Bedakan:
+
+- authentication failure,
+- credential unavailable,
+- provider unavailable,
+- runtime crash,
+- invalid session,
+- invalid installation,
+- authorization failure,
+- lifecycle conflict.
+
+Jangan menyimpan raw provider exception jika tidak diperlukan.
+
+Jangan mengirim raw stack trace ke API client.
+
+Jangan memasukkan credential/token ke error.
+
+==================================================
+14. RUNTIME STATUS
+==================================================
+
+Jika architecture membutuhkan runtime status:
+
+gunakan dedicated runtime state.
+
+Jangan menaruh runtime process state di BotInstallation.status.
+
+Status harus cukup untuk:
+
+- starting,
+- running,
+- stopping,
+- stopped,
+- failed
+
+hanya jika memang dibutuhkan oleh implementation.
+
+Jangan menambahkan state yang tidak memiliki consumer.
+
+==================================================
+15. HEALTH / HEARTBEAT
+==================================================
+
+Audit apakah existing runtime architecture sudah memiliki:
+
+- heartbeat,
+- health check,
+- worker liveness,
+- process status.
+
+Jika sudah:
+→ integrasikan.
+
+Jika belum:
+→ jangan membangun monitoring platform besar.
+
+Implementasikan hanya minimal health/status capability yang dibutuhkan B-042.
+
+==================================================
+16. POLLING / WEBHOOK
+==================================================
+
+Jika provider library nyata tersedia dan architecture memang mendukung polling:
+
+implementasikan polling melalui provider driver.
+
+Jika architecture mendukung webhook:
+
+gunakan existing HTTP/webhook boundary.
+
+Jangan membuat kedua mode sekaligus jika belum diperlukan.
+
+Pilih mode yang memang didukung architecture.
+
+Jika provider runtime belum tersedia:
+
+DEFERRED:
+real polling/webhook execution.
+
+Jangan membuat fake HTTP webhook production.
+
+Jangan membuat fake Telegram polling yang mengklaim production-ready.
+
+==================================================
+17. EVENT / OUTBOX
+==================================================
+
+Audit event/outbox infrastructure.
+
+Jika tersedia:
+
+gunakan contract existing.
+
+Event yang relevan dapat mencakup:
+
+- runtime started,
+- runtime stopped,
+- runtime failed,
+
+hanya jika existing event architecture mendukung.
+
+Jangan membuat event system baru.
+
+Jangan memasukkan secret dalam payload.
+
+Jika outbox belum tersedia:
+
+jangan membuat full outbox implementation speculative.
+
+Tandai:
+
+DEFERRED — outbox delivery infrastructure unavailable.
+
+==================================================
+18. WORKSPACE ISOLATION
+==================================================
+
+Test:
+
+Workspace A runtime
+tidak boleh:
+
+- memakai session Workspace B,
+- memakai account Workspace B,
+- memakai installation Workspace B,
+- membaca credential Workspace B,
+- menjalankan provider runtime Workspace B.
+
+Gunakan authorization boundary B-040/B-041.
+
+Jangan membuat authorization system kedua.
+
+==================================================
+19. ACTOR ATTRIBUTION
+==================================================
+
+Jika runtime start dipicu oleh actor:
+
+gunakan existing actor context.
+
+Jangan membuat arbitrary identity string.
+
+Jika existing actor context tidak diperlukan untuk internal worker execution:
+→ jangan menambahkannya secara speculative.
+
+==================================================
+20. COMPOSITION ROOT
+==================================================
+
+Wire:
+
+ProviderSessionDriver
+        ↓
+RuntimeExecutionPort
+        ↓
+Worker
+        ↓
+Bot Runtime
+
+Production:
+
+real driver jika dependency tersedia.
+
+Test:
+
+fake/in-memory driver.
+
+Pastikan dependency injection dapat diuji tanpa provider credential nyata.
+
+Jangan membuat global singleton tersembunyi.
+
+==================================================
+21. TESTING
+==================================================
+
+Tambahkan test behavior nyata.
+
+Minimal:
+
+1. runtime start success.
+2. runtime start idempotency.
+3. runtime stop success.
+4. runtime stop idempotency.
+5. runtime restart.
+6. duplicate runtime prevention.
+7. invalid installation rejected.
+8. disabled installation rejected.
+9. revoked session rejected.
+10. disconnected session rejected.
+11. workspace isolation.
+12. cross-workspace runtime rejected.
+13. provider failure mapping.
+14. credential unavailable handling.
+15. SecretResolver failure handling.
+16. credential tidak masuk runtime handoff.
+17. credential tidak masuk error.
+18. runtime failure state.
+19. graceful cleanup.
+20. concurrent start protection.
+21. stop during start.
+22. restart during stop.
+23. revoke while runtime active.
+24. disconnect while runtime active.
+25. composition root wiring.
+26. fake driver test.
+27. real provider driver test jika dependency/environment nyata tersedia.
+
+Jangan menggunakan production Telegram account.
+
+==================================================
+22. PROVIDER TEST SAFETY
+==================================================
+
+WAJIB:
+
+Jangan menjalankan integration test Gorouter.app.
+
+Jangan menyentuh Gorouter.app.
+
+NVIDIA dan TokenHarbor tidak perlu disentuh.
+
+Jika shared provider infrastructure berubah secara langsung:
+→ hanya lakukan verification yang benar-benar diperlukan.
+
+Jangan membuat test provider yang tidak relevan.
+
+==================================================
+23. VALIDATION
+==================================================
+
+Setelah coding selesai jalankan:
+
+pnpm test
+pnpm build
+pnpm typecheck
+pnpm lint
+pnpm format:check
+node scripts/check-imports.mjs
+node scripts/check-ownership.mjs
+node scripts/check-doc-links.mjs
+git diff --check
+
+Jangan menjalankan:
+
+node scripts/check-symlinks.mjs
+
+karena script tersebut tidak tersedia.
+
+Jika:
+
+PERSISTENCE_TEST_DATABASE_URL
+
+tersedia:
+
+→ jalankan integration test PostgreSQL yang memang sudah ada.
+
+Jika tidak tersedia:
+
+→ SKIPPED — PERSISTENCE_TEST_DATABASE_URL unavailable.
+
+Jangan membuat fake PostgreSQL.
+
+==================================================
+24. SECURITY REVIEW
+==================================================
+
+Sebelum commit periksa:
+
+- credential leakage,
+- secret leakage,
+- provider object leakage,
+- cross-workspace runtime,
+- duplicate runtime,
+- stale session,
+- revoked session still running,
+- disabled installation still running,
+- raw provider error leakage,
+- runtime handoff leakage,
+- unsafe process cleanup.
+
+==================================================
+25. REVIEW DIFF
+==================================================
+
+Sebelum commit:
+
+git status
+git diff --stat
+git diff
+
+Hapus:
+
+- debug code,
+- temporary files,
+- credentials,
+- secrets,
+- generated junk,
+- unrelated refactor.
+
+Pastikan hanya B-042 yang berubah.
+
+==================================================
+26. COMMIT
+==================================================
+
+Jika implementation valid:
+
+buat SATU commit.
+
+Gunakan:
+
+feat: implement runtime execution
+
+atau commit message yang lebih tepat berdasarkan perubahan aktual.
+
+Jangan membuat empty commit.
+
+==================================================
+27. PUSH
+==================================================
+
+Setelah commit:
+
+git push origin backend-dev-recovery
+
+Kemudian:
+
+git rev-parse HEAD
+
+Verifikasi remote branch SHA.
+
+Pastikan:
+
+LOCAL SHA == REMOTE SHA
+
+Working tree:
+
+CLEAN
+
+Jika push gagal:
+
+- jangan reset,
+- jangan menghapus commit,
+- jangan mengubah Git credential sembarangan,
+- laporkan error,
+- pastikan commit lokal tetap aman.
+
+==================================================
+DEFINITION OF DONE
+==================================================
+
+B-042 dianggap selesai apabila:
+
+- RuntimeExecutionPort tersedia/terintegrasi.
+- ProviderSessionDriver terhubung.
+- Worker/runtime orchestration terhubung.
+- Start/stop/restart lifecycle tersedia.
+- Duplicate runtime dicegah.
+- Workspace isolation terjaga.
+- Disabled/revoked session tidak dapat menjalankan runtime.
+- SecretResolver digunakan melalui secure boundary.
+- Raw credential tidak masuk handoff.
+- Error handling aman.
+- Composition root ter-wire.
+- Tests tersedia.
+- Validation PASS.
+- Commit dibuat.
+- Push berhasil.
+- Local SHA == Remote SHA.
+- Working tree CLEAN.
+
+Jika real Telegram/provider runtime belum tersedia:
+
+IMPLEMENTED:
+- runtime abstraction,
+- worker lifecycle,
+- driver boundary,
+- orchestration,
+- security,
+- tests,
+- composition wiring.
+
+DEFERRED:
+- real Telegram/provider execution,
+- real polling/webhook,
+- real provider credential exchange,
+- outbox delivery,
+
+hanya jika dependency tersebut memang benar-benar belum tersedia.
+
+==================================================
+FINAL OUTPUT
+==================================================
+
+Tampilkan:
+
+### B-042 STATUS
+- RuntimeExecutionPort:
+- ProviderSessionDriver:
+- Worker:
+- Start/Stop/Restart:
+- Runtime state:
+- Composition root:
+
+### SECURITY
+- Workspace isolation:
+- Credential protection:
+- SecretResolver:
+- Runtime handoff:
+- Revoked/disabled protection:
+
+### TEST
+- Unit:
+- Integration:
+- Build:
+- Typecheck:
+- Lint:
+- Format:
+- Imports:
+- Ownership:
+- Docs:
+- Diff:
+
+### DEFERRED
+Hanya dependency eksternal yang benar-benar unavailable.
+
+### GIT
+- Commit:
+- Push:
+- Local SHA:
+- Remote SHA:
+- Working tree:
+
+### NEXT ROADMAP
+Tentukan task berikutnya berdasarkan dependency nyata setelah B-042.
+
+PENTING:
+
+Jangan kembali ke B-040.
+Jangan kembali ke B-041.
+Jangan meminta human approval.
+Jangan membuat fake production Telegram runtime.
+Jangan menjalankan test Gorouter.app.
+Jangan menyentuh provider yang tidak relevan.
+Jangan membuat fitur acak.
+
+Kerjakan langsung pada:
+
+/root/botspace
 
 ```
 # Prompt: B-041 — Provider Session Adapter + Runtime Handoff
