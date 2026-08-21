@@ -438,11 +438,613 @@
 
 
 ```
-# 
+# Prompt: B-051 — Enabled-Module Persistence Adapter
 ```
 
 
+Lanjutkan project BotSpace dari kondisi repository SAAT INI:
 
+/root/botspace
+
+Branch:
+backend-dev-recovery
+
+==================================================
+KONDISI TERAKHIR
+==================================================
+
+B-030 — Workspace API/Contract:
+SELESAI.
+
+B-070 — Storage Adapter:
+SELESAI.
+
+B-071 — File/Share:
+SELESAI.
+
+B-040 s/d B-049 — worker/runtime foundation:
+SELESAI.
+
+B-050 — Module Runtime Composition:
+SELESAI.
+
+B-050 berhasil membuat module runtime composition nyata
+yang digunakan worker.
+
+Validation terakhir:
+- Unit: PASS
+- Build: PASS
+- Typecheck: PASS
+- Lint: PASS
+- Format: PASS
+- Imports: PASS
+- Ownership: PASS
+- Docs: PASS
+- Diff: PASS
+- Working tree: CLEAN
+- Commit/push berhasil.
+
+==================================================
+NEXT ROADMAP
+==================================================
+
+B-051 — enabled-module persistence adapter.
+
+Tujuan B-051:
+
+Hubungkan enabled-module persistence dengan PostgreSQL
+persistence adapter yang SUDAH ADA sehingga module runtime
+tidak lagi hanya menerima enabled modules melalui fake/injected
+repository pada production composition.
+
+B-051 harus tetap berada pada boundary persistence.
+
+==================================================
+ATURAN KERAS
+==================================================
+
+JANGAN mengulang:
+
+- B-030
+- B-070
+- B-071
+- B-040
+- B-041
+- B-042
+- B-043
+- B-044
+- B-045
+- B-046
+- B-047
+- B-048
+- B-049
+- B-050
+
+Jangan membuat module runtime kedua.
+
+Jangan membuat worker runtime kedua.
+
+Jangan membuat persistence abstraction kedua.
+
+Jangan membuat PostgreSQL adapter kedua jika adapter existing
+sudah dapat diperluas.
+
+Jangan membuat schema speculative.
+
+Jangan membuat migration tanpa dasar contract/repository.
+
+Jangan mengimplementasikan managed secret-manager ADR-010.
+
+Jangan mengimplementasikan real Telegram integration.
+
+Jangan membuat distributed lock.
+
+Jangan membuat retry/DLQ.
+
+Jangan membuat event/outbox infrastructure.
+
+Jangan membuat multi-bot multiplexing.
+
+Jangan mengubah BotInstallation.status.
+
+Jangan menyentuh Gorouter.app.
+
+NVIDIA dan TokenHarbor tidak perlu disentuh.
+
+==================================================
+BAGIAN 1 — TARGETED AUDIT
+==================================================
+
+Audit terlebih dahulu:
+
+- B-050 module runtime composition
+- enabled-module repository/port
+- module registry
+- module context
+- module runtime
+- WorkerPersistenceResource
+- PostgreSQL persistence adapter
+- workspace/installation persistence
+- existing migration system
+- existing schema
+- existing repository patterns
+- production composition root
+- worker bootstrap.
+
+Cari secara spesifik:
+
+1. Interface/port enabled-module persistence yang sudah ada.
+2. Apakah repository enabled-module sudah ada.
+3. Apakah PostgreSQL adapter sudah mempunyai connection/query
+   infrastructure yang dapat digunakan.
+4. Apakah schema enabled modules sudah tersedia.
+5. Apakah migration untuk enabled modules sudah tersedia.
+6. Apakah enabled modules harus scoped berdasarkan:
+   - workspace,
+   - installation,
+   - atau kombinasi keduanya.
+7. Bagaimana B-050 sekarang mendapatkan enabled modules.
+8. Apakah B-050 masih menggunakan fake/in-memory repository
+   hanya karena production persistence belum tersedia.
+9. Apakah WorkerPersistenceResource sudah menjadi dependency
+   injection boundary resmi.
+
+JANGAN coding sebelum dependency existing dipahami.
+
+==================================================
+BAGIAN 2 — CONTRACT BOUNDARY
+==================================================
+
+Gunakan contract/port enabled-module yang SUDAH ADA.
+
+Jika sudah ada:
+
+EnabledModuleRepository / EnabledModulePersistencePort
+atau equivalent:
+
+→ implementasikan adapter untuk contract tersebut.
+
+Jangan membuat contract kedua.
+
+Jika contract belum ada:
+
+→ buat contract minimum hanya jika memang diperlukan oleh
+arsitektur existing.
+
+Contract harus tetap sederhana dan persistence-oriented.
+
+Jangan memasukkan business logic ke repository.
+
+==================================================
+BAGIAN 3 — POSTGRESQL ADAPTER
+==================================================
+
+Implementasikan PostgreSQL adapter untuk enabled-module
+persistence menggunakan PostgreSQL infrastructure yang sudah
+ada.
+
+Adapter harus mengikuti pola repository PostgreSQL existing.
+
+Minimal behavior sesuai contract yang benar-benar tersedia:
+
+- list enabled modules,
+- lookup enabled module,
+- enable module,
+- disable module,
+
+HANYA implementasikan operasi yang memang didukung contract.
+
+Jangan menambahkan CRUD tambahan secara otomatis.
+
+Pastikan workspace/installation isolation.
+
+Tidak boleh:
+
+workspace A
+→ membaca enabled module workspace B.
+
+Jika scope sebenarnya installation-specific:
+
+→ gunakan installation identity yang benar.
+
+Jangan menebak scope.
+
+Tentukan berdasarkan model/contract repository existing.
+
+==================================================
+BAGIAN 4 — SCHEMA / MIGRATION
+==================================================
+
+Audit schema terlebih dahulu.
+
+Jika schema enabled-module SUDAH ADA:
+
+→ gunakan schema tersebut.
+
+Jika migration memang belum ada tetapi contract B-051
+secara eksplisit membutuhkan persistence table:
+
+→ buat migration minimum yang sesuai dengan model/contract
+yang sudah ada.
+
+Jangan menambahkan field spekulatif.
+
+Minimal data harus mendukung identity yang memang diperlukan
+untuk isolation, misalnya:
+
+- workspace/installation identity,
+- module identifier,
+- enabled state,
+
+tetapi gunakan nama/struktur yang sesuai dengan model
+repository sebenarnya.
+
+Jangan membuat:
+
+- expiry,
+- scheduler,
+- event table,
+- audit table,
+- lock table,
+- retry table.
+
+==================================================
+BAGIAN 5 — CONSTRAINT DAN INTEGRITY
+==================================================
+
+Pastikan persistence mencegah duplicate enabled-module state
+sesuai scope contract.
+
+Contoh prinsip:
+
+scope + module identifier
+
+harus deterministic.
+
+Jika database architecture existing mendukung unique
+constraint:
+
+→ gunakan constraint tersebut.
+
+Jangan mengandalkan application-level duplicate prevention saja
+jika database schema memang merupakan source of truth.
+
+Jangan menambahkan constraint yang tidak sesuai dengan model
+existing.
+
+==================================================
+BAGIAN 6 — MODULE RUNTIME INTEGRATION
+==================================================
+
+Hubungkan adapter persistence ke B-050 module runtime composition.
+
+Target architecture:
+
+worker
+ ↓
+startWorkerRoot
+ ↓
+WorkerPersistenceResource
+ ↓
+EnabledModuleRepository
+ ↓
+ModuleRuntime
+ ↓
+ModuleRegistry
+ ↓
+ModuleHandler
+
+Pastikan production composition menggunakan adapter nyata.
+
+Test environment tetap dapat menggunakan fake/in-memory
+repository melalui dependency injection.
+
+Jangan membuat global singleton.
+
+Jangan bypass composition root.
+
+==================================================
+BAGIAN 7 — WORKSPACE / INSTALLATION ISOLATION
+==================================================
+
+Ini wajib diuji.
+
+Pastikan:
+
+workspace A:
+- hanya melihat enabled modules miliknya.
+
+workspace B:
+- hanya melihat enabled modules miliknya.
+
+Jika installation menjadi boundary:
+
+installation A:
+- tidak dapat membaca installation B.
+
+Test harus membuktikan cross-scope lookup gagal atau tidak
+mengembalikan data.
+
+Jangan hanya test happy path.
+
+==================================================
+BAGIAN 8 — ERROR HANDLING
+==================================================
+
+Gunakan error semantics persistence yang sudah ada.
+
+Tangani:
+
+- module tidak ditemukan,
+- duplicate state,
+- invalid module identifier,
+- persistence failure,
+- missing workspace/installation context.
+
+Jangan bocorkan:
+
+- SQL,
+- connection string,
+- password,
+- credential,
+- secret,
+- internal database details.
+
+Jangan membuat error framework baru.
+
+==================================================
+BAGIAN 9 — TRANSACTION
+==================================================
+
+Jika enable/disable membutuhkan transaction berdasarkan
+existing persistence architecture:
+
+→ gunakan transaction abstraction yang sudah tersedia.
+
+Jangan membuat transaction abstraction kedua.
+
+Jika operasi sederhana tidak membutuhkan transaction:
+
+→ jangan menambahkan transaction hanya demi terlihat lebih
+production-ready.
+
+==================================================
+BAGIAN 10 — TEST
+==================================================
+
+Tambahkan test yang benar-benar memverifikasi:
+
+1. enabled module dapat disimpan.
+2. enabled module dapat dibaca.
+3. enable/disable behavior.
+4. duplicate behavior.
+5. module lookup.
+6. workspace isolation.
+7. installation isolation jika memang menjadi scope.
+8. invalid module identifier.
+9. persistence failure.
+10. module runtime menggunakan repository yang di-inject.
+11. production composition membuat dependency graph yang benar.
+12. fake/in-memory repository tetap dapat digunakan oleh test.
+
+Jika PostgreSQL integration test tersedia dan membutuhkan:
+
+PERSISTENCE_TEST_DATABASE_URL
+
+maka:
+
+- gunakan database test tersebut,
+- jalankan migration yang sesuai,
+- jalankan integration test.
+
+Jika environment tidak tersedia:
+
+SKIPPED — PERSISTENCE_TEST_DATABASE_URL unavailable
+
+Jangan:
+
+- membuat PostgreSQL palsu,
+- mengganti dengan SQLite,
+- mengubah test supaya PASS,
+- memasukkan credential database ke source.
+
+==================================================
+BAGIAN 11 — REAL PRODUCTION READINESS
+==================================================
+
+Production composition harus menggunakan PostgreSQL adapter
+nyata hanya jika configuration/infrastructure memang tersedia
+di architecture.
+
+Jangan menganggap database tersedia jika environment belum
+menyediakannya.
+
+Jika production DB belum tersedia:
+
+→ adapter tetap harus benar,
+→ composition boundary harus benar,
+→ integration test dapat tetap deferred.
+
+Jangan membuat fake production persistence.
+
+==================================================
+BAGIAN 12 — SECURITY REVIEW
+==================================================
+
+Review:
+
+- workspace isolation,
+- installation isolation,
+- module identifier validation,
+- SQL parameterization,
+- credential handling,
+- error sanitization,
+- logging.
+
+Pastikan query menggunakan parameterized query / existing
+safe database API.
+
+Tidak boleh ada:
+
+- SQL interpolation dari user input,
+- credential di log,
+- connection string di error,
+- secret di test output.
+
+==================================================
+BAGIAN 13 — VALIDATION
+==================================================
+
+Jalankan:
+
+pnpm test
+pnpm build
+pnpm typecheck
+pnpm lint
+pnpm format:check
+
+Kemudian:
+
+node scripts/check-imports.mjs
+node scripts/check-ownership.mjs
+node scripts/check-doc-links.mjs
+git diff --check
+
+Untuk:
+
+node scripts/check-symlinks.mjs
+
+JANGAN membuat script tersebut.
+
+Jika memang tidak tersedia:
+
+SKIPPED — scripts/check-symlinks.mjs unavailable
+
+Jika PostgreSQL integration membutuhkan environment dan tidak
+tersedia:
+
+SKIPPED — PERSISTENCE_TEST_DATABASE_URL unavailable
+
+Jangan menyamarkan SKIPPED menjadi PASS.
+
+==================================================
+BAGIAN 14 — DIFF REVIEW
+==================================================
+
+Sebelum commit:
+
+git status
+git diff --stat
+git diff
+
+Pastikan perubahan hanya berkaitan dengan:
+
+- enabled-module persistence,
+- PostgreSQL adapter,
+- migration/schema jika benar-benar diperlukan,
+- B-050 production wiring,
+- tests,
+- dokumentasi yang relevan.
+
+Hapus:
+
+- debug code,
+- temporary files,
+- generated files,
+- unrelated refactor.
+
+==================================================
+BAGIAN 15 — COMMIT
+==================================================
+
+Jika implementasi valid:
+
+Buat SATU commit.
+
+Gunakan:
+
+feat: add enabled module persistence adapter
+
+atau commit message yang lebih tepat berdasarkan perubahan
+aktual.
+
+Jangan membuat empty commit.
+
+==================================================
+BAGIAN 16 — PUSH
+==================================================
+
+Setelah commit:
+
+git push origin backend-dev-recovery
+
+Kemudian verifikasi:
+
+git rev-parse HEAD
+
+dan remote SHA.
+
+Target:
+
+local SHA == remote SHA
+working tree == CLEAN
+
+Jika push gagal:
+
+- jangan reset,
+- jangan menghapus commit,
+- jangan mengubah Git credential sembarangan,
+- tampilkan error dengan jelas.
+
+==================================================
+FINAL OUTPUT
+==================================================
+
+### B-051 STATUS
+
+Contract:
+Schema/Migration:
+PostgreSQL Adapter:
+Enabled Module Repository:
+B-050 Integration:
+Workspace/Installation Isolation:
+
+### TEST
+
+Unit:
+Integration:
+Build:
+Typecheck:
+Lint:
+Format:
+Imports:
+Ownership:
+Docs:
+Diff:
+
+### GIT
+
+Commit:
+Push:
+Local SHA:
+Remote SHA:
+Working tree:
+
+### REMAINING DEFERRED
+
+Hanya tampilkan dependency yang benar-benar masih belum
+tersedia.
+
+### NEXT ROADMAP
+
+Tentukan task berikutnya berdasarkan dependency nyata
+repository.
+
+Jangan membuat fitur acak.
+
+Kerjakan langsung pada:
+
+/root/botspace
 ```
 # Prompt: B-050 — Module Runtime Composition
 ```
