@@ -468,10 +468,805 @@
 
 
 ```
-# 
+# Prompt: B-046 — Persistence Installation Discovery + Worker Credential Wiring
 ```
 
+Lanjutkan project BotSpace dari kondisi repository SAAT INI:
 
+/root/botspace
+
+Branch:
+backend-dev-recovery
+
+==================================================
+KONDISI TERAKHIR
+==================================================
+
+B-040 — Account Session Connection:
+SELESAI.
+
+B-041 — Provider Session Adapter + Runtime Handoff:
+SELESAI.
+
+B-042 — Runtime Execution:
+SELESAI.
+
+B-043 — Real Telegram Runtime Driver:
+SELESAI.
+
+B-044 — Real Telegram SDK-backed TelegramClientFactory:
+SELESAI.
+
+B-045 — Production Worker Bootstrap + Update Routing:
+SELESAI.
+
+B-045 validation:
+
+- Unit: PASS
+- Build: PASS
+- Typecheck: PASS
+- Lint: PASS
+- Format: PASS
+- Imports: PASS
+- Ownership: PASS
+- Docs: PASS
+- Diff: PASS
+- Working tree: CLEAN
+
+Real Telegram integration:
+DEFERRED — real Telegram credentials/test environment unavailable.
+
+==================================================
+REMAINING DEFERRED DARI B-045
+==================================================
+
+- Live Telegram integration test — credential/environment belum tersedia.
+- Persistence-backed InstallationDiscovery + worker credential-resolver wiring.
+- Distributed multi-worker coordination — belum ada infrastructure.
+- Update retry/DLQ — belum ada contract.
+- Event/outbox emission runtime lifecycle — outbox infrastructure belum tersedia.
+
+==================================================
+NEXT ROADMAP
+==================================================
+
+B-046 — persistence-backed installation discovery + worker credential wiring.
+
+Tujuan:
+
+Mengganti discovery/credential wiring worker yang masih bergantung pada
+in-memory/static composition dengan repository-backed discovery dan
+credential resolution yang benar-benar mengikuti architecture existing.
+
+Fokus:
+
+BotInstallation repository
+        ↓
+InstallationDiscovery
+        ↓
+eligible installations
+        ↓
+credential/session resolver
+        ↓
+TelegramClientFactory
+        ↓
+B-045 worker runtime
+
+==================================================
+ATURAN UTAMA
+==================================================
+
+JANGAN mengulang:
+
+- B-040
+- B-041
+- B-042
+- B-043
+- B-044
+- B-045
+- B-030
+- B-070
+- B-071
+
+Jangan membuat architecture kedua.
+
+Jangan membuat:
+
+- InstallationRepository kedua.
+- InstallationDiscovery kedua.
+- SecretResolver kedua.
+- CredentialResolver kedua jika abstraction existing sudah tersedia.
+- TelegramClientFactory kedua.
+- RuntimeExecutionDriver kedua.
+- Worker bootstrap kedua.
+- queue baru.
+- scheduler baru.
+- distributed lock baru.
+- retry/DLQ baru.
+- outbox system baru.
+
+Gunakan abstraction yang SUDAH ADA.
+
+==================================================
+BAGIAN 1 — TARGETED AUDIT
+==================================================
+
+Sebelum coding, audit hanya dependency B-046.
+
+Cari dan pahami:
+
+- BotInstallation model.
+- BotInstallation repository/port.
+- existing persistence adapter.
+- existing InstallationDiscovery.
+- worker bootstrap B-045.
+- runtime registry.
+- ProviderSessionDriver B-041.
+- SecretResolver.
+- credential resolver jika sudah ada.
+- TelegramClientFactory B-044.
+- Telegram runtime driver B-043.
+- workspace/ownership contract.
+- installation lifecycle state.
+- database configuration.
+- existing migrations.
+
+Jangan melakukan full repository rewrite.
+
+Tentukan:
+
+1. Mana abstraction yang sudah tersedia.
+2. Mana yang hanya placeholder.
+3. Mana yang benar-benar perlu diimplementasikan untuk B-046.
+4. Mana yang masih harus deferred karena infrastructure belum tersedia.
+
+==================================================
+BAGIAN 2 — PERSISTENCE-BACKED INSTALLATION DISCOVERY
+==================================================
+
+Implementasikan InstallationDiscovery menggunakan persistence yang SUDAH ADA.
+
+Target:
+
+database
+  ↓
+BotInstallationRepository
+  ↓
+InstallationDiscovery
+  ↓
+eligible BotInstallation
+  ↓
+worker runtime
+
+Discovery TIDAK boleh:
+
+- membaca database langsung dari worker,
+- membuat SQL di worker,
+- membaca process.env secara acak,
+- membuat repository sendiri,
+- bypass service/repository boundary.
+
+Worker hanya bergantung pada abstraction.
+
+==================================================
+BAGIAN 3 — BOT INSTALLATION ELIGIBILITY
+==================================================
+
+Audit state/status BotInstallation yang sudah ada.
+
+Gunakan state existing.
+
+JANGAN mengubah:
+
+BotInstallation.status
+
+menjadi runtime process state.
+
+Bedakan:
+
+Installation lifecycle state
+vs
+Runtime process state.
+
+Installation hanya boleh ditemukan jika memang eligible berdasarkan
+contract existing.
+
+Pertimbangkan existing rules untuk:
+
+- enabled/active,
+- revoked,
+- disabled,
+- deleted,
+- session/connection validity,
+- provider availability,
+- workspace ownership.
+
+Jangan membuat status baru hanya untuk B-046.
+
+Jika eligibility sudah memiliki helper/service:
+
+→ gunakan helper tersebut.
+
+Jika belum:
+
+→ buat predicate/helper minimal di domain/service boundary yang tepat.
+
+Jangan menaruh business rules di SQL query kecuali architecture existing memang demikian.
+
+==================================================
+BAGIAN 4 — WORKSPACE ISOLATION
+==================================================
+
+Pastikan InstallationDiscovery tidak mencampurkan workspace.
+
+Installation milik workspace A:
+
+TIDAK BOLEH ditemukan sebagai installation workspace B.
+
+Pastikan:
+
+- workspace identity berasal dari trusted context,
+- installation ownership diverifikasi,
+- repository query tetap scoped,
+- worker tidak menerima workspace identity arbitrary dari Telegram update.
+
+Jika worker global memang harus menemukan seluruh eligible installations:
+
+→ discovery tetap mengembalikan ownership identity secara eksplisit.
+
+Jangan menghapus workspace identity dari result.
+
+==================================================
+BAGIAN 5 — CREDENTIAL RESOLUTION
+==================================================
+
+Audit abstraction credential yang SUDAH tersedia.
+
+Jika sudah ada:
+
+- SecretResolver,
+- ProviderSessionDriver,
+- CredentialResolver,
+- session credential abstraction,
+
+gunakan abstraction tersebut.
+
+Jangan membuat duplicate.
+
+Target flow:
+
+Installation
+    ↓
+session/credential reference
+    ↓
+existing resolver/provider boundary
+    ↓
+credential material
+    ↓
+TelegramClientFactory
+    ↓
+Telegram client
+
+Credential material TIDAK BOLEH:
+
+- disimpan kembali ke database,
+- dimasukkan ke BotInstallation object jika tidak diperlukan,
+- ditulis ke log,
+- dimasukkan ke error message,
+- dikirim ke core runtime,
+- dikirim ke HTTP response.
+
+==================================================
+BAGIAN 6 — SECRETRESOLVER BOUNDARY
+==================================================
+
+Jika SecretResolver sudah tersedia:
+
+worker harus bergantung pada abstraction tersebut.
+
+Jangan:
+
+process.env.TELEGRAM_BOT_TOKEN
+
+atau pattern sejenis langsung dari worker.
+
+Jika provider/session credential membutuhkan SecretResolver:
+
+gunakan existing dependency injection.
+
+Jika deployment SecretResolver belum tersedia:
+
+tetap implementasikan wiring berdasarkan abstraction existing.
+
+Jangan membuat production fake.
+
+Tandai real secret-manager integration sebagai DEFERRED bila environment belum tersedia.
+
+==================================================
+BAGIAN 7 — TELEGRAM CLIENT FACTORY
+==================================================
+
+Worker HARUS menggunakan:
+
+TelegramClientFactory
+
+dari B-044.
+
+Flow:
+
+InstallationDiscovery
+→ eligible installation
+→ credential/session resolution
+→ TelegramClientFactory
+→ TelegramClient
+→ B-045 runtime
+
+Jangan instantiate Telegram SDK secara langsung.
+
+Jangan membuat client factory baru.
+
+Jangan membuat provider-specific credential logic di worker.
+
+==================================================
+BAGIAN 8 — WORKER STARTUP INTEGRATION
+==================================================
+
+Update B-045 worker bootstrap agar:
+
+startup
+  ↓
+load configuration
+  ↓
+create persistence dependencies
+  ↓
+create InstallationDiscovery
+  ↓
+discover eligible installations
+  ↓
+resolve credentials
+  ↓
+create Telegram clients
+  ↓
+create runtime instances
+  ↓
+attach update routing
+  ↓
+start runtime
+
+Jika tidak ada installation:
+
+worker tetap startup dengan aman.
+
+Status:
+
+READY / RUNNING
+
+sesuai lifecycle existing.
+
+Jangan menganggap "no installation" sebagai fatal error.
+
+==================================================
+BAGIAN 9 — FAILURE ISOLATION
+==================================================
+
+Jika satu installation gagal:
+
+misalnya:
+
+- invalid credential,
+- revoked session,
+- malformed configuration,
+- Telegram client initialization failure,
+
+jangan otomatis menghentikan seluruh worker.
+
+Gunakan isolation B-045.
+
+Contoh:
+
+Installation A → STARTED
+Installation B → FAILED
+Installation C → STARTED
+
+Worker tetap hidup.
+
+Jangan membuat retry queue.
+
+Jangan membuat DLQ.
+
+Jangan membuat scheduler.
+
+Failure hanya dicatat secara sanitized dan runtime installation terkait
+masuk failure state sesuai existing lifecycle.
+
+==================================================
+BAGIAN 10 — DUPLICATE RUNTIME
+==================================================
+
+Gunakan runtime registry/guard dari B-045.
+
+Pastikan discovery tidak menyebabkan:
+
+installation yang sama
+→ dua runtime instance
+
+dalam satu worker process.
+
+Jika runtime sudah aktif:
+
+→ jangan start instance kedua.
+
+Jangan membuat distributed lock.
+
+Distributed multi-worker coordination tetap:
+
+DEFERRED.
+
+==================================================
+BAGIAN 11 — PERSISTENCE ADAPTER
+==================================================
+
+Jika BotInstallation repository adapter sudah tersedia:
+
+→ gunakan.
+
+Jika belum:
+
+implementasikan hanya adapter yang memang menjadi dependency langsung B-046.
+
+Repository harus:
+
+- scoped,
+- typed,
+- tidak mengandung business logic,
+- tidak membaca credential,
+- tidak membuat Telegram client,
+- tidak mengetahui worker lifecycle.
+
+Jangan membuat database schema baru jika schema existing sudah cukup.
+
+Jika migration/schema benar-benar kurang:
+
+jangan speculative.
+
+Laporkan dependency schema tersebut sebagai deferred dan jangan memaksakan implementation.
+
+==================================================
+BAGIAN 12 — TESTING
+==================================================
+
+Tambahkan unit test untuk:
+
+1. InstallationDiscovery tanpa installation.
+2. Satu eligible installation.
+3. Multiple eligible installations.
+4. Disabled installation tidak ditemukan.
+5. Revoked installation tidak ditemukan.
+6. Invalid installation tidak ditemukan.
+7. Workspace isolation.
+8. Repository failure.
+9. Credential resolution success.
+10. Credential resolution failure.
+11. Credential tidak bocor ke error.
+12. TelegramClientFactory menerima credential melalui dependency injection.
+13. Worker tidak instantiate Telegram SDK langsung.
+14. One installation failure tidak menghentikan installation lain.
+15. Duplicate runtime protection.
+16. Startup dengan zero installations.
+17. Graceful shutdown terhadap discovered runtimes.
+
+Gunakan fake/in-memory repository untuk unit test.
+
+Jangan membutuhkan:
+
+- production PostgreSQL,
+- Telegram production token,
+- real Telegram account.
+
+==================================================
+BAGIAN 13 — POSTGRESQL INTEGRATION
+==================================================
+
+Periksa:
+
+PERSISTENCE_TEST_DATABASE_URL
+
+Jika tersedia:
+
+jalankan integration test repository/installation yang memang sudah tersedia.
+
+Jika tidak tersedia:
+
+SKIPPED — PERSISTENCE_TEST_DATABASE_URL unavailable
+
+Jangan:
+
+- membuat database palsu,
+- mengganti PostgreSQL dengan SQLite,
+- mengubah test agar PASS,
+- menjalankan migration destruktif.
+
+==================================================
+BAGIAN 14 — REAL TELEGRAM INTEGRATION
+==================================================
+
+Jika real Telegram credentials/test environment tersedia:
+
+jalankan integration test yang memang sudah ada.
+
+Jika tidak:
+
+DEFERRED — real Telegram credentials/test environment unavailable
+
+Jangan:
+
+- menggunakan production token,
+- membuat token palsu,
+- memasukkan token ke source,
+- memasukkan token ke test fixture,
+- mencetak credential.
+
+==================================================
+BAGIAN 15 — SECURITY REVIEW
+==================================================
+
+Review:
+
+- workspace isolation,
+- installation ownership,
+- credential resolution,
+- SecretResolver boundary,
+- revoked/disabled handling,
+- error sanitization,
+- log sanitization,
+- Telegram credential lifecycle,
+- runtime isolation.
+
+Pastikan tidak ada:
+
+- token di log,
+- secret di exception,
+- credential di Git diff,
+- raw provider response yang mengandung credential,
+- cross-workspace runtime.
+
+==================================================
+BAGIAN 16 — VALIDATION
+==================================================
+
+Jalankan:
+
+pnpm test
+pnpm build
+pnpm typecheck
+pnpm lint
+pnpm format:check
+
+Kemudian:
+
+node scripts/check-imports.mjs
+node scripts/check-ownership.mjs
+node scripts/check-doc-links.mjs
+git diff --check
+
+Jangan menjalankan:
+
+node scripts/check-symlinks.mjs
+
+karena script tersebut memang tidak tersedia.
+
+Jika command validation tertentu tidak tersedia:
+
+jangan membuat script dummy.
+
+Laporkan sebagai SKIPPED/UNAVAILABLE.
+
+==================================================
+BAGIAN 17 — DIFF REVIEW
+==================================================
+
+Sebelum commit:
+
+git status
+
+git diff --stat
+
+git diff
+
+Pastikan perubahan hanya:
+
+- InstallationDiscovery,
+- persistence wiring,
+- credential resolver wiring,
+- worker integration,
+- tests,
+- documentation yang benar-benar diperlukan.
+
+Hapus:
+
+- debug code,
+- temporary files,
+- generated files,
+- credentials,
+- unrelated refactor.
+
+Jangan menyentuh:
+
+- Gorouter.app,
+- NVIDIA provider,
+- TokenHarbor,
+- B-071,
+- B-070,
+- B-030.
+
+==================================================
+BAGIAN 18 — COMMIT
+==================================================
+
+Jika implementation valid dan validation PASS:
+
+buat SATU commit.
+
+Commit message:
+
+feat: wire persistent installation discovery
+
+atau message yang lebih tepat berdasarkan perubahan aktual.
+
+Jangan membuat empty commit.
+
+==================================================
+BAGIAN 19 — PUSH
+==================================================
+
+Setelah commit:
+
+git push origin backend-dev-recovery
+
+Kemudian verifikasi:
+
+git rev-parse HEAD
+
+git status
+
+dan remote SHA.
+
+Pastikan:
+
+LOCAL SHA == REMOTE SHA
+
+Working tree:
+
+CLEAN
+
+Jika push gagal:
+
+- jangan reset,
+- jangan menghapus commit,
+- jangan mengubah Git credential sembarangan,
+- tampilkan error,
+- commit lokal harus tetap aman.
+
+==================================================
+DEFINITION OF DONE
+==================================================
+
+B-046 dianggap selesai jika:
+
+- InstallationDiscovery persistence-backed.
+- Existing BotInstallation repository digunakan.
+- Eligibility menggunakan existing lifecycle rules.
+- Workspace isolation terjaga.
+- Credential resolution menggunakan abstraction existing.
+- SecretResolver boundary tidak dibypass.
+- TelegramClientFactory B-044 digunakan.
+- B-045 worker menggunakan discovery baru.
+- Multiple installations dapat diproses.
+- Failure isolation bekerja.
+- Duplicate local runtime dicegah.
+- Zero-installation startup aman.
+- Credential tidak bocor.
+- Unit tests PASS.
+- Build PASS.
+- Typecheck PASS.
+- Lint PASS.
+- Format PASS.
+- Imports PASS.
+- Ownership PASS.
+- Docs PASS.
+- Diff PASS.
+- PostgreSQL integration PASS atau SKIPPED dengan alasan nyata.
+- Real Telegram integration PASS atau DEFERRED dengan alasan nyata.
+- Commit berhasil.
+- Push berhasil.
+- Local SHA == Remote SHA.
+- Working tree CLEAN.
+
+==================================================
+FINAL OUTPUT
+==================================================
+
+Tampilkan:
+
+### B-046 STATUS
+
+InstallationDiscovery:
+Status:
+
+Persistence:
+Status:
+
+Eligibility:
+Status:
+
+Workspace isolation:
+Status:
+
+Credential resolution:
+Status:
+
+SecretResolver:
+Status:
+
+TelegramClientFactory:
+Status:
+
+Worker integration:
+Status:
+
+Failure isolation:
+Status:
+
+Duplicate runtime protection:
+Status:
+
+### SECURITY
+
+Credential handling:
+Workspace isolation:
+Installation ownership:
+Error sanitization:
+Log sanitization:
+
+### TEST
+
+Unit:
+PostgreSQL integration:
+Real Telegram integration:
+Build:
+Typecheck:
+Lint:
+Format:
+Imports:
+Ownership:
+Docs:
+Diff:
+
+### GIT
+
+Commit:
+Push:
+Local SHA:
+Remote SHA:
+Working tree:
+
+### REMAINING DEFERRED
+
+Hanya tampilkan dependency nyata yang belum tersedia.
+
+### NEXT ROADMAP
+
+Tentukan roadmap berikutnya berdasarkan dependency nyata setelah B-046.
+
+Jangan kembali ke B-040 sampai B-045.
+Jangan membuat architecture kedua.
+Jangan membuat queue/DLQ speculative.
+Jangan membuat distributed lock speculative.
+Jangan mengerjakan fitur acak.
+
+Kerjakan langsung pada:
+
+/root/botspace
 
 ```
 # Prompt: B-045 — Production Worker Bootstrap + Update Routing
