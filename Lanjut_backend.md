@@ -498,10 +498,833 @@
 
 
 ```
-# 
+# Prompt: B-041 — Provider Session Adapter + Runtime Handoff
 ```
 
+# PROMPT: B-041 — PROVIDER SESSION ADAPTER + RUNTIME HANDOFF
 
+Lanjutkan project BotSpace dari kondisi repository SAAT INI:
+
+/root/botspace
+
+Branch:
+backend-dev-recovery
+
+==================================================
+CURRENT VERIFIED STATE
+==================================================
+
+B-040 / ADR-011 Account Session Connection SUDAH SELESAI.
+
+Verified dari implementation terakhir:
+
+- B-040 implemented.
+- Account model implemented.
+- Connection model implemented.
+- Session model implemented.
+- Lifecycle implemented.
+- Workspace authorization implemented.
+- Credential boundary implemented.
+- SecretResolver boundary integrated.
+- Security behavior implemented.
+- Tests PASS.
+- Build PASS.
+- Typecheck PASS.
+- Imports/ownership/docs validation PASS.
+- Commit berhasil:
+  4ca3f6f
+- Push berhasil.
+- Local SHA == Remote SHA.
+- Working tree CLEAN.
+
+JANGAN mengulang B-040.
+
+JANGAN melakukan audit B-040 dari awal.
+
+JANGAN meminta human approval lagi untuk B-040.
+
+==================================================
+REMAINING DEFERRED
+==================================================
+
+Dari hasil B-040, remaining deferred adalah:
+
+1. Real Telegram/provider library + real session credential exchange.
+2. Event/outbox emission karena infrastructure belum tersedia.
+3. Runtime handoff ke polling/webhook/queue.
+4. Secret manager vendor selection/deployment integration.
+
+Roadmap berikutnya:
+
+B-041 — provider session adapter + runtime handoff.
+
+==================================================
+PRIMARY OBJECTIVE
+==================================================
+
+Sekarang implementasikan B-041.
+
+Fokus:
+
+PROVIDER SESSION ADAPTER
++
+RUNTIME HANDOFF CAPABILITY
+
+Tujuan B-041:
+
+Memisahkan:
+
+Account/Connection/Session lifecycle
+DARI
+provider-specific authentication/session runtime
+DAN
+Bot runtime execution.
+
+Architecture target:
+
+Workspace
+  ↓
+Account
+  ↓
+Connection
+  ↓
+Session
+  ↓
+Provider Session Adapter
+  ↓
+Runtime Handoff Capability
+  ↓
+Bot Runtime
+
+JANGAN mencampurkan semua layer menjadi satu service.
+
+==================================================
+IMPORTANT — DO NOT REPEAT AUDIT LOOP
+==================================================
+
+Jangan berhenti dengan:
+
+- "B-041 needs approval"
+- "provider belum tersedia"
+- "runtime belum tersedia"
+- "implementation blocked"
+
+Jika external provider/runtime dependency tersedia:
+→ implementasikan.
+
+Jika external provider/runtime dependency BELUM tersedia:
+→ implementasikan seluruh abstraction, adapter boundary, capability contract, lifecycle integration, test, dan composition-root integration yang dapat dilakukan sekarang.
+
+Hanya bagian yang benar-benar membutuhkan external infrastructure boleh diberi status:
+
+DEFERRED — external dependency unavailable.
+
+Jangan memblokir seluruh B-041 hanya karena provider credentials atau runtime environment belum tersedia.
+
+Jangan membuat fake production provider.
+
+==================================================
+STEP 1 — TARGETED REPOSITORY INSPECTION
+==================================================
+
+Audit hanya bagian yang relevan dengan B-041:
+
+- B-040 account/session implementation,
+- ADR-011,
+- B-041 roadmap,
+- provider abstraction yang sudah ada,
+- SecretResolver,
+- account/session repository,
+- runtime module,
+- worker module,
+- BotInstallation,
+- runtime composition root,
+- existing provider boundaries,
+- existing event/outbox boundary jika ada.
+
+JANGAN melakukan full repository audit.
+
+JANGAN mengubah modul yang tidak berkaitan.
+
+Gunakan implementation B-040 sebagai source of truth.
+
+==================================================
+STEP 2 — PROVIDER SESSION PORT
+==================================================
+
+Buat atau gunakan provider session abstraction yang tepat.
+
+Jangan membuat abstraction kedua jika repository sudah memiliki provider/session port yang sesuai.
+
+Provider session adapter harus bertanggung jawab terhadap provider-specific behavior seperti:
+
+- authenticate,
+- establish session,
+- reconnect,
+- disconnect,
+- revoke,
+- session health/status,
+- credential/session material handling.
+
+Core BotSpace tidak boleh mengetahui detail provider SDK.
+
+Target architecture:
+
+Application
+    ↓
+ProviderSessionPort
+    ↓
+ProviderSessionAdapter
+    ↓
+Provider SDK / external provider
+
+Jangan:
+
+Application
+    ↓
+Telegram SDK directly
+
+==================================================
+STEP 3 — TELEGRAM PROVIDER BOUNDARY
+==================================================
+
+B-041 harus mempersiapkan Telegram/provider integration.
+
+Audit apakah repository sudah memiliki Telegram library/provider dependency.
+
+Jika SUDAH tersedia:
+
+- gunakan dependency tersebut,
+- buat adapter modular,
+- jangan menyebarkan SDK types ke domain layer.
+
+Jika BELUM tersedia:
+
+- jangan memilih library secara sembarangan,
+- jangan menambahkan provider SDK hanya berdasarkan asumsi,
+- buat provider adapter boundary yang benar,
+- tandai real provider authentication sebagai deferred.
+
+Jangan membuat fake authentication yang mengklaim account berhasil connected.
+
+==================================================
+STEP 4 — SESSION CREDENTIAL FLOW
+==================================================
+
+Integrasikan session credential flow dengan B-040.
+
+Credential lifecycle:
+
+B-040 Account/Connection
+        ↓
+Credential reference
+        ↓
+SecretResolver
+        ↓
+Provider Session Adapter
+        ↓
+Provider session
+        ↓
+Session state update
+
+RAW SECRET tidak boleh:
+
+- masuk API response,
+- masuk event,
+- masuk log,
+- masuk database domain object,
+- masuk error message,
+- masuk Git.
+
+Gunakan SecretResolver boundary yang SUDAH ADA.
+
+JANGAN membuat SecretResolver kedua.
+
+==================================================
+STEP 5 — PROVIDER SESSION LIFECYCLE
+==================================================
+
+Provider adapter harus menghormati lifecycle B-040.
+
+Implementasikan mapping yang jelas untuk:
+
+- connect,
+- authenticate,
+- establish session,
+- reconnect,
+- disconnect,
+- revoke,
+- unavailable credential,
+- authentication failure,
+- provider unavailable,
+- session expired jika provider memang menyediakan informasi tersebut.
+
+Jangan membuat state baru hanya karena mudah.
+
+Gunakan state machine B-040.
+
+Provider failure tidak boleh menyebabkan state menjadi active jika session sebenarnya tidak berhasil.
+
+==================================================
+STEP 6 — IDEMPOTENCY
+==================================================
+
+Perhatikan:
+
+connect dua kali,
+reconnect dua kali,
+disconnect dua kali,
+revoke dua kali.
+
+Jika B-040 sudah memiliki idempotency semantics:
+
+ikuti semantics tersebut.
+
+Jangan membuat duplicate provider session secara tidak sengaja.
+
+Jika operation sudah berada pada terminal state:
+
+gunakan behavior yang sudah ditentukan oleh B-040.
+
+==================================================
+STEP 7 — RUNTIME HANDOFF
+==================================================
+
+Implementasikan boundary untuk handoff dari account/session ke runtime.
+
+PENTING:
+
+Account connected
+TIDAK SAMA DENGAN
+Bot runtime running.
+
+Runtime handoff harus eksplisit.
+
+Target:
+
+Session
+  ↓
+RuntimeCapability / RuntimeHandoff
+  ↓
+BotInstallation / Worker
+  ↓
+Runtime process
+
+Runtime handoff harus membawa hanya informasi yang dibutuhkan.
+
+Jangan mengirim raw credential ke generic runtime event/API.
+
+Gunakan:
+
+- account ID,
+- connection ID,
+- session ID,
+- provider ID,
+- capability/reference,
+- workspace ID jika memang diperlukan.
+
+Credential tetap di SecretResolver/provider boundary.
+
+==================================================
+STEP 8 — BOTINSTALLATION SAFETY
+==================================================
+
+JANGAN mengubah arti:
+
+BotInstallation.status
+
+menjadi process/runtime state.
+
+Jika existing BotInstallation lifecycle sudah ada:
+
+gunakan lifecycle tersebut.
+
+Jika runtime process state memang diperlukan:
+
+gunakan field/abstraction runtime yang SUDAH ada.
+
+Jika belum ada:
+
+buat minimal runtime boundary hanya jika B-041 memang membutuhkan.
+
+Jangan menggabungkan:
+
+installation state
+dengan
+process state.
+
+==================================================
+STEP 9 — RUNTIME CAPABILITY
+==================================================
+
+Buat capability boundary jika architecture membutuhkannya.
+
+Contoh conceptual model:
+
+RuntimeHandoffRequest
+
+berisi:
+
+- workspaceId,
+- accountId,
+- connectionId,
+- sessionId,
+- provider,
+- installationId jika memang tersedia,
+- capability/reference.
+
+JANGAN masukkan:
+
+- password,
+- API key,
+- session token,
+- raw provider credential.
+
+Runtime harus memperoleh credential melalui secure boundary bila memang diperlukan.
+
+==================================================
+STEP 10 — WORKSPACE ISOLATION
+==================================================
+
+Runtime handoff WAJIB menghormati workspace isolation.
+
+Workspace A tidak boleh:
+
+- menggunakan session Workspace B,
+- menjalankan runtime dengan account Workspace B,
+- mengambil credential Workspace B,
+- melakukan provider handoff untuk Workspace B.
+
+Gunakan authorization boundary B-030/B-040.
+
+Jangan membuat authorization system baru.
+
+==================================================
+STEP 11 — ACTOR ATTRIBUTION
+==================================================
+
+Jika B-040 sudah memiliki actor attribution:
+
+teruskan actor/context tersebut ke operation B-041.
+
+Jangan menggunakan arbitrary username/string sebagai security identity.
+
+Jika existing context tidak tersedia:
+
+gunakan boundary yang memang tersedia.
+
+Jangan membuat IAM system baru.
+
+==================================================
+STEP 12 — PROVIDER OWNERSHIP
+==================================================
+
+Pastikan provider-specific logic hanya berada di provider module.
+
+Core application tidak boleh mengetahui:
+
+- Telegram SDK object,
+- provider client object,
+- provider session object,
+- provider-specific error class,
+
+kecuali melalui adapter translation.
+
+Provider errors harus diterjemahkan ke application/domain error yang aman.
+
+==================================================
+STEP 13 — ERROR MAPPING
+==================================================
+
+Provider error harus dipetakan ke error internal yang aman.
+
+Minimal bedakan:
+
+- invalid credentials,
+- credential unavailable,
+- authentication failed,
+- session unavailable,
+- provider unavailable,
+- session revoked,
+- session expired,
+- invalid lifecycle transition,
+- authorization failure.
+
+Jangan mengembalikan raw provider error ke client.
+
+Jangan memasukkan credential/token ke error.
+
+==================================================
+STEP 14 — EVENT / OUTBOX
+==================================================
+
+Audit apakah existing event/outbox infrastructure sekarang tersedia.
+
+Jika SUDAH tersedia:
+
+integrasikan B-041 lifecycle event sesuai contract.
+
+Contoh event:
+
+- connection.authentication.started
+- connection.authentication.succeeded
+- connection.authentication.failed
+- connection.session.established
+- connection.session.disconnected
+- connection.session.revoked
+- runtime.handoff.requested
+- runtime.handoff.accepted
+- runtime.handoff.failed
+
+JANGAN membuat event baru jika contract existing sudah menentukan naming.
+
+Jika outbox belum tersedia:
+
+JANGAN membuat full event infrastructure speculative.
+
+Buat hanya integration boundary yang diperlukan dan tandai outbox delivery sebagai:
+
+DEFERRED — outbox infrastructure unavailable.
+
+Jangan memasukkan secret ke event payload.
+
+==================================================
+STEP 15 — RUNTIME EXECUTION
+==================================================
+
+JANGAN langsung membuat Telegram polling/webhook system besar jika B-041 hanya membutuhkan handoff boundary.
+
+Jika existing runtime worker sudah tersedia:
+
+integrasikan handoff ke worker tersebut.
+
+Jika runtime worker belum menyediakan provider execution:
+
+buat adapter/capability boundary yang diperlukan.
+
+Jangan membuat daemon/process manager baru secara speculative.
+
+Jangan menjalankan production Telegram polling dari test.
+
+==================================================
+STEP 16 — COMPOSITION ROOT
+==================================================
+
+Wire dependency secara eksplisit.
+
+Target:
+
+composition root
+  ↓
+B-040 account/session service
+  ↓
+ProviderSessionPort
+  ↓
+ProviderSessionAdapter
+  ↓
+SecretResolver
+  ↓
+RuntimeHandoffPort
+  ↓
+Worker/runtime boundary
+
+Jangan menggunakan hidden global singleton jika repository menggunakan dependency injection.
+
+Test environment harus dapat inject fake adapter.
+
+Production harus menggunakan real adapter jika dependency tersedia.
+
+==================================================
+STEP 17 — TESTING
+==================================================
+
+Tambahkan test behavior nyata.
+
+Minimal:
+
+1. provider session adapter can be injected.
+2. connect uses provider adapter.
+3. reconnect uses provider adapter.
+4. disconnect uses provider adapter.
+5. revoke uses provider adapter.
+6. provider authentication failure mapped correctly.
+7. unavailable credential mapped correctly.
+8. provider unavailable mapped correctly.
+9. invalid lifecycle transition rejected.
+10. duplicate connect behavior.
+11. duplicate disconnect behavior.
+12. workspace isolation.
+13. cross-workspace runtime handoff rejected.
+14. runtime handoff contains safe identifiers only.
+15. raw credential never appears in handoff payload.
+16. raw credential never appears in errors.
+17. SecretResolver failure handled safely.
+18. provider adapter failure does not incorrectly activate session.
+19. runtime handoff success state.
+20. runtime handoff failure state.
+21. event/outbox integration if infrastructure exists.
+
+Jika real Telegram/provider dependency tersedia:
+
+tambahkan integration test yang aman.
+
+Jangan menggunakan production account.
+
+Jika dependency tidak tersedia:
+
+unit/contract tests tetap harus berjalan.
+
+==================================================
+STEP 18 — SECURITY REVIEW
+==================================================
+
+Lakukan targeted security review terhadap B-041.
+
+Cari:
+
+- secret leakage,
+- credential leakage,
+- token leakage,
+- provider SDK object leaking into API,
+- cross-workspace session access,
+- runtime handoff authorization bypass,
+- invalid state transition,
+- duplicate session,
+- stale session,
+- unsafe provider errors,
+- log leakage,
+- event leakage.
+
+Perbaiki masalah yang ditemukan.
+
+==================================================
+STEP 19 — VALIDATION
+==================================================
+
+Setelah implementation:
+
+jalankan:
+
+pnpm test
+pnpm build
+pnpm typecheck
+pnpm lint
+pnpm format:check
+node scripts/check-imports.mjs
+node scripts/check-ownership.mjs
+node scripts/check-doc-links.mjs
+git diff --check
+
+JANGAN menjalankan atau membuat:
+
+node scripts/check-symlinks.mjs
+
+karena script tersebut memang tidak tersedia.
+
+PostgreSQL:
+
+Jika PERSISTENCE_TEST_DATABASE_URL tersedia:
+→ jalankan integration test yang memang ada.
+
+Jika tidak:
+→ SKIPPED — PERSISTENCE_TEST_DATABASE_URL unavailable
+
+Jangan membuat fake database.
+
+==================================================
+STEP 20 — PROVIDER TEST SAFETY
+==================================================
+
+Jangan menjalankan integration test Gorouter.app.
+
+Jangan menyentuh Gorouter.app.
+
+NVIDIA dan TokenHarbor:
+
+- jangan diubah,
+- jangan dites ulang kecuali B-041 secara langsung menyentuh shared provider infrastructure yang memang membutuhkan verification.
+
+Jika provider Telegram test membutuhkan real credentials:
+
+jangan menggunakan credential production.
+
+Gunakan synthetic/test environment atau tandai deferred.
+
+==================================================
+STEP 21 — REVIEW DIFF
+==================================================
+
+Sebelum commit:
+
+git status
+git diff --stat
+git diff
+
+Review seluruh perubahan.
+
+Hapus:
+
+- temporary files,
+- debug output,
+- generated files,
+- secrets,
+- credentials,
+- unrelated refactor.
+
+Pastikan perubahan hanya B-041.
+
+==================================================
+STEP 22 — COMMIT
+==================================================
+
+Jika implementation valid:
+
+buat SATU commit.
+
+Suggested:
+
+feat: add provider session adapter and runtime handoff
+
+Gunakan message yang lebih tepat jika perubahan aktual berbeda.
+
+Jangan membuat empty commit.
+
+==================================================
+STEP 23 — PUSH
+==================================================
+
+Setelah commit:
+
+git push origin backend-dev-recovery
+
+Kemudian:
+
+git rev-parse HEAD
+
+Verifikasi remote SHA.
+
+Pastikan:
+
+LOCAL SHA == REMOTE SHA
+
+Working tree harus:
+
+CLEAN
+
+Jika push gagal:
+
+- jangan reset,
+- jangan menghapus commit,
+- jangan mengubah credential Git secara sembarangan,
+- laporkan error,
+- commit lokal harus tetap aman.
+
+==================================================
+DEFINITION OF DONE
+==================================================
+
+B-041 dianggap selesai jika:
+
+- ProviderSessionPort tersedia/terintegrasi.
+- Provider adapter boundary tersedia.
+- B-040 lifecycle terhubung ke provider adapter.
+- SecretResolver terintegrasi.
+- Provider errors diterjemahkan dengan aman.
+- Runtime handoff boundary tersedia.
+- Workspace isolation diterapkan.
+- Runtime handoff tidak membawa raw credential.
+- Composition root sudah di-wire.
+- Test behavior tersedia.
+- Validation PASS.
+- Commit dibuat.
+- Push berhasil.
+- Local SHA == Remote SHA.
+- Working tree CLEAN.
+
+Jika real provider/runtime belum tersedia:
+
+status harus dibagi jelas:
+
+IMPLEMENTED:
+- abstraction,
+- adapter boundary,
+- lifecycle integration,
+- handoff contract,
+- tests,
+- composition wiring.
+
+DEFERRED:
+- real provider credential exchange,
+- real provider SDK integration,
+- real runtime execution,
+- outbox delivery,
+
+hanya jika dependency tersebut memang tidak tersedia.
+
+==================================================
+FINAL OUTPUT
+==================================================
+
+Tampilkan:
+
+### B-041 STATUS
+- ProviderSessionPort:
+- Provider adapter:
+- Session lifecycle:
+- SecretResolver:
+- Runtime handoff:
+- Composition root:
+- Workspace isolation:
+
+### SECURITY
+- Credential protection:
+- Secret leakage:
+- Cross-workspace protection:
+- Provider error sanitization:
+- Runtime handoff safety:
+
+### TEST
+- Unit:
+- Integration:
+- Build:
+- Typecheck:
+- Lint:
+- Format:
+- Imports:
+- Ownership:
+- Docs:
+- Diff check:
+
+### DEFERRED
+Hanya dependency nyata yang belum tersedia.
+
+### GIT
+- Commit:
+- Push:
+- Local SHA:
+- Remote SHA:
+- Working tree:
+
+### NEXT ROADMAP
+Tentukan task berikutnya berdasarkan dependency nyata setelah B-041.
+
+PENTING:
+
+Jangan kembali ke B-040.
+
+Jangan meminta approval.
+
+Jangan berhenti hanya karena real provider belum tersedia.
+
+Jangan membuat fake production authentication.
+
+Jangan membuat runtime Telegram polling besar secara speculative.
+
+Jangan menyentuh Gorouter.app.
+
+Kerjakan langsung coding B-041 di:
+
+/root/botspace
 
 ```
 # Prompt: B-040 — Owner Approval + Implement Account/Session Connection
