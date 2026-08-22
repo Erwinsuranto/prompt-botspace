@@ -366,10 +366,202 @@
 
 
 ```
-# 
+# Prompt: BotSpace — Select Next Unblocked Roadmap Task
 ```
 
+Lanjutkan project BotSpace dari kondisi repository saat ini.
 
+KONDISI TERAKHIR
+
+- B-030 Workspace API/Contract SUDAH selesai.
+- B-070 Storage Adapter SUDAH selesai.
+- B-071 File/Share contract + API SUDAH selesai.
+- Production wiring B-071 SUDAH selesai.
+- SecretResolver/application boundary SUDAH tersedia.
+- B-060 secret revocation SUDAH selesai.
+- B-061 credential provisioning SUDAH selesai sesuai boundary yang sudah disetujui.
+- Working tree terakhir CLEAN.
+- Local dan remote branch sudah sinkron.
+- Branch aktif: backend-dev-recovery.
+
+ROADMAP TERAKHIR
+
+Dokumentasi roadmap menandai B-060/B-061 sebagai DONE.
+
+Kandidat berikutnya B-061+:
+account-connection credential/session, rotation, MFA.
+
+B-061+ SAAT INI TERHAMBAT karena membutuhkan keputusan/vendor eksternal terkait:
+- mekanisme auth Telegram,
+- provider/library,
+- session/client files,
+- MFA,
+- rotation,
+- account-session boundary.
+
+JANGAN mengimplementasikan B-061+ secara otomatis.
+JANGAN memilih vendor/provider sendiri.
+JANGAN membuat fake Telegram authentication.
+JANGAN membuat session/MFA implementation speculative.
+
+TUJUAN
+
+Temukan dan kerjakan TASK BERIKUTNYA yang benar-benar dapat dikerjakan tanpa keputusan eksternal tersebut.
+
+LANGKAH 1 — AUDIT ROADMAP
+
+1. Baca roadmap/docs/task registry repository.
+2. Audit status task setelah B-061.
+3. Cari task yang:
+   - belum selesai,
+   - tidak bergantung pada keputusan vendor eksternal,
+   - tidak membutuhkan Telegram runtime/auth implementation yang belum disetujui,
+   - memiliki dependency internal yang sudah tersedia.
+4. Jangan menebak nomor task.
+5. Gunakan task ID dan deskripsi yang benar-benar ada di repository.
+
+LANGKAH 2 — DEPENDENCY CHECK
+
+Untuk kandidat task:
+
+- audit dependency graph,
+- cek contract yang sudah tersedia,
+- cek implementation yang sudah tersedia,
+- cek apakah task benar-benar executable sekarang.
+
+Jika semua kandidat masih blocked:
+
+- JANGAN membuat fitur baru secara acak,
+- JANGAN membuat contract speculative,
+- JANGAN mengubah schema hanya agar ada pekerjaan,
+- tampilkan task yang blocked dan alasannya,
+- pilih hanya pekerjaan internal yang memang sudah mempunyai scope jelas.
+
+LANGKAH 3 — IMPLEMENTASI
+
+Jika ditemukan task yang benar-benar unblocked:
+
+1. Audit implementation existing terlebih dahulu.
+2. Implementasikan task tersebut secara modular.
+3. Jangan mengulang B-030, B-060, B-061, B-070, atau B-071.
+4. Jangan mengubah contract yang sudah stabil tanpa alasan nyata.
+5. Jangan membuat abstraction kedua jika abstraction yang diperlukan sudah ada.
+6. Jangan membuat fake integration.
+7. Jangan membuat credential/session/auth vendor palsu.
+8. Jangan menjalankan Telegram polling/webhook runtime jika task belum secara eksplisit membutuhkan dan boundary-nya belum disetujui.
+9. Jangan mengubah BotInstallation.status menjadi process/runtime state.
+10. Jangan menyentuh Gorouter.app.
+11. NVIDIA dan TokenHarbor tidak perlu disentuh kecuali perubahan benar-benar memengaruhinya.
+
+LANGKAH 4 — TEST
+
+Tambahkan/perbaiki test hanya untuk behavior yang benar-benar diimplementasikan.
+
+Jalankan validation yang tersedia:
+
+- pnpm test
+- pnpm build
+- pnpm typecheck
+- pnpm lint
+- pnpm format:check
+- node scripts/check-imports.mjs
+- node scripts/check-ownership.mjs
+- node scripts/check-doc-links.mjs
+- git diff --check
+
+Jangan membuat scripts/check-symlinks.mjs jika file tersebut tidak tersedia.
+
+Jika ada integration test yang membutuhkan environment tertentu:
+- jalankan hanya jika environment tersedia,
+- jangan membuat environment palsu,
+- jangan menyamarkan SKIPPED sebagai PASS.
+
+LANGKAH 5 — REVIEW
+
+Sebelum commit:
+
+- git status
+- git diff --stat
+- review seluruh diff.
+
+Pastikan tidak ada:
+- credential,
+- secret,
+- temporary files,
+- generated junk,
+- unrelated refactor,
+- speculative architecture,
+- perubahan Gorouter.app,
+- perubahan provider NVIDIA/TokenHarbor yang tidak diperlukan.
+
+LANGKAH 6 — COMMIT
+
+Jika ada implementation valid:
+
+- buat SATU commit lokal dengan message yang sesuai task aktual.
+- push:
+  git push origin backend-dev-recovery
+
+Kemudian verifikasi:
+- local HEAD SHA,
+- remote SHA,
+- working tree clean.
+
+Jika tidak ada task unblocked yang benar-benar dapat dikerjakan:
+- jangan membuat empty commit,
+- jangan membuat fitur acak,
+- jangan push kosong.
+
+OUTPUT AKHIR
+
+Tampilkan:
+
+### Roadmap Audit
+- task terakhir DONE:
+- kandidat berikutnya:
+- task yang BLOCKED:
+- alasan blocked:
+
+### Task yang Dikerjakan
+- task ID:
+- alasan dipilih:
+- implementation:
+- files changed:
+
+### Validation
+- test:
+- build:
+- typecheck:
+- lint:
+- format:
+- imports:
+- ownership:
+- docs:
+- diff check:
+
+### Git
+- commit SHA:
+- push status:
+- local/remote SHA:
+- working tree:
+
+### Remaining Deferred
+Hanya item yang benar-benar blocked oleh:
+- vendor decision,
+- external infrastructure,
+- approved contract,
+- environment.
+
+### Next Roadmap
+Tentukan berdasarkan dependency nyata repository.
+
+PENTING:
+- Jangan mengarang task ID.
+- Jangan memaksakan B-061+.
+- Jangan memilih vendor eksternal sendiri.
+- Jangan membuat Telegram auth/session/MFA palsu.
+- Jangan membuat fitur acak.
+- Kerjakan langsung pada /root/botspace.
 
 ```
 # Prompt: B-060 — Secret Provisioner Revoke Persistence
