@@ -330,10 +330,85 @@
 
 
 ```
-# 
+# Prompt: D1 — Connector Vendor Options Audit
 ```
 
+Lanjutkan dari hasil ADR-011 saat ini.
 
+Status:
+- D1 = ARCHITECTURALLY READY — VENDOR DECISION PENDING
+- DC-1 belum menentukan vendor/mekanisme connector.
+- DC-2 dependency authorization masih menunggu keputusan vendor.
+- DC-3 contract sudah compatible.
+- Working tree CLEAN.
+- HEAD tetap 4059728.
+
+JANGAN coding.
+JANGAN install dependency.
+JANGAN mengubah file.
+JANGAN commit.
+JANGAN push.
+
+Sekarang lakukan audit untuk membantu OWNER memilih mekanisme D1.
+
+Audit repository dan dokumentasi yang sudah ada untuk menentukan opsi connector yang benar-benar kompatibel dengan architecture BotSpace.
+
+Bandingkan hanya opsi yang relevan dengan kebutuhan:
+
+1. External connector / provider-specific connector
+2. Direct client login jika architecture memang mendukungnya
+3. Existing ProviderSessionDriver adapter mechanism
+4. Existing SecretResolver / SecretProvisioner boundary
+
+Untuk setiap opsi jelaskan:
+
+- authentication flow,
+- session/credential material yang dihasilkan,
+- bagaimana material tersebut masuk ke ProviderAuthContext,
+- apakah membutuhkan dependency baru,
+- apakah membutuhkan SDK/provider library,
+- apakah membutuhkan perubahan contract,
+- apakah membutuhkan perubahan database/schema,
+- apakah membutuhkan perubahan port,
+- apakah kompatibel dengan existing ProviderSessionDriver,
+- security implications,
+- complexity,
+- apakah dapat dibuat tanpa migration,
+- apakah dapat dibuat tanpa mengubah composition root secara besar.
+
+PENTING:
+
+- Jangan memilih vendor atas nama owner.
+- Jangan mengarang dukungan vendor yang tidak terlihat di repository.
+- Jangan menambahkan dependency hanya untuk eksperimen.
+- Jangan membuat prototype.
+- Jangan melakukan network login.
+- Jangan menggunakan credential nyata.
+- Jangan menyentuh Telegram runtime/polling/webhook.
+- Jangan menyentuh Gorouter.app.
+- Jangan mengubah NVIDIA atau TokenHarbor.
+
+Jika repository tidak memiliki informasi cukup untuk menentukan vendor, nyatakan secara eksplisit:
+
+`VENDOR INFORMATION NOT PRESENT IN REPOSITORY`
+
+Kemudian berikan:
+
+### OWNER DECISION REQUIRED
+
+- Recommended architectural mechanism:
+- Vendor/provider candidates supported by current evidence:
+- Required dependency approval:
+- Required contract approval:
+- Required infrastructure approval:
+- Risks:
+- Smallest implementation path:
+
+### FINAL
+
+Berikan tepat satu rekomendasi arsitektur berdasarkan evidence repository, tetapi JANGAN memilih vendor jika vendor belum ditentukan owner.
+
+Tidak boleh ada repository changes.
 
 ```
 # 
