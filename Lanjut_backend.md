@@ -324,10 +324,337 @@
 
 
 ```
-# 
+# Prompt: B-04x — Telegram External Connector dengan GramJS
 ```
 
+Lanjutkan project BotSpace dari kondisi repository saat ini.
 
+KEPUTUSAN VENDOR SUDAH FINAL:
+
+D1 = External Connector
+Telegram client library = GramJS
+Authorization mechanism = Telegram MTProto user account
+Session persistence = existing SecretResolver/SecretProvisioner boundary
+
+Jangan meminta keputusan vendor lagi. Jangan berhenti pada audit. Implementasikan task ini langsung.
+
+KONDISI TERAKHIR
+
+- B-030 Workspace API/Contract SUDAH selesai.
+- B-070 Storage Adapter SUDAH selesai.
+- B-071 File/Share contract SUDAH selesai.
+- B-071 File/Share API SUDAH selesai.
+- Production wiring B-071 SUDAH selesai.
+- SecretResolver application boundary SUDAH tersedia.
+- ProviderSessionDriver sudah tersedia sebagai neutral boundary.
+- ProviderAuthContext sudah tersedia.
+- SecretResolver/SecretProvisioner boundary sudah tersedia.
+- Architecture decision D1 sudah dipilih:
+  External Connector.
+- Telegram vendor/library yang dipilih:
+  GramJS.
+- Working tree terakhir CLEAN.
+- Jangan mengulang pekerjaan yang sudah selesai.
+
+TUJUAN
+
+Implementasikan Telegram external connector pertama menggunakan GramJS di belakang boundary yang SUDAH ADA.
+
+Target architecture:
+
+BotSpace
+  |
+  +-- ProviderSessionDriver
+  |
+  +-- ProviderAuthContext
+  |
+  +-- Telegram External Connector
+  |      |
+  |      +-- GramJS TelegramClient
+  |      +-- StringSession
+  |      +-- Telegram user authorization
+  |
+  +-- SecretResolver / SecretProvisioner
+         |
+         +-- session reference / credential material
+
+ATURAN UTAMA
+
+1. Gunakan ProviderSessionDriver yang SUDAH ADA.
+2. Jangan membuat ProviderSessionDriver kedua.
+3. Gunakan ProviderAuthContext yang SUDAH ADA.
+4. Jangan membuat AuthContext baru yang menduplikasi contract.
+5. Gunakan SecretResolver/SecretProvisioner yang SUDAH ADA.
+6. Jangan menyimpan Telegram session plaintext di database jika architecture existing mengharuskan secret boundary.
+7. Jangan membuat storage/database schema baru hanya untuk connector ini kecuali contract existing secara eksplisit membutuhkan persistence tersebut.
+8. Jangan membuat Telegram runtime/polling daemon baru jika belum menjadi bagian task.
+9. Connector harus menjadi adapter/provider implementation di belakang neutral boundary.
+10. Jangan memasukkan detail GramJS ke core domain/application contract.
+11. Jangan mengubah API contract existing hanya untuk menyesuaikan GramJS.
+12. Jangan mengubah BotInstallation.status menjadi process/runtime state.
+13. Jangan menyentuh B-071 schema/API.
+14. Jangan menyentuh Gorouter.app.
+15. Jangan menambahkan test Gorouter.app.
+16. NVIDIA dan TokenHarbor tidak perlu disentuh.
+
+GRAMJS
+
+Gunakan package/library GramJS yang sesuai dengan repository.
+
+Gunakan:
+- TelegramClient
+- StringSession
+- API ID/API HASH configuration
+- existing secret/configuration boundary
+
+API ID/API HASH tidak boleh hardcode.
+
+Gunakan configuration/SecretResolver yang memang sudah tersedia di repository.
+
+SESSION
+
+Gunakan StringSession atau mekanisme session GramJS yang sesuai.
+
+Session harus:
+
+- dapat dibuat setelah authorization berhasil,
+- dapat dipersist melalui existing secret boundary,
+- dapat di-load kembali,
+- tidak dicetak ke log,
+- tidak dikembalikan dalam HTTP response,
+- tidak dimasukkan ke git,
+- tidak disimpan plaintext dalam source code.
+
+Jangan membuat database session schema baru jika belum diperlukan oleh existing contract.
+
+AUTHORIZATION
+
+Connector harus menyediakan lifecycle yang memungkinkan:
+
+1. membuat client,
+2. melakukan koneksi,
+3. memulai user authorization,
+4. menangani phone/code authentication sesuai abstraction yang tersedia,
+5. menangani 2FA password jika account mengaktifkan 2FA,
+6. mendapatkan authenticated session,
+7. menyimpan session melalui SecretProvisioner,
+8. memuat kembali session menggunakan SecretResolver,
+9. melakukan reconnect menggunakan session yang tersimpan,
+10. logout/revoke melalui connector lifecycle jika contract existing mendukungnya.
+
+Jangan membuat UI frontend baru kecuali repository memang sudah memiliki boundary yang langsung membutuhkan field tersebut.
+
+Jangan menyimpan atau mencetak:
+- phone code,
+- 2FA password,
+- session string,
+- API hash,
+- API credential.
+
+ERROR HANDLING
+
+Map error GramJS ke error abstraction yang sudah ada.
+
+Jangan membocorkan detail sensitif.
+
+Contoh kategori yang perlu dibedakan jika contract mendukung:
+
+- authentication required,
+- invalid authentication code,
+- 2FA required,
+- invalid 2FA,
+- session invalid/revoked,
+- connection failure,
+- Telegram API failure,
+- configuration failure.
+
+Jangan membuat error contract kedua jika existing error abstraction sudah cukup.
+
+CONNECTOR BOUNDARY
+
+Implementasikan hanya adapter yang diperlukan untuk ProviderSessionDriver.
+
+Secara konseptual:
+
+ProviderSessionDriver
+    -> TelegramProviderSessionDriver
+        -> GramJS TelegramClient
+
+Connector harus:
+
+- menerima credential/configuration dari existing boundary,
+- membuat GramJS client,
+- connect,
+- authorize,
+- validate existing session,
+- expose authenticated state melalui neutral contract,
+- persist session melalui SecretProvisioner,
+- resolve session melalui SecretResolver.
+
+Jangan mengekspos TelegramClient langsung ke application/domain layer.
+
+MINIMUM VALIDATION
+
+Setelah implementation:
+
+1. TypeScript compile/typecheck.
+2. Unit test connector.
+3. Test dependency injection.
+4. Test configuration missing.
+5. Test session load/save menggunakan fake SecretResolver/SecretProvisioner.
+6. Test authentication lifecycle menggunakan abstraction/mock yang tidak memerlukan akun Telegram nyata.
+7. Test session invalid/revoked handling.
+8. Test error sanitization.
+9. Pastikan session/API credentials tidak muncul dalam log/test output.
+
+JANGAN membuat fake Telegram integration yang mengklaim login Telegram berhasil.
+
+Jika environment tidak memiliki real Telegram credentials:
+
+- unit test tetap dijalankan,
+- real Telegram integration test ditandai SKIPPED/UNAVAILABLE,
+- jangan membuat credential palsu,
+- jangan mengubah test agar PASS.
+
+REAL TELEGRAM TEST
+
+Jika environment memang menyediakan credential Telegram TEST yang aman:
+
+- API ID/API HASH harus berasal dari environment/secret boundary,
+- gunakan akun test,
+- jangan gunakan akun production,
+- jangan mencetak session,
+- cleanup/revoke session setelah test bila aman dan didukung.
+
+Jika tidak tersedia:
+
+SKIPPED — Telegram integration credentials unavailable
+
+VALIDATION PROJECT
+
+Jalankan:
+
+pnpm test
+pnpm build
+pnpm typecheck
+pnpm lint
+pnpm format:check
+node scripts/check-imports.mjs
+node scripts/check-ownership.mjs
+node scripts/check-doc-links.mjs
+git diff --check
+
+Jangan membuat atau menjalankan:
+
+scripts/check-symlinks.mjs
+
+karena script tersebut memang tidak tersedia.
+
+Jangan menjalankan atau mengubah integration test Gorouter.app.
+
+REVIEW
+
+Sebelum commit:
+
+- git status
+- git diff --stat
+- review seluruh diff
+
+Pastikan tidak ada:
+
+- session string,
+- API hash,
+- API ID credential yang seharusnya secret,
+- phone code,
+- 2FA password,
+- test credential,
+- temporary file,
+- unrelated refactor,
+- B-071 changes,
+- Gorouter changes,
+- NVIDIA changes,
+- TokenHarbor changes.
+
+COMMIT + PUSH
+
+Jika implementation valid dan validation selesai:
+
+Buat SATU commit.
+
+Gunakan message:
+
+feat: add telegram gramjs external connector
+
+Kemudian langsung:
+
+git push origin backend-dev-recovery
+
+Verifikasi:
+
+- local HEAD SHA,
+- remote branch SHA,
+- working tree clean.
+
+Jika push gagal karena credential/network:
+
+- jangan mengubah credential sembarangan,
+- jangan menghapus commit,
+- tampilkan error,
+- commit tetap aman lokal.
+
+OUTPUT AKHIR
+
+Tampilkan:
+
+### Telegram Connector
+- vendor:
+- library:
+- authentication:
+- session persistence:
+- ProviderSessionDriver integration:
+- SecretResolver integration:
+- status:
+
+### Tests
+- unit:
+- auth lifecycle:
+- session handling:
+- error handling:
+- real Telegram integration:
+
+### Validation
+- test:
+- build:
+- typecheck:
+- lint:
+- format:
+- imports:
+- ownership:
+- docs:
+- diff:
+
+### Git
+- commit SHA:
+- push:
+- local/remote SHA:
+- working tree:
+
+### Remaining Deferred
+Hanya tampilkan dependency yang benar-benar masih tertahan.
+
+### Next Roadmap
+Tentukan task berikutnya berdasarkan dependency nyata repository.
+
+PENTING:
+- D1 sudah diputuskan: External Connector.
+- Telegram vendor sudah diputuskan: GramJS.
+- Jangan meminta keputusan vendor lagi.
+- Jangan mengerjakan fitur acak.
+- Jangan membuat architecture baru yang menduplikasi boundary existing.
+- Jangan membuat schema session baru tanpa kebutuhan contract.
+- Jangan menyimpan secret plaintext.
+- Jangan menyentuh Gorouter.app.
+- Kerjakan langsung pada /root/botspace.
 
 ```
 # Prompt: D1 — Connector Vendor Options Audit
