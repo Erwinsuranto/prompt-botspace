@@ -378,10 +378,415 @@
 
 
 ```
-# 
+# Prompt: B-059 — Credential Revocation & Compensation
 ```
 
+Lanjutkan project BotSpace dari kondisi repository saat ini.
 
+KONDISI TERAKHIR
+
+- B-030 Workspace API/Contract SUDAH selesai.
+- B-070 Storage Adapter SUDAH selesai.
+- B-071 File/Share contract SUDAH selesai.
+- B-071 File/Share API SUDAH selesai.
+- Production wiring B-071 SUDAH selesai.
+- B-058 Bot Credential Provisioning SUDAH selesai.
+- Provisioning boundary/SecretProvisioner SUDAH tersedia.
+- Secret reference sekarang sudah menjadi bagian internal BotInstallation lifecycle.
+- Working tree terakhir CLEAN.
+- Local SHA dan remote SHA SUDAH sinkron.
+- Branch aktif: `backend-dev-recovery`.
+
+GAP NYATA DARI B-058
+
+1. Delete BotInstallation belum melakukan revoke terhadap secret yang sudah diprovision.
+2. Jika provisioning secret berhasil tetapi persistence BotInstallation gagal, belum ada cleanup/revoke operation.
+3. Boundary revoke/reference sudah tersedia sehingga B-059 dapat dikerjakan tanpa membuat abstraction baru.
+
+SEKARANG KERJAKAN:
+
+B-059 — Credential Revocation & Compensation
+
+TUJUAN
+
+Lengkapi lifecycle credential:
+
+provision → persist → use → delete/revoke
+
+dan compensation untuk jalur:
+
+provision berhasil → persistence gagal → revoke secret.
+
+JANGAN membuat rollback palsu yang tidak didukung architecture.
+
+1. AUDIT EXISTING BOUNDARY
+
+Audit terlebih dahulu:
+
+- `SecretProvisioner`
+- `SecretResolver`
+- credential contract
+- `bot-service.create`
+- `bot-service.delete`
+- BotInstallation repository
+- BotInstallation lifecycle
+- composition root
+- existing tests.
+
+Cari operation revoke/delete yang SUDAH tersedia.
+
+Jika boundary sudah memiliki:
+
+`revoke(secret_ref)`
+
+gunakan boundary tersebut.
+
+JANGAN membuat `SecretRevoker` kedua jika revoke sudah menjadi bagian dari existing credential provisioning abstraction.
+
+2. DELETE BOT → REVOKE SECRET
+
+Ubah lifecycle delete BotInstallation agar:
+
+1. authorize workspace/operator,
+2. load BotInstallation,
+3. obtain internal `secret_ref`,
+4. revoke/delete secret melalui existing credential boundary,
+5. hanya setelah revoke policy terpenuhi, delete BotInstallation persistence sesuai architecture.
+
+PENTING:
+
+- jangan mengembalikan raw credential,
+- jangan log credential,
+- jangan log secret value,
+- jangan expose secret_ref ke operator/client,
+- jangan mengubah `BotInstallation.status` menjadi process state.
+
+Jika architecture repository memiliki policy yang berbeda mengenai urutan persistence vs revoke:
+
+- ikuti policy yang sudah ada,
+- jangan mengarang transaction semantics.
+
+3. PROVISIONING COMPENSATION
+
+Audit `bot-service.create`.
+
+Kasus:
+
+provision credential BERHASIL
+→ persistence BotInstallation GAGAL
+
+Tambahkan compensation menggunakan existing revoke boundary jika memang didukung.
+
+Flow yang diharapkan:
+
+validate authorization
+→ provision credential
+→ persist installation
+→ success
+
+Jika persistence gagal:
+
+→ attempt revoke(provisioned secret_ref)
+→ return safe failure
+
+Rules:
+
+- jangan retry tanpa policy,
+- jangan membuat background queue,
+- jangan membuat distributed transaction,
+- jangan membuat fake rollback,
+- jangan menyimpan raw credential untuk retry,
+- jangan membocorkan secret_ref pada error.
+
+Jika revoke compensation gagal:
+
+- jangan menyamarkan kegagalan,
+- hasil utama tetap failure,
+- log hanya safe metadata/error category yang tidak mengandung secret,
+- jika repository sudah memiliki mechanism untuk marking cleanup-required, gunakan mechanism tersebut,
+- jangan membuat state/table baru secara speculative.
+
+4. DELETE FAILURE SEMANTICS
+
+Tentukan behavior berdasarkan contract existing.
+
+Kasus:
+
+A. Secret revoke berhasil
+B. BotInstallation delete berhasil
+
+→ SUCCESS.
+
+Kasus:
+
+A. Secret revoke gagal
+B. BotInstallation masih ada
+
+→ jangan menghapus installation secara diam-diam jika policy membutuhkan revoke terlebih dahulu.
+→ return safe error.
+
+Kasus:
+
+A. BotInstallation sudah tidak ditemukan
+
+→ gunakan not-found/idempotent behavior sesuai repository contract yang sudah ada.
+→ jangan mencoba revoke tanpa secret reference yang valid.
+
+Kasus:
+
+A. revoke berhasil
+B. persistence delete gagal
+
+→ jangan membuat fake rollback/re-provision kecuali architecture memang sudah mendukungnya.
+→ laporkan persistence failure secara aman.
+→ audit apakah operasi delete dapat dibuat idempotent pada retry berikutnya.
+
+JANGAN mengarang distributed transaction.
+
+5. SECURITY
+
+Pastikan:
+
+- raw credential tidak pernah disimpan di BotInstallation,
+- raw credential tidak pernah masuk log,
+- raw credential tidak pernah masuk error,
+- raw credential tidak pernah masuk response,
+- secret_ref hanya internal,
+- workspace authorization tetap berlaku,
+- operator tidak dapat revoke credential workspace lain,
+- revoke hanya dapat dilakukan terhadap installation yang authorized,
+- tidak ada credential hardcoded.
+
+6. TEST WAJIB
+
+Tambahkan test nyata untuk:
+
+CREATE:
+
+- provisioning berhasil + persistence berhasil → installation tersimpan.
+- provisioning gagal → installation tidak dibuat.
+- provisioning berhasil + persistence gagal → revoke compensation dipanggil.
+- revoke compensation failure → error tetap aman dan tidak membocorkan secret.
+
+DELETE:
+
+- valid installation → revoke dipanggil.
+- revoke berhasil → installation dihapus.
+- revoke gagal → behavior sesuai contract/policy dan installation tidak hilang diam-diam.
+- installation tidak ditemukan → behavior sesuai existing contract.
+- cross-workspace delete ditolak.
+- operator unauthorized tidak dapat memicu revoke.
+
+SECURITY:
+
+- raw credential tidak muncul pada response,
+- raw credential tidak muncul pada error,
+- raw credential tidak muncul pada logs/test output,
+- secret_ref tidak diekspos ke client.
+
+Gunakan fake/injected credential boundary yang merepresentasikan contract nyata.
+
+Jangan membuat mock yang tidak sesuai contract hanya agar test PASS.
+
+7. ACCOUNT-SESSION FLOW
+
+JANGAN mengerjakan:
+
+- client/session files,
+- MFA,
+- account rotation,
+- account-session credential lifecycle.
+
+Tetap:
+
+`PENDING — ADR-011 §4 account-session scope`
+
+B-059 hanya untuk BotInstallation credential provisioning/revocation.
+
+8. PRODUCTION TELEGRAM
+
+JANGAN mengerjakan:
+
+- Telegram polling,
+- webhook runtime,
+- multi-bot multiplexing,
+- distributed lock,
+- retry/DLQ,
+- outbox/event system.
+
+Semua tetap deferred.
+
+9. PRODUCTION MODULE DEFINITIONS
+
+JANGAN mengaktifkan module speculative.
+
+Jangan mengubah `main.ts` untuk mendaftarkan module pertama hanya demi menghilangkan deferred item.
+
+10. POSTGRESQL / MINIO
+
+Jangan membuat integration environment palsu.
+
+Jika:
+
+`PERSISTENCE_TEST_DATABASE_URL`
+
+tersedia, jalankan integration test yang memang tersedia.
+
+Jika tidak:
+
+`SKIPPED — PERSISTENCE_TEST_DATABASE_URL unavailable`
+
+Jika MinIO/S3 environment tersedia, jalankan smoke test yang memang tersedia.
+
+Jika tidak:
+
+`SKIPPED — MinIO/S3 test environment unavailable`
+
+Jangan membuat credential palsu production.
+
+11. VALIDATION
+
+Jalankan:
+
+- pnpm test
+- pnpm build
+- pnpm typecheck
+- pnpm lint
+- pnpm format:check
+- node scripts/check-imports.mjs
+- node scripts/check-ownership.mjs
+- node scripts/check-doc-links.mjs
+- git diff --check
+
+Jangan menjalankan atau membuat:
+
+`node scripts/check-symlinks.mjs`
+
+jika file tersebut memang tidak tersedia.
+
+Jika repository menyediakan test tertentu untuk SecretProvisioner/revocation, jalankan test tersebut.
+
+Jangan menjalankan integration test Gorouter.app.
+
+NVIDIA dan TokenHarbor tidak perlu disentuh kecuali perubahan memang secara langsung memengaruhi common code.
+
+12. REVIEW DIFF
+
+Sebelum commit:
+
+1. git status
+2. git diff --stat
+3. review seluruh diff.
+
+Pastikan tidak ada:
+
+- secret,
+- credential,
+- token,
+- temporary file,
+- unrelated refactor,
+- schema speculative,
+- dependency eksternal yang tidak diperlukan,
+- perubahan Gorouter,
+- perubahan provider NVIDIA/TokenHarbor,
+- perubahan B-071 yang tidak diperlukan.
+
+13. COMMIT + PUSH
+
+Jika implementation valid dan validation selesai:
+
+buat SATU commit.
+
+Commit message:
+
+`feat: add bot credential revocation`
+
+atau gunakan message yang lebih tepat berdasarkan perubahan aktual.
+
+Kemudian:
+
+`git push origin backend-dev-recovery`
+
+Verifikasi:
+
+- local SHA,
+- remote SHA,
+- working tree CLEAN.
+
+Jika push gagal:
+
+- jangan mengubah Git credential sembarangan,
+- jangan menghapus commit,
+- tampilkan error,
+- pastikan commit tetap aman lokal.
+
+Jika tidak ada perubahan valid:
+
+- jangan membuat empty commit.
+
+14. OUTPUT AKHIR
+
+Tampilkan:
+
+### B-059
+- existing revoke boundary:
+- create compensation:
+- delete revoke:
+- failure semantics:
+- workspace authorization:
+
+### Security
+- raw credential persistence:
+- raw credential logging:
+- secret_ref exposure:
+
+### Testing
+- create success:
+- create provisioning failure:
+- create persistence failure:
+- compensation failure:
+- delete success:
+- delete revoke failure:
+- authorization:
+- secret leakage:
+
+### Validation
+- test:
+- build:
+- typecheck:
+- lint:
+- format:
+- imports:
+- ownership:
+- docs:
+- diff:
+- symlink check:
+
+### Git
+- commit SHA:
+- push:
+- local/remote SHA:
+- working tree:
+
+### Remaining Deferred
+Tampilkan hanya dependency yang benar-benar masih blocked.
+
+### Next Roadmap
+Tentukan berdasarkan dependency nyata repository setelah B-059 selesai.
+
+PENTING:
+- Jangan mengulang B-058.
+- Jangan membuat credential abstraction kedua.
+- Jangan membuat fake rollback.
+- Jangan membuat distributed transaction.
+- Jangan membuat queue/background cleanup.
+- Jangan mengerjakan account-session credential flow.
+- Jangan mengerjakan Telegram runtime.
+- Jangan mengerjakan production module activation.
+- Jangan mengubah BotInstallation.status.
+- Jangan membuat schema baru kecuali contract existing benar-benar membutuhkan.
+- Jangan menyentuh Gorouter.app.
+- Kerjakan langsung pada `/root/botspace`.
 
 ```
 # Prompt: B-058 — Bot Credential Provisioning
