@@ -345,7 +345,75 @@
 # 
 ```
 
+# Prompt: ADR-011 — Resolve External Connector Candidate
 
+Lanjutkan dari kondisi repository saat ini.
+
+Kondisi:
+- HEAD tetap 4059728.
+- Working tree CLEAN.
+- ADR-011 §4 masih menunggu keputusan mekanisme authentication.
+- Decision matrix sudah dibuat.
+- D1 = External connector merupakan opsi yang secara arsitektur paling kecil.
+- Owner belum menetapkan vendor/provider external connector.
+
+JANGAN mengubah source code.
+JANGAN commit.
+JANGAN push.
+JANGAN memilih vendor atas nama owner.
+
+Sekarang lakukan audit repository untuk menentukan external connector candidate yang benar-benar kompatibel dengan architecture saat ini.
+
+Audit:
+- ProviderSessionDriver
+- account/session contract
+- SecretResolver/SecretProvisioner
+- existing provider/library dependencies
+- configuration
+- package.json/pnpm lock
+- existing adapter/connector abstraction
+- ADR-011
+- ADR-010
+- dokumentasi deployment/provider.
+
+Cari hanya connector/provider yang:
+1. benar-benar sudah tersedia di repository/dependency;
+2. dapat menyediakan account/session credential;
+3. dapat bekerja melalui ProviderSessionDriver;
+4. kompatibel dengan SecretResolver;
+5. tidak membutuhkan perubahan besar pada architecture.
+
+Jangan menambahkan dependency baru.
+
+OUTPUT:
+
+### External Connector Candidates
+
+Buat tabel:
+
+| Candidate | Existing dependency | Authentication flow | Session material | MFA | Rotation | Revoke | Server-side | Compatibility | Additional dependency |
+|---|---|---|---|---|---|---|---|---|---|
+
+### Recommended Candidate
+
+Jika ada candidate yang jelas paling kompatibel, tandai sebagai:
+
+`CANDIDATE — OWNER DECISION REQUIRED`
+
+Jangan memilihnya sebagai keputusan final.
+
+Jika TIDAK ada external connector yang sudah tersedia:
+- nyatakan dengan jelas bahwa D1 belum dapat diimplementasikan tanpa keputusan/dependency eksternal.
+
+### Owner Decision
+
+Berikan hanya keputusan minimum yang harus dibuat owner.
+
+### Implementation After Approval
+
+Jelaskan task B berikutnya setelah owner memilih candidate.
+
+Tidak boleh ada perubahan repository.
 
 ```
 # Prompt berikutnya — ADR-011 Decision Matrix
