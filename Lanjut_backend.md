@@ -360,10 +360,242 @@
 
 
 ```
-# 
+# Prompt: B-005 Governance Path Cleanup
 ```
 
+Lanjutkan project BotSpace dari kondisi repository saat ini.
 
+KONDISI TERAKHIR
+
+- B-030 Workspace API/Contract SUDAH selesai.
+- B-070 Storage Adapter SUDAH selesai.
+- B-071 File/Share contract SUDAH selesai.
+- B-071 File/Share API SUDAH selesai.
+- Production wiring B-071 SUDAH selesai.
+- B-060 Secret revocation SUDAH selesai.
+- B-061 Credential provisioning SUDAH selesai.
+- Local SHA dan remote SHA SUDAH sama.
+- Working tree CLEAN.
+- Branch aktif: backend-dev-recovery.
+
+AUDIT TERAKHIR MENUNJUKKAN:
+
+Remaining deferred:
+- ADR-010 managed secret-manager vendor selection.
+- ADR-011 Telegram account/session credential mechanism.
+- Approved JobEnvelope/queue/retry/DLQ + scheduler contract.
+- Billing/monitoring/marketplace/AI requirements.
+- PostgreSQL integration membutuhkan PERSISTENCE_TEST_DATABASE_URL.
+- MinIO/S3 smoke environment belum tersedia.
+- Staging/release/backup infrastructure masih deferred.
+
+ROADMAP TERBARU:
+
+B-005 = READY.
+
+B-005 berhubungan dengan resolusi governance path:
+`modules/` harus mengikuti folder/module governance yang benar, sementara `modules/core` saat ini sudah disinkronkan secara dokumentasi tetapi belum sepenuhnya konsisten.
+
+Semua feature lain yang membutuhkan vendor/contract eksternal JANGAN dikerjakan sekarang.
+
+TUJUAN
+
+Kerjakan HANYA B-005.
+
+LANGKAH 1 — AUDIT
+
+1. Baca roadmap/task registry untuk B-005.
+2. Audit struktur:
+   - `modules/`
+   - `modules/core/`
+   - docs/ownership/governance
+   - import path
+   - package/module boundary
+   - build/typecheck configuration.
+3. Tentukan dengan pasti apa yang dimaksud B-005 berdasarkan repository.
+4. Jangan menebak struktur yang tidak ada.
+5. Jangan mengubah architecture hanya berdasarkan asumsi.
+
+LANGKAH 2 — GOVERNANCE PATH
+
+Jika B-005 memang membutuhkan penyelarasan path/module governance:
+
+- gunakan struktur folder yang sudah menjadi source of truth repository,
+- perbaiki path/import yang benar-benar terdampak,
+- pastikan tidak ada duplicate module implementation,
+- pastikan `modules/core` dan path canonical repository konsisten,
+- jangan membuat abstraction baru,
+- jangan memindahkan file secara massal jika tidak diperlukan.
+
+Perhatikan khusus:
+- relative imports,
+- package imports,
+- tsconfig paths,
+- build configuration,
+- test imports,
+- scripts,
+- documentation references,
+- ownership rules.
+
+Jangan mengubah behavior runtime kecuali perubahan path memang mengharuskannya.
+
+LANGKAH 3 — SAFETY
+
+JANGAN menyentuh:
+
+- B-030 implementation,
+- B-070 implementation,
+- B-071 contract/API,
+- SecretResolver vendor selection,
+- Telegram authentication/session/MFA,
+- Telegram polling/webhook,
+- JobEnvelope/queue/retry/DLQ,
+- billing,
+- monitoring,
+- marketplace,
+- AI requirements,
+- PostgreSQL schema,
+- MinIO infrastructure,
+- share expiry,
+- public-share rate limiting,
+- public-share audit event.
+
+Jangan memilih vendor eksternal.
+
+Jangan membuat fitur baru.
+
+Jangan membuat migration baru.
+
+Jangan mengubah BotInstallation.status.
+
+Jangan menyentuh Gorouter.app.
+
+NVIDIA dan TokenHarbor tidak perlu disentuh.
+
+LANGKAH 4 — VALIDATION
+
+Setelah perubahan B-005:
+
+- pnpm test
+- pnpm build
+- pnpm typecheck
+- pnpm lint
+- pnpm format:check
+- node scripts/check-imports.mjs
+- node scripts/check-ownership.mjs
+- node scripts/check-doc-links.mjs
+- git diff --check
+
+Untuk:
+
+`node scripts/check-symlinks.mjs`
+
+JANGAN membuat script tersebut jika memang tidak tersedia.
+
+Jika unavailable, laporkan:
+
+`SKIPPED — scripts/check-symlinks.mjs unavailable`
+
+Jangan menjalankan Gorouter.app integration test.
+
+LANGKAH 5 — REVIEW
+
+Sebelum commit:
+
+1. git status
+2. git diff --stat
+3. review seluruh diff
+4. pastikan perubahan hanya B-005
+5. pastikan tidak ada:
+   - secret,
+   - credential,
+   - generated files,
+   - temporary files,
+   - unrelated refactor,
+   - perubahan provider,
+   - perubahan feature lain.
+
+Jika B-005 ternyata sudah sepenuhnya benar dan tidak membutuhkan perubahan:
+
+- jangan membuat empty commit,
+- laporkan bahwa B-005 sudah compliant.
+
+LANGKAH 6 — COMMIT + PUSH
+
+Jika ada perubahan valid:
+
+Buat SATU commit dengan message yang sesuai, misalnya:
+
+`chore: align module governance paths`
+
+Gunakan message yang lebih tepat jika audit menemukan scope berbeda.
+
+Setelah commit:
+
+git push origin backend-dev-recovery
+
+Verifikasi:
+
+- local HEAD SHA,
+- remote SHA,
+- working tree CLEAN.
+
+Jika push gagal:
+
+- jangan mengubah credential Git,
+- jangan menghapus commit,
+- tampilkan error,
+- pertahankan commit lokal.
+
+OUTPUT AKHIR
+
+### B-005 Audit
+- status sebelum:
+- masalah yang ditemukan:
+- governance path:
+- modules/core:
+- docs/ownership:
+
+### Implementation
+- files changed:
+- perubahan:
+- runtime impact:
+
+### Validation
+- test:
+- build:
+- typecheck:
+- lint:
+- format:
+- imports:
+- ownership:
+- docs:
+- diff check:
+- symlink check:
+
+### Git
+- commit SHA:
+- push status:
+- local/remote SHA:
+- working tree:
+
+### Remaining Deferred
+Hanya tampilkan dependency yang benar-benar masih blocked oleh:
+- vendor decision,
+- approved contract,
+- environment,
+- infrastructure.
+
+### Next Roadmap
+Setelah B-005, audit kembali roadmap dan pilih task READY berikutnya berdasarkan dependency nyata.
+
+PENTING:
+- Jangan mengarang task ID.
+- Jangan mengerjakan B-061+.
+- Jangan memilih vendor Telegram.
+- Jangan membuat feature acak.
+- Jangan membuat empty commit.
+- Kerjakan langsung pada `/root/botspace`.
 
 ```
 # Prompt: BotSpace — Select Next Unblocked Roadmap Task
