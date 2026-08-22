@@ -432,9 +432,689 @@
 
 
 ```
-# 
+# Prompt: B-052 — Enable/Disable Module Use-Case + API Contract
 ```
+Lanjutkan project BotSpace dari kondisi repository SAAT INI:
 
+/root/botspace
+
+Branch:
+backend-dev-recovery
+
+==================================================
+KONDISI TERAKHIR
+==================================================
+
+B-030 — Workspace API/Contract:
+SELESAI.
+
+B-070 — Storage Adapter:
+SELESAI.
+
+B-071 — File/Share:
+SELESAI.
+
+B-040 s/d B-050 — worker/runtime foundation:
+SELESAI.
+
+B-051 — Enabled-module persistence adapter:
+SELESAI.
+
+B-051 sudah menyediakan persistence path nyata untuk enabled
+modules dan PostgreSQL adapter.
+
+Validation terakhir berhasil:
+- Unit: PASS
+- Build: PASS
+- Typecheck: PASS
+- Lint: PASS
+- Format: PASS
+- Imports: PASS
+- Ownership: PASS
+- Docs: PASS
+- Diff: PASS
+- Working tree: CLEAN
+- Commit/push berhasil.
+
+==================================================
+TARGET SEKARANG
+==================================================
+
+Implementasikan:
+
+B-052 — enable/disable module use-case + contract (API side).
+
+B-051 sudah menyediakan persistence read/write foundation
+yang diperlukan.
+
+Sekarang lengkapi lifecycle enable/disable dari sisi
+application/use-case dan API contract.
+
+Target architecture:
+
+API / route
+    ↓
+Enable/Disable Module Use-Case
+    ↓
+EnabledModuleRepository
+    ↓
+PostgreSQL Adapter
+    ↓
+enabled-module persistence
+
+Serta:
+
+Module Runtime
+    ↓
+listEnabled / enabled-module state
+    ↓
+Module Registry / Composition
+
+==================================================
+ATURAN KERAS
+==================================================
+
+JANGAN mengulang:
+
+- B-030
+- B-070
+- B-071
+- B-040
+- B-041
+- B-042
+- B-043
+- B-044
+- B-045
+- B-046
+- B-047
+- B-048
+- B-049
+- B-050
+- B-051
+
+Jangan membuat persistence abstraction kedua.
+
+Jangan membuat EnabledModuleRepository kedua.
+
+Jangan membuat ModuleRuntime kedua.
+
+Jangan membuat module registry kedua.
+
+Jangan membuat API contract yang menduplikasi contract existing.
+
+Jangan membuat schema speculative.
+
+Jangan membuat migration baru jika schema B-051 sudah cukup.
+
+Jangan mengubah persistence model tanpa alasan nyata.
+
+Jangan implementasikan product module definitions pada tahap ini
+kecuali repository memang sudah memiliki module-definition contract
+yang wajib digunakan oleh B-052.
+
+Jangan implementasikan real Telegram integration.
+
+Jangan implementasikan polling/webhook.
+
+Jangan implementasikan managed secret-manager ADR-010.
+
+Jangan implementasikan distributed lock.
+
+Jangan implementasikan retry/DLQ.
+
+Jangan implementasikan event/outbox.
+
+Jangan implementasikan multi-bot multiplexing.
+
+Jangan menyentuh Gorouter.app.
+
+NVIDIA dan TokenHarbor tidak perlu disentuh.
+
+==================================================
+BAGIAN 1 — AUDIT EXISTING CONTRACT
+==================================================
+
+Audit terlebih dahulu:
+
+- enabled-module persistence contract dari B-051,
+- PostgreSQL enabled-module adapter,
+- module runtime,
+- module registry,
+- module context,
+- workspace authorization,
+- existing API architecture,
+- existing route/use-case/service pattern,
+- composition root,
+- existing error semantics,
+- existing request/response conventions.
+
+Cari secara spesifik:
+
+1. Contract repository enabled-module.
+2. Method yang sudah tersedia.
+3. Apakah write operation sudah tersedia.
+4. Apakah write operation perlu diperluas atau sebenarnya sudah
+   cukup dan hanya belum dipakai oleh use-case.
+5. Bagaimana workspace identity diteruskan ke application layer.
+6. Bagaimana authorization dilakukan oleh API existing.
+7. Bagaimana use-case/service existing melakukan validation.
+8. Bagaimana route existing memetakan error menjadi HTTP response.
+9. Bagaimana module identifier divalidasi.
+10. Bagaimana module runtime membaca enabled state.
+
+JANGAN coding sebelum dependency existing dipahami.
+
+==================================================
+BAGIAN 2 — ENABLE/DISABLE USE-CASE
+==================================================
+
+Implementasikan application use-case untuk:
+
+- enable module,
+- disable module.
+
+Gunakan repository contract B-051.
+
+Use-case harus:
+
+1. menerima workspace/installation context sesuai boundary
+   repository existing,
+2. memvalidasi module identifier menggunakan rule existing,
+3. memastikan module memang dikenal oleh module registry/definition
+   yang tersedia,
+4. memeriksa authorization sesuai workspace boundary,
+5. menyimpan enabled state melalui repository,
+6. disable module melalui repository,
+7. menghasilkan result/error yang konsisten dengan application
+   architecture.
+
+Jangan memasukkan SQL ke use-case.
+
+Jangan memasukkan HTTP logic ke use-case.
+
+Jangan memasukkan PostgreSQL dependency langsung ke use-case.
+
+==================================================
+BAGIAN 3 — ENABLE BEHAVIOR
+==================================================
+
+Enable module harus bersifat idempotent jika repository contract
+memang mendukung semantics tersebut.
+
+Contoh:
+
+enable module A
+→ enabled
+
+enable module A lagi
+→ jangan menghasilkan duplicate state.
+
+Gunakan constraint/repository behavior existing.
+
+Jangan membuat duplicate-prevention logic yang bertentangan
+dengan database semantics.
+
+Jika existing contract menetapkan duplicate sebagai error:
+
+→ ikuti contract tersebut.
+
+Jangan mengubah contract hanya agar test menjadi PASS.
+
+==================================================
+BAGIAN 4 — DISABLE BEHAVIOR
+==================================================
+
+Disable module harus benar-benar mengubah state persistence.
+
+Setelah disable:
+
+listEnabled
+→ module tidak lagi dianggap enabled.
+
+Module runtime yang membaca enabled state harus dapat melihat
+state terbaru pada lifecycle berikutnya.
+
+Jangan membuat runtime hot-reload/event system pada tahap ini.
+
+Tidak perlu websocket.
+
+Tidak perlu outbox.
+
+Tidak perlu event bus.
+
+Tidak perlu background worker tambahan.
+
+==================================================
+BAGIAN 5 — MODULE VALIDATION
+==================================================
+
+Sebelum enable:
+
+module identifier harus diverifikasi terhadap module definition/
+registry yang memang sudah tersedia.
+
+Jika module tidak dikenal:
+
+→ reject dengan error application yang sesuai.
+
+Jangan membuat module definition baru hanya untuk membuat
+test enable berhasil.
+
+Jika repository belum mempunyai production module definitions:
+
+→ gunakan registry/contract existing yang memang tersedia.
+
+Jika B-052 membutuhkan module-definition contract yang belum ada:
+
+→ audit terlebih dahulu.
+
+Jika dependency tersebut memang internal dan kecil:
+
+→ implementasikan hanya contract minimum yang benar-benar
+dibutuhkan.
+
+Jika membutuhkan keputusan product/business:
+
+→ tandai deferred.
+
+Jangan menebak module list.
+
+==================================================
+BAGIAN 6 — WORKSPACE / INSTALLATION ISOLATION
+==================================================
+
+WAJIB memastikan isolation.
+
+Workspace A:
+
+enable module X
+
+Workspace B:
+
+tidak boleh melihat module X sebagai enabled.
+
+Test minimal:
+
+1. enable pada workspace A.
+2. query/list workspace A.
+3. query/list workspace B.
+4. pastikan state tidak bocor.
+
+Jika boundary sebenarnya installation-scoped:
+
+gunakan installation identity yang benar.
+
+Jangan mengubah scope hanya demi implementasi lebih mudah.
+
+==================================================
+BAGIAN 7 — API CONTRACT
+==================================================
+
+Tambahkan API-side contract sesuai pola API repository existing.
+
+Minimal behavior:
+
+- enable module,
+- disable module.
+
+Gunakan HTTP semantics existing.
+
+Jangan membuat endpoint baru dengan path arbitrary jika repository
+sudah mempunyai route convention.
+
+Audit route naming terlebih dahulu.
+
+Request minimal harus menggunakan identifier yang memang
+diperlukan oleh contract.
+
+Jangan menambahkan:
+
+- quota,
+- pricing,
+- scheduler,
+- module configuration,
+- secrets,
+- credentials,
+- runtime process state.
+
+Response harus konsisten dengan API conventions existing.
+
+Jangan expose database row mentah jika architecture existing
+menggunakan DTO/application result.
+
+==================================================
+BAGIAN 8 — AUTHORIZATION
+==================================================
+
+Route/use-case harus menghormati workspace authorization.
+
+User/workspace yang tidak memiliki akses:
+
+→ reject.
+
+Jangan mempercayai workspace ID dari request body jika
+authentication/request context existing menyediakan workspace
+identity yang authoritative.
+
+Gunakan identity dari authorization context sesuai architecture.
+
+Jangan memungkinkan:
+
+workspace A user
+→ mengaktifkan module pada workspace B.
+
+==================================================
+BAGIAN 9 — ERROR SEMANTICS
+==================================================
+
+Gunakan error type existing.
+
+Tangani minimal:
+
+- invalid module identifier,
+- unknown module,
+- unauthorized workspace,
+- module already enabled jika contract menganggapnya error,
+- module already disabled jika contract menganggapnya error,
+- persistence failure.
+
+Jangan membuat hierarchy error baru jika repository sudah memiliki
+standard application errors.
+
+Error response tidak boleh membocorkan:
+
+- SQL,
+- database URL,
+- credentials,
+- secrets,
+- internal stack trace.
+
+==================================================
+BAGIAN 10 — COMPOSITION ROOT
+==================================================
+
+Wire use-case ke composition root existing.
+
+Target:
+
+API
+ ↓
+UseCase
+ ↓
+EnabledModuleRepository
+ ↓
+PostgreSQL Adapter
+
+Pastikan production composition menggunakan dependency nyata.
+
+Test composition boleh menggunakan fake repository.
+
+Jangan membuat global singleton tersembunyi.
+
+Jangan bypass dependency injection.
+
+==================================================
+BAGIAN 11 — RUNTIME COMPATIBILITY
+==================================================
+
+Pastikan B-052 tidak merusak B-050.
+
+Module runtime tetap membaca enabled-module state melalui
+dependency yang sudah ada.
+
+Jangan membuat runtime baru.
+
+Jangan menambahkan hot reload.
+
+Jangan menambahkan event-driven synchronization.
+
+Jangan mengubah lifecycle worker.
+
+B-052 hanya menyediakan persistence-backed control path.
+
+==================================================
+BAGIAN 12 — TEST
+==================================================
+
+Tambahkan test yang benar-benar memverifikasi:
+
+### Use-case
+
+1. enable module berhasil.
+2. disable module berhasil.
+3. enable module unknown ditolak.
+4. invalid module identifier ditolak.
+5. persistence failure diteruskan secara aman.
+6. duplicate behavior sesuai contract.
+7. disabled state benar-benar tersimpan.
+
+### Authorization
+
+8. workspace A dapat enable module miliknya.
+9. workspace B tidak dapat mengubah state workspace A.
+10. cross-workspace lookup tidak bocor.
+
+### API
+
+11. request validation.
+12. authorization.
+13. success response.
+14. invalid module response.
+15. persistence failure response.
+16. error mapping sesuai convention existing.
+
+### Runtime compatibility
+
+17. listEnabled setelah enable mengembalikan module.
+18. listEnabled setelah disable tidak mengembalikan module.
+19. module runtime tetap menggunakan repository injection existing.
+
+Jangan membuat fake schema hanya agar test PASS.
+
+==================================================
+BAGIAN 13 — POSTGRESQL INTEGRATION
+==================================================
+
+Jika environment menyediakan:
+
+PERSISTENCE_TEST_DATABASE_URL
+
+jalankan integration test B-051/B-052 yang relevan.
+
+Verifikasi:
+
+- enable,
+- disable,
+- list,
+- isolation,
+- duplicate behavior,
+- persistence consistency.
+
+Jika environment tidak tersedia:
+
+SKIPPED — PERSISTENCE_TEST_DATABASE_URL unavailable
+
+Jangan:
+
+- membuat PostgreSQL palsu,
+- menggunakan SQLite,
+- membuat database sementara tanpa dasar,
+- mengubah test agar PASS.
+
+==================================================
+BAGIAN 14 — SECURITY REVIEW
+==================================================
+
+Review:
+
+- authorization context,
+- workspace isolation,
+- module identifier validation,
+- SQL parameterization,
+- error sanitization,
+- logging.
+
+Pastikan tidak ada:
+
+- secret di log,
+- credential di response,
+- SQL injection,
+- cross-workspace mutation,
+- raw database error ke client.
+
+==================================================
+BAGIAN 15 — VALIDATION
+==================================================
+
+Jalankan:
+
+pnpm test
+pnpm build
+pnpm typecheck
+pnpm lint
+pnpm format:check
+
+Kemudian:
+
+node scripts/check-imports.mjs
+node scripts/check-ownership.mjs
+node scripts/check-doc-links.mjs
+git diff --check
+
+Untuk:
+
+node scripts/check-symlinks.mjs
+
+JANGAN membuat script tersebut.
+
+Jika tidak tersedia:
+
+SKIPPED — scripts/check-symlinks.mjs unavailable
+
+Jika PostgreSQL environment tidak tersedia:
+
+SKIPPED — PERSISTENCE_TEST_DATABASE_URL unavailable
+
+Jangan menyamarkan SKIPPED sebagai PASS.
+
+==================================================
+BAGIAN 16 — DIFF REVIEW
+==================================================
+
+Sebelum commit:
+
+git status
+git diff --stat
+git diff
+
+Pastikan perubahan hanya berkaitan dengan:
+
+- B-052 enable/disable use-case,
+- API contract/route,
+- repository wiring bila diperlukan,
+- tests,
+- dokumentasi yang relevan.
+
+Hapus:
+
+- debug code,
+- temporary files,
+- generated files,
+- unrelated refactor.
+
+==================================================
+BAGIAN 17 — COMMIT
+==================================================
+
+Jika implementasi valid dan validation selesai:
+
+buat SATU commit.
+
+Gunakan:
+
+feat: add module enable disable use-case
+
+atau commit message yang lebih tepat berdasarkan perubahan
+aktual.
+
+Jangan membuat empty commit.
+
+==================================================
+BAGIAN 18 — PUSH
+==================================================
+
+Setelah commit:
+
+git push origin backend-dev-recovery
+
+Kemudian verifikasi:
+
+git rev-parse HEAD
+
+dan remote SHA.
+
+Target:
+
+local SHA == remote SHA
+working tree == CLEAN
+
+Jika push gagal:
+
+- jangan reset,
+- jangan menghapus commit,
+- jangan mengubah credential GitHub sembarangan,
+- tampilkan error dengan jelas.
+
+==================================================
+FINAL OUTPUT
+==================================================
+
+### B-052 STATUS
+
+Use-case:
+Enable:
+Disable:
+API Contract:
+Authorization:
+Workspace Isolation:
+Runtime Compatibility:
+
+### TEST
+
+Unit:
+API:
+Integration:
+Build:
+Typecheck:
+Lint:
+Format:
+Imports:
+Ownership:
+Docs:
+Diff:
+
+### GIT
+
+Commit:
+Push:
+Local SHA:
+Remote SHA:
+Working tree:
+
+### REMAINING DEFERRED
+
+Hanya tampilkan dependency yang benar-benar masih belum tersedia.
+
+### NEXT ROADMAP
+
+Tentukan task berikutnya berdasarkan dependency nyata
+repository.
+
+Jangan membuat fitur acak.
+
+Kerjakan langsung pada:
+
+/root/botspace
 
 
 ```
