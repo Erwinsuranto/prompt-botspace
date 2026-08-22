@@ -408,10 +408,753 @@
 
 
 ```
-# 
+# Prompt: B-056 — Bot Installation Lifecycle UI
 ```
 
+Lanjutkan project BotSpace dari kondisi repository SAAT INI:
 
+/root/botspace
+
+Branch:
+backend-dev-recovery
+
+==================================================
+STATUS TERAKHIR
+==================================================
+
+B-030 Workspace API/Contract:
+SELESAI.
+
+B-070 Storage Adapter:
+SELESAI.
+
+B-071 File/Share contract:
+SELESAI.
+
+B-071 File/Share API:
+SELESAI.
+
+B-071 Production wiring:
+SELESAI.
+
+B-052 Module enable/disable use-case + API:
+SELESAI.
+
+B-053 API client + contract surfacing:
+SELESAI.
+
+B-054 Module Management UI:
+SELESAI.
+
+B-055 Bot Installation Listing Surfacing:
+SELESAI.
+
+Working tree terakhir:
+CLEAN.
+
+Branch:
+backend-dev-recovery.
+
+Jangan mengulang pekerjaan yang sudah selesai.
+
+==================================================
+TUJUAN B-056
+==================================================
+
+Implementasikan:
+
+B-056 — Bot Installation Lifecycle UI
+
+Tujuan utama:
+
+Melengkapi lifecycle Bot Installation dari UI sampai
+application/API layer:
+
+CREATE
+  ↓
+LIST
+  ↓
+SELECT
+  ↓
+ENABLE / DISABLE
+  ↓
+DELETE
+
+Audit terakhir menemukan:
+
+BotInstallationService SUDAH tersedia.
+
+Permission/use-case untuk lifecycle berikut SUDAH tersedia
+di service/domain:
+
+- create/bot
+- status/bot
+- delete/bot
+
+Namun:
+
+- route mutation belum seluruhnya diregister,
+- API client belum memiliki method mutation lengkap,
+- UI belum memiliki lifecycle management lengkap.
+
+B-056 harus menutup gap tersebut.
+
+==================================================
+BAGIAN 1 — AUDIT WAJIB
+==================================================
+
+Sebelum coding, audit repository terlebih dahulu.
+
+Cari dan pahami:
+
+- BotInstallation entity/model
+- BotInstallationService
+- createBot
+- get/list Bot Installation
+- enableBot
+- disableBot
+- deleteBot
+- permission/authorization
+- existing API routes
+- existing route registration
+- API DTO/contract
+- apps/web API client
+- B-055 Bot Installation selector
+- B-054 Module Management UI
+- workspace context
+- authentication
+- existing modal/dialog components
+- existing confirmation dialog
+- existing toast/error pattern
+- existing loading/mutation pattern.
+
+PENTING:
+
+Gunakan implementation yang SUDAH ADA.
+
+Jangan membuat service kedua.
+
+Jangan membuat repository kedua.
+
+Jangan membuat authorization system baru.
+
+Jangan membuat API client kedua.
+
+==================================================
+BAGIAN 2 — CREATE BOT INSTALLATION API
+==================================================
+
+Audit apakah createBot sudah memiliki application/use-case
+dan contract yang benar.
+
+Jika sudah tersedia:
+
+Expose melalui API route menggunakan convention repository.
+
+Jangan mengarang route path.
+
+Ikuti naming/routing convention existing.
+
+Request harus menggunakan workspace context yang authenticated.
+
+Jangan mempercayai workspace ID dari client tanpa authorization
+existing.
+
+Response harus menggunakan DTO/shape yang sesuai contract.
+
+Jangan mengembalikan:
+
+- bot token,
+- secret,
+- credential,
+- API key,
+- private configuration.
+
+Jika createBot membutuhkan credential/token:
+
+gunakan boundary yang memang sudah ada.
+
+Jangan hardcode credential.
+
+==================================================
+BAGIAN 3 — ENABLE / DISABLE API
+==================================================
+
+Register route untuk mutation:
+
+- enable bot installation
+- disable bot installation
+
+Gunakan existing service/use-case.
+
+Jangan membuat business logic baru di route.
+
+Route hanya menangani:
+
+- authentication,
+- authorization boundary,
+- input validation,
+- service invocation,
+- response mapping,
+- error mapping.
+
+Pastikan mutation hanya berlaku untuk Bot Installation
+yang dimiliki workspace tersebut.
+
+Cross-workspace mutation HARUS ditolak.
+
+==================================================
+BAGIAN 4 — DELETE API
+==================================================
+
+Expose delete Bot Installation melalui API jika service
+dan contract existing memang sudah mendukungnya.
+
+Requirements:
+
+- authenticated,
+- workspace scoped,
+- authorization enforced,
+- hanya owner/authorized workspace yang dapat menghapus,
+- response/error mengikuti convention repository.
+
+Jangan menghapus Bot Installation workspace lain hanya
+karena ID diketahui.
+
+Jangan melakukan hard delete terhadap data lain yang tidak
+termasuk scope use-case.
+
+Jangan membuat cascading delete speculative.
+
+==================================================
+BAGIAN 5 — ROUTE REGISTRATION
+==================================================
+
+Audit route registry/application composition.
+
+Pastikan route baru benar-benar DIREGISTER.
+
+Jangan hanya membuat file route tetapi lupa memasukkannya
+ke router.
+
+Verifikasi seluruh lifecycle:
+
+CREATE
+LIST
+ENABLE
+DISABLE
+DELETE
+
+dapat ditemukan oleh application router.
+
+==================================================
+BAGIAN 6 — API CLIENT
+==================================================
+
+Update typed API client yang sudah digunakan B-053/B-055.
+
+Tambahkan method:
+
+- listBotInstallations
+- createBotInstallation
+- enableBotInstallation
+- disableBotInstallation
+- deleteBotInstallation
+
+Jika sebagian method sudah ada:
+
+JANGAN membuat duplicate.
+
+Gunakan implementation existing.
+
+Jangan melakukan raw fetch langsung dari React component.
+
+Jangan membuat API client baru.
+
+==================================================
+BAGIAN 7 — UI BOT INSTALLATION MANAGEMENT
+==================================================
+
+Update `apps/web`.
+
+B-055 sudah menyediakan listing/selector.
+
+Sekarang tambahkan lifecycle management UI.
+
+UX minimal:
+
+Bot Installations
+
+[ + Add Bot ]
+
+Bot Installation list:
+
+[ Bot A ]     Enabled
+             [Disable] [Delete]
+
+[ Bot B ]     Disabled
+             [Enable] [Delete]
+
+User dapat:
+
+1. membuat Bot Installation,
+2. melihat daftar,
+3. memilih bot,
+4. enable,
+5. disable,
+6. delete.
+
+Gunakan component/design system existing.
+
+Jangan redesign seluruh dashboard.
+
+==================================================
+BAGIAN 8 — CREATE UI
+==================================================
+
+Tambahkan modal/dialog/page sesuai pattern UI existing.
+
+Form hanya meminta field yang memang diperlukan oleh
+existing createBot contract.
+
+Jangan membuat field tambahan berdasarkan asumsi.
+
+Jika createBot membutuhkan:
+
+- bot name,
+- bot identifier,
+- credential,
+- atau field lain,
+
+gunakan contract yang sebenarnya.
+
+Jangan menampilkan secret setelah submission jika contract
+tidak mengharuskannya.
+
+Jika credential bersifat secret:
+
+- input harus appropriate,
+- jangan log value,
+- jangan menyimpan di browser state lebih lama dari yang diperlukan,
+- jangan memasukkannya ke error message.
+
+==================================================
+BAGIAN 9 — ENABLE / DISABLE UX
+==================================================
+
+Enable/disable harus memiliki:
+
+- loading state,
+- success state,
+- error state.
+
+Saat mutation berlangsung:
+
+- cegah double submission,
+- jangan menjalankan mutation kedua secara tidak sengaja.
+
+Setelah berhasil:
+
+- refresh/update Bot Installation state,
+- selector B-055 ikut berubah,
+- Module Management B-054 menggunakan state terbaru.
+
+Jangan membutuhkan reload browser penuh jika architecture
+existing mendukung update state langsung.
+
+==================================================
+BAGIAN 10 — DELETE UX
+==================================================
+
+Delete adalah destructive action.
+
+Gunakan confirmation dialog existing.
+
+Contoh:
+
+Delete this bot installation?
+
+[Cancel] [Delete]
+
+Jangan delete langsung ketika user menekan tombol tanpa
+confirmation jika design system sudah menyediakan
+confirmation pattern.
+
+Setelah delete berhasil:
+
+- hapus item dari list,
+- reset selected Bot Installation jika yang dihapus sedang
+  dipilih,
+- jangan mempertahankan Bot Installation ID yang sudah
+  tidak valid,
+- Module Management harus masuk ke empty state atau
+  memilih bot valid berikutnya sesuai UX existing.
+
+==================================================
+BAGIAN 11 — EMPTY STATE
+==================================================
+
+Jika workspace tidak memiliki Bot Installation:
+
+Tampilkan empty state yang jelas.
+
+Contoh:
+
+No bot installations found.
+
+[ + Add Bot ]
+
+Jangan menampilkan:
+
+- fake bot,
+- hardcoded Bot Installation ID,
+- module list tanpa bot.
+
+==================================================
+BAGIAN 12 — WORKSPACE ISOLATION
+==================================================
+
+Pastikan perubahan workspace menyebabkan:
+
+- list Bot Installation reload,
+- selected Bot Installation di-reset jika tidak valid,
+- module state tidak bocor dari workspace sebelumnya.
+
+Cache/state key harus memperhitungkan workspace.
+
+Jangan sampai:
+
+Workspace A
+Bot A
+Module state A
+
+terbawa ketika user berpindah ke:
+
+Workspace B.
+
+==================================================
+BAGIAN 13 — MODULE MANAGEMENT INTEGRATION
+==================================================
+
+Integrasikan dengan B-054 dan B-055.
+
+Flow akhir harus:
+
+Workspace
+  ↓
+Bot Installations
+  ↓
+Select Bot
+  ↓
+Manage Modules
+
+Jika user:
+
+CREATE bot
+→ bot muncul di list.
+
+ENABLE bot
+→ status berubah.
+
+DISABLE bot
+→ status berubah.
+
+DELETE selected bot
+→ selection reset.
+
+Pilih bot lain
+→ module state bot tersebut dimuat.
+
+Jangan mengubah Module Management business logic jika
+tidak diperlukan.
+
+==================================================
+BAGIAN 14 — STATUS SEMANTICS
+==================================================
+
+Jangan mengubah arti `BotInstallation.status`.
+
+Lifecycle state:
+
+- enabled
+- disabled
+- atau enum/status yang memang sudah digunakan repository.
+
+Jangan menggunakan status tersebut sebagai:
+
+- process state,
+- polling state,
+- worker state,
+- runtime connection state.
+
+Jangan menambahkan Telegram runtime hanya untuk membuat
+status terlihat aktif.
+
+==================================================
+BAGIAN 15 — SECURITY
+==================================================
+
+Review seluruh lifecycle API.
+
+Pastikan:
+
+- authentication,
+- workspace authorization,
+- ownership,
+- cross-workspace isolation,
+- input validation,
+- error sanitization.
+
+Jangan bocorkan:
+
+- bot token,
+- secret,
+- credential,
+- API key.
+
+Pastikan ID Bot Installation yang berasal dari client
+selalu divalidasi terhadap workspace/auth context.
+
+==================================================
+BAGIAN 16 — TEST BACKEND
+==================================================
+
+Tambahkan/update test untuk:
+
+CREATE:
+
+1. authenticated workspace dapat membuat Bot Installation.
+2. unauthorized request ditolak.
+3. invalid input ditolak.
+4. credential/secret tidak masuk response/log.
+
+LIST:
+
+5. hanya Bot Installation workspace sendiri yang dikembalikan.
+
+ENABLE:
+
+6. workspace dapat enable bot miliknya.
+7. cross-workspace enable ditolak.
+
+DISABLE:
+
+8. workspace dapat disable bot miliknya.
+9. cross-workspace disable ditolak.
+
+DELETE:
+
+10. workspace dapat delete bot miliknya.
+11. cross-workspace delete ditolak.
+12. deleting nonexistent bot menghasilkan error yang sesuai.
+
+Lifecycle:
+
+13. create → list.
+14. enable → status berubah.
+15. disable → status berubah.
+16. delete → bot tidak lagi muncul.
+
+==================================================
+BAGIAN 17 — TEST FRONTEND
+==================================================
+
+Tambahkan/update test untuk:
+
+1. list Bot Installation tampil.
+2. create dialog tampil.
+3. create berhasil memperbarui list.
+4. create error ditampilkan dengan aman.
+5. enable mutation bekerja.
+6. disable mutation bekerja.
+7. delete confirmation bekerja.
+8. cancel delete tidak melakukan mutation.
+9. delete berhasil menghapus item dari UI.
+10. delete selected bot me-reset selection.
+11. workspace switch me-reset state yang invalid.
+12. module UI mengikuti selected Bot Installation.
+13. loading state mutation bekerja.
+14. double submission dicegah.
+
+Gunakan test utility/pattern existing.
+
+Jangan membuat fake architecture.
+
+==================================================
+BAGIAN 18 — VALIDATION
+==================================================
+
+Jalankan validation yang tersedia:
+
+pnpm test
+pnpm build
+pnpm typecheck
+pnpm lint
+pnpm format:check
+
+Kemudian:
+
+node scripts/check-imports.mjs
+node scripts/check-ownership.mjs
+node scripts/check-doc-links.mjs
+
+Dan:
+
+git diff --check
+
+Untuk:
+
+node scripts/check-symlinks.mjs
+
+Jangan membuat script tersebut.
+
+Jika tidak tersedia:
+
+SKIPPED — scripts/check-symlinks.mjs unavailable
+
+Jangan membuat fake validation.
+
+==================================================
+BAGIAN 19 — DIFF REVIEW
+==================================================
+
+Setelah implementation:
+
+git status
+git diff --stat
+git diff
+
+Pastikan perubahan hanya untuk B-056.
+
+Hapus:
+
+- debug logs,
+- temporary files,
+- unused imports,
+- duplicate DTO,
+- duplicate API client,
+- hardcoded Bot Installation ID,
+- hardcoded credential,
+- unrelated refactor.
+
+Jangan menyentuh:
+
+- Gorouter.app,
+- NVIDIA provider,
+- TokenHarbor provider,
+
+kecuali perubahan benar-benar diperlukan oleh compile/test
+dan langsung terkait architecture yang sedang dikerjakan.
+
+==================================================
+BAGIAN 20 — COMMIT + PUSH
+==================================================
+
+Jika implementation valid dan validation selesai:
+
+Buat SATU commit.
+
+Commit message:
+
+feat: add bot installation lifecycle ui
+
+atau gunakan message yang lebih tepat berdasarkan diff.
+
+Kemudian langsung:
+
+git push origin backend-dev-recovery
+
+Setelah push:
+
+git rev-parse HEAD
+
+dan verifikasi remote branch SHA.
+
+Pastikan:
+
+LOCAL SHA == REMOTE SHA
+
+dan:
+
+WORKING TREE == CLEAN
+
+Jika tidak ada perubahan valid:
+
+- jangan membuat empty commit,
+- jangan push kosong.
+
+Jika push gagal:
+
+- jangan reset commit,
+- jangan menghapus commit,
+- jangan mengubah credential GitHub sembarangan,
+- tampilkan error dengan jelas.
+
+==================================================
+OUTPUT AKHIR
+==================================================
+
+Tampilkan:
+
+### B-056 STATUS
+
+Create API:
+List API:
+Enable API:
+Disable API:
+Delete API:
+API client:
+UI:
+Workspace authorization:
+Module integration:
+
+### TEST
+
+Backend:
+Frontend:
+
+### VALIDATION
+
+Test:
+Build:
+Typecheck:
+Lint:
+Format:
+Imports:
+Ownership:
+Docs:
+Diff:
+
+### GIT
+
+Commit:
+Local SHA:
+Remote SHA:
+Push:
+Working tree:
+
+### REMAINING DEFERRED
+
+Hanya tampilkan dependency yang benar-benar masih deferred.
+
+### NEXT ROADMAP
+
+Tentukan task berikutnya berdasarkan dependency nyata
+repository.
+
+Jangan membuat fitur acak.
+
+PENTING:
+- Jangan mengulang B-030.
+- Jangan mengulang B-070.
+- Jangan mengulang B-071.
+- Jangan membuat production module definitions.
+- Jangan membuat Telegram polling/webhook runtime.
+- Jangan mengubah BotInstallation.status menjadi process state.
+- Jangan membuat contract speculative.
+- Jangan menyentuh Gorouter.app.
+- NVIDIA dan TokenHarbor tidak perlu disentuh.
+- Kerjakan langsung pada `/root/botspace`.
 
 ```
 # Prompt: B-055 — Bot Installation Listing Surfacing
