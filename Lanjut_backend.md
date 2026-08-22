@@ -340,7 +340,106 @@
 ```
 
 
+# Prompt: ADR-011 — Finalize D1 Decision Record
 
+Lanjutkan dari kondisi repository saat ini.
+
+Kondisi:
+- HEAD: 4059728
+- Working tree CLEAN.
+- ADR-011 §4 masih menunggu keputusan D1.
+- D1 yang direkomendasikan: External connector.
+- ProviderSessionDriver sudah tersedia sebagai neutral boundary.
+- Tidak ada repository changes pada audit sebelumnya.
+
+JANGAN coding.
+JANGAN commit.
+JANGAN push.
+JANGAN menambahkan dependency.
+
+Sekarang finalisasi decision record untuk D1.
+
+Audit hanya berdasarkan repository yang ada dan hasil audit sebelumnya.
+
+Jawab secara eksplisit:
+
+### DC-1 — Authentication Mechanism
+
+Tentukan apakah architecture saat ini benar-benar mendukung:
+
+`D1 = External connector`
+
+Jika YA:
+- jelaskan connector boundary yang akan digunakan;
+- jelaskan bagaimana connector handle masuk ke `ProviderSessionDriver`;
+- jelaskan bagaimana credential/session material direpresentasikan sebagai opaque reference;
+- jangan memilih vendor eksternal jika repository belum menetapkannya.
+
+Jika TIDAK:
+- jelaskan blocker sebenarnya.
+
+### DC-2 — Dependency Authorization
+
+Audit apakah D1 membutuhkan:
+- dependency baru,
+- SDK baru,
+- library baru,
+- provider-specific package.
+
+Jika dependency baru diperlukan:
+- sebutkan dependency;
+- jelaskan kenapa diperlukan;
+- JANGAN menginstallnya;
+- status harus `OWNER APPROVAL REQUIRED`.
+
+Jika tidak diperlukan:
+- nyatakan `NO NEW DEPENDENCY`.
+
+### DC-3 — Contract Review
+
+Pastikan D1 kompatibel dengan contract yang sudah ada:
+
+- ProviderSessionDriver
+- ProviderAuthContext
+- SecretResolver
+- SecretProvisioner
+- credential/session storage boundary
+- connection API
+- F-040 UI contract jika relevan.
+
+Pastikan D1 tidak membutuhkan perubahan contract speculative.
+
+### FINAL DECISION RECORD
+
+Berikan format:
+
+D1:
+`External connector` / `NOT READY`
+
+DC-1:
+`READY` / `OWNER DECISION REQUIRED`
+
+DC-2:
+`NO NEW DEPENDENCY` / `OWNER APPROVAL REQUIRED`
+
+DC-3:
+`COMPATIBLE` / `CONTRACT CHANGE REQUIRED`
+
+### IMPORTANT
+
+Jangan mengambil keputusan vendor atas nama owner.
+
+Jika semua boundary sudah kompatibel tetapi vendor belum ditentukan, nyatakan:
+
+`D1 ARCHITECTURALLY READY — VENDOR DECISION PENDING`
+
+Jangan membuat perubahan repository.
+
+### NEXT IMPLEMENTATION
+
+Setelah decision record, tuliskan tepat 1 task implementasi berikutnya yang dapat dijalankan setelah owner menyetujui D1.
+
+Tidak perlu mengerjakan task tersebut sekarang.
 ```
 # 
 ```
