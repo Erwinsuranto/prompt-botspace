@@ -426,10 +426,430 @@
 
 
 ```
-# 
+# Prompt: B-053 — API Client + Contract Surfacing
 ```
 
+Lanjutkan project BotSpace dari kondisi repository SAAT INI:
 
+/root/botspace
+
+Branch:
+backend-dev-recovery
+
+==================================================
+KONDISI TERAKHIR
+==================================================
+
+B-030 — Workspace API/Contract:
+SELESAI.
+
+B-070 — Storage Adapter:
+SELESAI.
+
+B-071 — File/Share:
+SELESAI.
+
+B-040 s/d B-052 — worker/runtime foundation dan
+enabled-module lifecycle:
+SELESAI.
+
+B-052 sudah menyediakan:
+
+- enabled-module persistence,
+- enable use-case,
+- disable use-case,
+- API route,
+- DTO,
+- authorization/workspace boundary,
+- validation dan test.
+
+Build terakhir PASS.
+Working tree terakhir CLEAN.
+
+Next roadmap yang teridentifikasi:
+
+B-053 — API client + contract surfacing untuk module
+enable/disable.
+
+==================================================
+TUJUAN
+==================================================
+
+Lengkapi sisi API client/contract surfacing untuk
+B-052.
+
+Jangan mengulang implementasi B-052.
+
+Target:
+
+Existing API route/DTO B-052
+        ↓
+typed API contract
+        ↓
+@botspace/api-client
+        ↓
+consumer dapat menggunakan enable/disable module
+secara typed dan konsisten.
+
+==================================================
+ATURAN KERAS
+==================================================
+
+JANGAN mengulang:
+
+- B-030
+- B-070
+- B-071
+- B-050
+- B-051
+- B-052
+
+Jangan membuat use-case enable/disable kedua.
+
+Jangan membuat repository kedua.
+
+Jangan membuat route kedua.
+
+Jangan membuat DTO kedua yang menduplikasi B-052.
+
+Jangan membuat API client abstraction kedua.
+
+Audit terlebih dahulu struktur `@botspace/api-client`
+yang SUDAH ADA.
+
+Gunakan pattern API client existing.
+
+Jangan membuat OpenAPI generator baru jika repository
+belum menggunakan OpenAPI generation.
+
+Jangan menambahkan dependency eksternal hanya untuk
+membuat typed client.
+
+Jangan mengubah database schema.
+
+Jangan mengubah persistence adapter.
+
+Jangan mengubah module runtime.
+
+Jangan membuat production module definitions.
+
+Jangan mengimplementasikan Telegram integration.
+
+Jangan mengimplementasikan secret-manager.
+
+Jangan mengimplementasikan distributed lock.
+
+Jangan mengimplementasikan retry/DLQ.
+
+Jangan mengimplementasikan event/outbox.
+
+Jangan mengimplementasikan multi-bot multiplexing.
+
+Jangan menyentuh Gorouter.app.
+
+NVIDIA dan TokenHarbor tidak perlu disentuh.
+
+==================================================
+BAGIAN 1 — AUDIT API CLIENT
+==================================================
+
+Audit repository terlebih dahulu.
+
+Cari:
+
+- package `@botspace/api-client`,
+- existing API client modules,
+- typed request/response pattern,
+- route contract pattern,
+- DTO mapping,
+- authentication/request context,
+- error handling,
+- workspace context,
+- generated types jika ada,
+- existing client tests.
+
+Cari apakah endpoint B-052 sudah memiliki
+representasi typed di client.
+
+Jangan coding sebelum mengetahui pattern existing.
+
+==================================================
+BAGIAN 2 — TYPE SURFACING
+==================================================
+
+Expose contract B-052 melalui API client dengan
+menggunakan type/model yang sudah menjadi source of truth.
+
+Minimal:
+
+- enable module request,
+- enable module response,
+- disable module request,
+- disable module response,
+- relevant error/result types jika architecture
+  API client memang mengeksposnya.
+
+Jangan membuat duplicate domain model jika type
+existing dapat digunakan.
+
+Jika repository memiliki shared API contract package,
+gunakan package tersebut.
+
+==================================================
+BAGIAN 3 — CLIENT METHODS
+==================================================
+
+Tambahkan typed client methods untuk:
+
+- enable module,
+- disable module.
+
+Gunakan naming convention API client yang sudah ada.
+
+Client method harus:
+
+1. mengirim request ke route B-052 yang sebenarnya,
+2. menggunakan authentication mechanism existing,
+3. meneruskan workspace context secara benar,
+4. memetakan response ke type yang benar,
+5. memetakan error sesuai convention existing.
+
+Jangan hardcode workspace ID jika client architecture
+mengambilnya dari authenticated context.
+
+Jangan memasukkan credential/token ke source code.
+
+==================================================
+BAGIAN 4 — CONTRACT CONSISTENCY
+==================================================
+
+Pastikan:
+
+API route
+=
+DTO
+=
+API contract
+=
+typed client
+
+Tidak boleh ada perbedaan:
+
+- field name,
+- optional/required,
+- enum,
+- identifier,
+- error semantics,
+- response shape.
+
+Jika menemukan mismatch:
+
+audit mana yang merupakan source of truth.
+
+Jangan mengubah B-052 secara besar-besaran hanya
+demi client.
+
+Jika perubahan kecil memang diperlukan untuk
+consistency, lakukan hanya jika justified.
+
+==================================================
+BAGIAN 5 — AUTHORIZATION
+==================================================
+
+Pastikan API client tidak menyediakan cara untuk
+bypass authorization.
+
+Client hanya mengirim request sesuai contract.
+
+Server tetap menjadi authority untuk:
+
+- authenticated user,
+- workspace,
+- permission,
+- module availability.
+
+Jangan memindahkan authorization logic ke client.
+
+==================================================
+BAGIAN 6 — TEST
+==================================================
+
+Tambahkan test sesuai pattern repository.
+
+Minimal:
+
+1. enable client request menggunakan route yang benar.
+2. disable client request menggunakan route yang benar.
+3. request body sesuai contract.
+4. response mapping sesuai DTO.
+5. error mapping sesuai API convention.
+6. authentication/request context tetap diteruskan.
+7. tidak ada credential yang masuk log/test output.
+
+Jika repository menggunakan contract snapshot atau
+generated API schema:
+
+jalankan validation yang memang sudah tersedia.
+
+Jangan membuat test infrastructure baru hanya untuk
+B-053.
+
+==================================================
+BAGIAN 7 — BACKWARD COMPATIBILITY
+==================================================
+
+Jangan merusak existing API client.
+
+Pastikan seluruh client method existing tetap bekerja.
+
+Jangan melakukan refactor besar.
+
+Jika ada duplicate helper:
+
+gunakan helper existing jika aman.
+
+==================================================
+BAGIAN 8 — VALIDATION
+==================================================
+
+Jalankan:
+
+pnpm test
+pnpm build
+pnpm typecheck
+pnpm lint
+pnpm format:check
+
+Kemudian:
+
+node scripts/check-imports.mjs
+node scripts/check-ownership.mjs
+node scripts/check-doc-links.mjs
+git diff --check
+
+Untuk:
+
+node scripts/check-symlinks.mjs
+
+JANGAN membuat script tersebut.
+
+Jika tidak tersedia:
+
+SKIPPED — scripts/check-symlinks.mjs unavailable
+
+Jangan menjalankan integration test Gorouter.app.
+
+==================================================
+BAGIAN 9 — DIFF REVIEW
+==================================================
+
+Sebelum commit:
+
+git status
+git diff --stat
+git diff
+
+Pastikan perubahan hanya berkaitan dengan:
+
+- API client B-052,
+- shared API contract bila memang diperlukan,
+- tests,
+- dokumentasi yang relevan.
+
+Hapus:
+
+- debug code,
+- temporary files,
+- generated junk,
+- unrelated refactor.
+
+==================================================
+BAGIAN 10 — COMMIT + PUSH
+==================================================
+
+Jika implementation valid dan validation selesai:
+
+buat SATU commit.
+
+Gunakan message:
+
+feat: surface module toggle api client
+
+atau commit message yang lebih tepat berdasarkan
+perubahan aktual.
+
+Setelah commit:
+
+git push origin backend-dev-recovery
+
+Kemudian verifikasi:
+
+git rev-parse HEAD
+
+dan remote branch SHA.
+
+Pastikan:
+
+local SHA == remote SHA
+working tree == CLEAN
+
+Jika push gagal:
+
+- jangan reset,
+- jangan menghapus commit,
+- jangan mengubah credential GitHub sembarangan,
+- tampilkan error push dengan jelas.
+
+==================================================
+FINAL OUTPUT
+==================================================
+
+Tampilkan:
+
+### B-053 STATUS
+
+API Client:
+Enable:
+Disable:
+Typed Contract:
+Error Mapping:
+Authorization:
+
+### TEST
+
+Unit:
+Build:
+Typecheck:
+Lint:
+Format:
+Imports:
+Ownership:
+Docs:
+Diff:
+
+### GIT
+
+Commit:
+Push:
+Local SHA:
+Remote SHA:
+Working tree:
+
+### REMAINING DEFERRED
+
+Hanya tampilkan dependency yang benar-benar masih
+belum tersedia.
+
+### NEXT ROADMAP
+
+Tentukan task berikutnya berdasarkan dependency
+nyata repository.
+
+Jangan membuat fitur acak.
+
+Kerjakan langsung pada:
+
+/root/botspace
 
 ```
 # Prompt: B-052 — Enable/Disable Module Use-Case + API Contract
