@@ -396,10 +396,241 @@
 
 
 ```
-# 
+# Prompt: B-058 — Credential Provisioning Contract Review
 ```
 
+Lanjutkan project BotSpace dari kondisi repository saat ini.
 
+KONDISI TERAKHIR
+
+- B-030 Workspace API/Contract SUDAH selesai.
+- B-070 Storage Adapter SUDAH selesai.
+- B-071 File/Share contract SUDAH selesai.
+- B-071 File/Share API SUDAH selesai.
+- Production wiring B-071 SUDAH selesai.
+- B-054 Module Management UI SUDAH selesai.
+- B-055 Bot Installation Listing SUDAH selesai.
+- B-056 Bot Installation Lifecycle UI SUDAH selesai.
+- B-057 Managed Secret Reference Flow SUDAH selesai.
+- Working tree terakhir CLEAN.
+- Branch: backend-dev-recovery.
+
+NEXT TASK:
+B-058 — Bot Credential Provisioning Contract
+ADR-011 §4 resolution
+
+JANGAN langsung membuat implementation besar.
+
+Tujuan tahap ini adalah menyelesaikan keputusan contract/architecture untuk provisioning credential bot sebelum implementation B-058.
+
+MASALAH YANG DITEMUKAN
+
+Flow create-bot sebelumnya meminta operator memberikan `secret_ref`.
+
+Itu bukan UX yang benar.
+
+Operator seharusnya memberikan credential/bot token.
+
+Sistem kemudian:
+1. menerima credential,
+2. melakukan provisioning melalui secret-handling boundary yang benar,
+3. menghasilkan/mendapatkan internal secret reference,
+4. menyimpan reference tersebut pada installation,
+5. tidak mengekspos raw credential.
+
+TUGAS
+
+1. Audit ADR-011 §4 secara langsung di repository.
+
+2. Cari seluruh implementation dan contract yang berkaitan dengan:
+   - BotInstallation create flow,
+   - createBot,
+   - connection-service.ts,
+   - SecretResolver,
+   - secret provisioning,
+   - secret_ref,
+   - credential handling,
+   - connection creation,
+   - API DTO,
+   - web/client create-bot flow.
+
+3. Jangan membuat SecretResolver interface baru.
+
+4. Jangan membuat secret manager baru.
+
+5. Jangan memilih vendor secret manager baru.
+
+6. Pelajari pattern credential handling yang SUDAH digunakan oleh `connection-service.ts`.
+
+7. Tentukan secara eksplisit boundary yang benar untuk:
+
+   operator credential
+        ↓
+   credential provisioning
+        ↓
+   secret reference
+        ↓
+   BotInstallation
+
+8. Tentukan apakah provisioning seharusnya:
+   - dilakukan oleh connection service yang sudah ada,
+   - dilakukan oleh dedicated provisioning boundary,
+   - atau menggunakan abstraction yang sudah tersedia.
+
+9. Jangan langsung membuat implementation baru hanya berdasarkan asumsi.
+
+10. Tentukan contract minimum yang diperlukan untuk B-058.
+
+Contract harus menjawab minimal:
+
+- input credential apa yang diterima operator,
+- siapa yang memiliki tanggung jawab menyimpan credential,
+- bagaimana secret reference dibuat,
+- apa yang disimpan pada BotInstallation,
+- apa yang dikembalikan API,
+- bagaimana error provisioning ditangani,
+- bagaimana credential tidak bocor ke log/response,
+- bagaimana test menggunakan credential synthetic.
+
+11. Pastikan `secret_ref` tetap menjadi internal reference.
+
+12. Operator/UI TIDAK boleh diminta memasukkan `secret_ref` internal.
+
+13. Raw bot token TIDAK boleh:
+   - disimpan sebagai installation metadata,
+   - dikembalikan API,
+   - dicetak log,
+   - dimasukkan error,
+   - dimasukkan commit/source code.
+
+14. Jangan mengubah `BotInstallation.status`.
+
+15. Jangan mengimplementasikan Telegram polling/webhook runtime.
+
+16. Jangan mengimplementasikan provider/module runtime baru.
+
+17. Jangan menyentuh Gorouter.app.
+
+18. NVIDIA dan TokenHarbor tidak perlu disentuh.
+
+19. Jangan mengimplementasikan managed secret vendor tertentu.
+
+20. Jangan membuat migration/schema baru pada tahap review ini.
+
+HASIL YANG DIHARAPKAN
+
+Setelah audit, dokumentasikan:
+
+### B-058 Decision
+
+- existing credential flow:
+- existing secret flow:
+- existing connection-service pattern:
+- correct provisioning boundary:
+- create-bot input:
+- internal stored value:
+- API response:
+- error behavior:
+- security considerations:
+
+### Contract
+
+Definisikan contract minimum yang diperlukan untuk implementation B-058.
+
+Jika contract yang sudah ada sebenarnya sudah cukup:
+- jangan membuat contract kedua,
+- jelaskan bahwa implementation dapat langsung menggunakan contract existing.
+
+Jika contract memang belum ada:
+- buat hanya contract minimum yang benar-benar diperlukan,
+- jangan membuat implementation provider/vendor.
+
+VALIDATION
+
+Jalankan validation yang relevan untuk audit/contract:
+
+- pnpm test
+- pnpm build
+- pnpm typecheck
+- pnpm lint
+- pnpm format:check
+- node scripts/check-imports.mjs
+- node scripts/check-ownership.mjs
+- node scripts/check-doc-links.mjs
+- git diff --check
+
+Jangan menjalankan atau membuat:
+
+node scripts/check-symlinks.mjs
+
+karena script tersebut tidak tersedia.
+
+Jika tahap ini hanya menghasilkan keputusan/dokumentasi dan tidak ada perubahan kode yang diperlukan:
+- jangan membuat empty commit,
+- jangan membuat commit palsu,
+- jangan push perubahan kosong.
+
+Jika ada perubahan contract yang benar-benar diperlukan:
+- review diff,
+- buat satu commit yang sesuai,
+- push ke:
+  git push origin backend-dev-recovery
+- verifikasi local SHA dan remote SHA.
+
+PENTING
+
+Jangan implementasikan B-058 penuh sebelum keputusan ADR-011 §4 jelas.
+
+Jangan membuat architecture speculative.
+
+Jangan membuat vendor dependency.
+
+Jangan membuat credential palsu.
+
+Jangan mengubah B-071.
+
+Kerjakan langsung pada:
+
+/root/botspace
+
+OUTPUT AKHIR
+
+Tampilkan:
+
+### B-058 Decision
+- keputusan architecture:
+- provisioning boundary:
+- credential input:
+- secret reference:
+- API behavior:
+- security:
+
+### Contract
+- existing contract yang digunakan:
+- contract baru jika benar-benar diperlukan:
+
+### Validation
+- test:
+- build:
+- typecheck:
+- lint:
+- format:
+- imports:
+- ownership:
+- docs:
+- diff:
+
+### Git
+- commit SHA:
+- push:
+- local/remote SHA:
+- working tree:
+
+### Remaining Deferred
+
+### Next Roadmap
+
+Tentukan implementation B-058 sebagai task berikutnya hanya setelah contract/decision ini benar-benar jelas.
 
 ```
 # Prompt: B-057 — Managed Secret Reference Flow
