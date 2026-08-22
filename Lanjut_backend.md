@@ -390,10 +390,288 @@
 
 
 ```
-# 
+# Prompt: ADR-011 §4 — Credential Provisioning Boundary Decision
 ```
 
+Lanjutkan project BotSpace dari kondisi repository saat ini.
 
+KONDISI TERAKHIR
+
+- B-030 Workspace API/Contract SUDAH selesai.
+- B-070 Storage Adapter SUDAH selesai.
+- B-071 File/Share contract SUDAH selesai.
+- B-071 File/Share API SUDAH selesai.
+- Production wiring B-071 SUDAH selesai.
+- B-057 Managed Secret Reference Flow SUDAH selesai.
+- Working tree terakhir CLEAN.
+- Branch aktif: backend-dev-recovery.
+- B-058 BELUM boleh diimplementasikan.
+
+HASIL AUDIT TERAKHIR
+
+B-058 — Bot Credential Provisioning masih BLOCKED karena ADR-011 §4 belum memiliki keputusan owner.
+
+Gap yang ditemukan:
+
+- create bot saat ini masih berpotensi menggunakan `secret_ref` sebagai input operator.
+- UX yang benar seharusnya operator memberikan credential/bot token.
+- Sistem kemudian melakukan provisioning credential melalui boundary secret/credential yang benar.
+- Sistem menghasilkan/menyimpan internal `secret_ref`.
+- Operator/UI tidak boleh mengetahui atau mengelola internal `secret_ref`.
+- Raw credential tidak boleh masuk installation metadata, API response, log, atau source code.
+
+Repository juga sudah memiliki pola secret handling pada `connection-service.ts`.
+
+TUJUAN
+
+Sekarang JANGAN implementasikan B-058.
+
+Fokus hanya menyelesaikan:
+
+**ADR-011 §4 — Credential Provisioning Boundary Decision**
+
+Tugas:
+
+1. Audit ADR-011 §4 yang sudah ada.
+
+2. Audit implementation yang berkaitan dengan:
+   - `SecretResolver`
+   - `connection-service.ts`
+   - secret handling
+   - credential handling
+   - `secret_ref`
+   - BotInstallation
+   - bot creation flow
+   - create bot API/service
+   - existing secret/connection abstractions.
+
+3. Jangan membuat implementation B-058.
+
+4. Jangan membuat migration.
+
+5. Jangan membuat vendor secret manager baru.
+
+6. Jangan membuat SecretResolver interface kedua.
+
+7. Jangan membuat credential provisioning implementation speculative.
+
+8. Cari pola yang SUDAH digunakan repository untuk credential/secret handling dan gunakan sebagai dasar keputusan.
+
+ADR-011 §4 harus menjawab secara eksplisit:
+
+### 1. Credential Ownership
+
+Siapa yang bertanggung jawab menerima raw bot credential?
+
+Tentukan boundary yang tepat antara:
+
+operator/UI
+→ bot service
+→ credential/secret provisioning
+→ secret reference
+→ BotInstallation
+
+### 2. Provisioning Boundary
+
+Tentukan apakah provisioning dilakukan melalui:
+
+- existing `connection-service`,
+- existing secret abstraction,
+- dedicated provisioning boundary,
+- atau kombinasi abstraction yang sudah tersedia.
+
+Jangan membuat abstraction baru jika existing abstraction sudah cukup.
+
+### 3. Input Contract
+
+Tentukan input create-bot yang benar.
+
+Operator harus memberikan credential/bot token, BUKAN internal `secret_ref`.
+
+Tentukan juga bagaimana API/service menerima credential tanpa mengembalikannya kembali.
+
+### 4. Internal Representation
+
+Tentukan bahwa installation hanya menyimpan reference yang aman seperti:
+
+`secret_ref`
+
+bukan raw credential.
+
+### 5. Secret Lifetime
+
+Tentukan bagaimana raw credential diperlakukan:
+
+- hanya berada di memory selama provisioning,
+- tidak disimpan sebagai installation metadata,
+- tidak masuk log,
+- tidak masuk error,
+- tidak masuk response,
+- tidak masuk git/source.
+
+### 6. Connection-Service Relationship
+
+Audit `connection-service.ts`.
+
+Jika pola credential handling yang sudah ada dapat digunakan untuk bot provisioning:
+
+- dokumentasikan bahwa B-058 harus mengikuti pola tersebut.
+
+Jika tidak dapat digunakan:
+
+- jelaskan gap-nya,
+- JANGAN memperbaikinya sekarang.
+
+### 7. Failure Semantics
+
+Tentukan behavior jika provisioning gagal:
+
+- BotInstallation tidak boleh dianggap berhasil jika credential belum berhasil diprovision.
+- Raw credential tidak boleh ikut terbawa dalam error.
+- `secret_ref` tidak boleh dibuat/sementara tersimpan secara tidak konsisten.
+
+Gunakan behavior/error model yang sudah ada di repository jika memungkinkan.
+
+### 8. Security Boundary
+
+Pastikan ADR secara eksplisit melarang:
+
+- raw token di database installation,
+- raw token di response,
+- raw token di log,
+- raw token di error,
+- operator memasukkan `secret_ref`,
+- hardcoded credential,
+- vendor-specific implementation pada application layer.
+
+### 9. Decision Record
+
+Perbarui ADR-011 §4 dengan keputusan konkret.
+
+Jangan hanya menulis "perlu keputusan owner".
+
+Decision record harus berisi:
+
+- Context
+- Problem
+- Decision
+- Credential flow
+- Provisioning boundary
+- Secret reference semantics
+- Security constraints
+- Failure behavior
+- Consequences
+- B-058 implementation boundary
+
+Jika repository memiliki format ADR tertentu, ikuti format tersebut.
+
+### 10. B-058 Scope Setelah ADR
+
+Setelah ADR selesai, definisikan secara singkat apa yang nantinya harus dikerjakan B-058.
+
+Tetapi JANGAN mengimplementasikan B-058 sekarang.
+
+B-058 harus menunggu sampai ADR-011 §4 benar-benar memiliki decision yang jelas.
+
+VALIDATION
+
+Jalankan validation yang relevan terhadap perubahan ADR/dokumentasi:
+
+- pnpm test
+- pnpm build
+- pnpm typecheck
+- pnpm lint
+- pnpm format:check
+- node scripts/check-imports.mjs
+- node scripts/check-ownership.mjs
+- node scripts/check-doc-links.mjs
+- git diff --check
+
+Jangan menjalankan atau membuat:
+
+`node scripts/check-symlinks.mjs`
+
+karena script tersebut memang tidak tersedia.
+
+Jika validation membutuhkan environment yang tidak tersedia, jangan membuat fake environment hanya untuk mendapatkan PASS.
+
+GIT
+
+Sebelum commit:
+
+- git status
+- git diff --stat
+- review seluruh diff.
+
+Pastikan perubahan hanya terkait ADR-011 §4.
+
+Jangan mengubah implementation B-030/B-070/B-071.
+
+Jangan menyentuh Gorouter.app.
+
+NVIDIA dan TokenHarbor tidak perlu disentuh.
+
+Jika ADR decision valid sudah selesai:
+
+1. Buat satu commit.
+2. Gunakan commit message yang sesuai, misalnya:
+
+`docs: resolve ADR-011 credential provisioning boundary`
+
+3. Push:
+
+`git push origin backend-dev-recovery`
+
+4. Verifikasi local SHA dan remote SHA sama.
+5. Pastikan working tree CLEAN.
+
+Jika tidak ada perubahan yang diperlukan:
+- jangan membuat empty commit.
+
+OUTPUT AKHIR
+
+### ADR-011 §4
+- decision:
+- credential input:
+- provisioning boundary:
+- secret reference:
+- connection-service relationship:
+- failure behavior:
+- security boundary:
+
+### B-058
+- status:
+- implementation boundary:
+- blocker resolved:
+
+### Validation
+- test:
+- build:
+- typecheck:
+- lint:
+- format:
+- imports:
+- ownership:
+- docs:
+- diff:
+
+### Git
+- commit SHA:
+- push:
+- local/remote SHA:
+- working tree:
+
+### Remaining Deferred
+
+### Next Roadmap
+
+PENTING:
+Jangan implementasikan B-058 pada task ini.
+Task ini hanya menyelesaikan ADR-011 §4 agar B-058 nantinya dapat dikerjakan tanpa keputusan arsitektur yang spekulatif.
+
+Kerjakan langsung pada:
+
+`/root/botspace`
 
 ```
 # Prompt: B-058 — Credential Provisioning Contract Review
