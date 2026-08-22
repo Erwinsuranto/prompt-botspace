@@ -354,10 +354,149 @@
 
 
 ```
-# 
+# Prompt berikutnya — B-062: ADR-011 Decision Readiness
 ```
 
+# Prompt: B-062 — ADR-011 Decision Readiness Audit
 
+Lanjutkan project BotSpace dari kondisi repository saat ini.
+
+Kondisi terakhir:
+- B-005 governance path SUDAH DONE.
+- B-060/B-061 secret revocation dan registry/runtime module work SUDAH DONE.
+- Working tree terakhir CLEAN.
+- Branch tetap `backend-dev-recovery`.
+- Tidak ada task feature READY/TODO yang dapat dikerjakan tanpa keputusan eksternal.
+- Blocker utama sekarang adalah ADR-011 §4 tentang account-session credential untuk Telegram.
+- Jangan mengerjakan implementasi fitur yang masih bergantung pada keputusan ADR-011.
+- Jangan memilih vendor/provider secara sepihak.
+
+Sekarang lakukan ONLY:
+
+## 1. Audit ADR-011
+
+Audit repository untuk menentukan kebutuhan nyata account-session credential:
+
+- client/session files
+- Telegram authentication
+- MFA
+- credential rotation
+- account connection lifecycle
+- credential provisioning
+- credential revoke/delete
+- provider/library boundary
+- storage/encryption boundary
+- existing SecretResolver / SecretProvider
+- existing account/session abstractions
+
+Cari implementation dan contract yang SUDAH ada.
+
+## 2. Tentukan keputusan yang benar-benar dibutuhkan
+
+Pisahkan dengan jelas:
+
+### Sudah diputuskan oleh repository
+Tampilkan fakta yang sudah ada.
+
+### Masih membutuhkan keputusan owner
+Tampilkan hanya keputusan yang benar-benar belum ditentukan.
+
+Contoh kategori jika memang ditemukan:
+- Telegram authentication mechanism
+- session storage format/location
+- encryption/key management
+- MFA handling
+- credential rotation semantics
+- provider/library choice
+- account connection lifecycle
+
+Jangan mengarang keputusan.
+
+## 3. Jangan implementasi
+
+PENTING:
+
+- Jangan mengubah source code.
+- Jangan membuat migration.
+- Jangan membuat database table.
+- Jangan membuat provider adapter.
+- Jangan membuat Telegram polling/webhook runtime.
+- Jangan membuat credential/session storage baru.
+- Jangan memilih library/vendor Telegram.
+- Jangan membuat fake credential.
+- Jangan mengubah BotInstallation.status.
+- Jangan menyentuh Gorouter.app.
+- NVIDIA dan TokenHarbor tidak perlu disentuh.
+
+Tujuannya hanya menghasilkan audit yang dapat digunakan owner untuk mengambil keputusan ADR-011.
+
+## 4. Audit dependency berikutnya
+
+Setelah ADR-011 diaudit, tentukan task mana yang akan terbuka jika ADR-011 disetujui.
+
+Petakan:
+
+ADR-011
+  ↓
+credential/session boundary
+  ↓
+account connection
+  ↓
+Telegram runtime/provider
+  ↓
+task berikutnya
+
+Jika ada task lain yang benar-benar tidak bergantung pada ADR-011 dan aman dikerjakan sekarang, tampilkan juga.
+
+## 5. Validation
+
+Karena scope ini audit-only:
+
+- jangan mengubah code,
+- jangan membuat commit,
+- jangan push.
+
+Boleh menjalankan read-only repository inspection seperti:
+
+- git status
+- git log
+- grep/search
+- inspect roadmap/docs
+- inspect relevant source files
+
+Jangan menjalankan test suite besar hanya untuk audit ini kecuali diperlukan untuk membuktikan fakta tertentu.
+
+## OUTPUT
+
+Tampilkan:
+
+### ADR-011 Current State
+- existing contracts:
+- existing implementation:
+- existing security boundary:
+- unresolved decisions:
+
+### Evidence
+Sebutkan file/module penting yang menjadi dasar setiap kesimpulan.
+
+### Required Owner Decisions
+Hanya keputusan yang benar-benar belum tersedia.
+
+### Dependency Map
+Jelaskan task apa yang terbuka setelah ADR-011 diputuskan.
+
+### Safe Work Available Now
+Jika tidak ada, tulis:
+`NONE — repository is decision-blocked.`
+
+### Recommendation
+Berikan rekomendasi urutan keputusan, tetapi JANGAN memilih vendor/provider atas nama owner.
+
+Tidak ada perubahan code pada task ini.
+Tidak ada commit.
+Tidak ada push.
+
+Kerjakan langsung pada `/root/botspace`.
 
 ```
 # Prompt: B-005 Governance Path Cleanup
