@@ -420,9 +420,583 @@
 
 
 ```
-# 
+# Prompt: B-054 — Module Management UI
 ```
+Lanjutkan project BotSpace dari kondisi repository SAAT INI:
 
+/root/botspace
+
+Branch:
+backend-dev-recovery
+
+==================================================
+STATUS TERAKHIR
+==================================================
+
+B-030 Workspace API/Contract:
+SELESAI.
+
+B-070 Storage Adapter:
+SELESAI.
+
+B-071 File/Share contract:
+SELESAI.
+
+B-071 File/Share API:
+SELESAI.
+
+B-071 Production wiring:
+SELESAI.
+
+B-052 Enable/Disable Module Use-Case + API:
+SELESAI.
+
+B-053 API Client + Contract Surfacing:
+SELESAI.
+
+Push terakhir:
+BERHASIL.
+
+Local SHA == Remote SHA.
+
+Working tree:
+CLEAN.
+
+Jangan mengulang pekerjaan di atas.
+
+==================================================
+TUJUAN B-054
+==================================================
+
+Implementasikan:
+
+B-054 — Module Management UI di apps/web
+
+Tujuannya adalah menyediakan UI web untuk:
+
+1. mengambil daftar module yang tersedia,
+2. menampilkan status module,
+3. enable module,
+4. disable module,
+5. mengelola enabled/disabled state PER BOT INSTALLATION.
+
+UI harus menggunakan API client/contract yang sudah dibuat
+oleh B-052/B-053.
+
+Dependency yang sudah tersedia:
+
+modules.list
+modules.enable
+modules.disable
+
+Gunakan implementation yang sudah ada.
+
+Jangan membuat API baru hanya untuk UI.
+
+==================================================
+BAGIAN 1 — AUDIT DULU
+==================================================
+
+Sebelum coding, audit:
+
+- apps/web
+- routing web
+- existing dashboard/page structure
+- existing API client usage
+- authentication
+- workspace context
+- bot installation selection
+- module-related API client
+- existing UI component library
+- existing loading state
+- existing error handling
+- existing toast/notification pattern
+- existing confirmation dialog/modal pattern.
+
+Cari apakah sudah ada halaman:
+
+- bot detail,
+- bot installation detail,
+- settings,
+- modules,
+- configuration.
+
+Jika sudah ada lokasi yang tepat:
+
+INTEGRASIKAN ke halaman tersebut.
+
+Jangan membuat dashboard baru jika tidak diperlukan.
+
+==================================================
+BAGIAN 2 — MODULE LIST
+==================================================
+
+Buat UI untuk menampilkan daftar module yang tersedia
+berdasarkan API `modules.list` yang sudah ada.
+
+Setiap module minimal menampilkan informasi yang memang
+tersedia dari API contract.
+
+Jangan mengarang field.
+
+Jika contract memiliki:
+
+- module id,
+- name,
+- description,
+- enabled state,
+- metadata,
+
+gunakan field tersebut.
+
+Jika field tertentu tidak tersedia:
+
+jangan membuat data palsu hanya agar UI terlihat lengkap.
+
+==================================================
+BAGIAN 3 — PER BOT INSTALLATION
+==================================================
+
+PENTING:
+
+Status module harus dikelola PER BOT INSTALLATION.
+
+Contoh:
+
+Bot A:
+- Module X ENABLED
+- Module Y DISABLED
+
+Bot B:
+- Module X DISABLED
+- Module Y ENABLED
+
+Jangan membuat global module state yang menyebabkan
+satu bot mengubah bot lain.
+
+UI harus mengetahui bot installation yang sedang dipilih.
+
+Gunakan existing workspace/bot installation context.
+
+Jangan hardcode bot ID.
+
+==================================================
+BAGIAN 4 — ENABLE / DISABLE
+==================================================
+
+Gunakan API client B-053:
+
+- modules.enable
+- modules.disable
+
+Jangan memanggil HTTP endpoint secara manual dari component
+jika repository sudah menyediakan typed API client.
+
+Flow:
+
+User klik Enable
+    ↓
+UI loading
+    ↓
+API client modules.enable
+    ↓
+success
+    ↓
+update/revalidate state
+    ↓
+UI menunjukkan Enabled
+
+User klik Disable
+    ↓
+UI loading
+    ↓
+API client modules.disable
+    ↓
+success
+    ↓
+update/revalidate state
+    ↓
+UI menunjukkan Disabled
+
+Jangan mengubah state UI secara permanen jika API gagal.
+
+==================================================
+BAGIAN 5 — LOADING STATE
+==================================================
+
+Implementasikan loading state yang jelas.
+
+Saat enable/disable sedang berjalan:
+
+- tombol/module toggle tidak boleh menghasilkan request
+  berulang secara tidak sengaja,
+- tampilkan state processing,
+- cegah race condition sederhana pada module yang sama.
+
+Jangan memblokir seluruh dashboard jika hanya satu module
+yang sedang diubah.
+
+==================================================
+BAGIAN 6 — ERROR HANDLING
+==================================================
+
+Jika API gagal:
+
+- jangan menampilkan stack trace,
+- jangan menampilkan credential,
+- jangan menampilkan internal database error,
+- jangan menampilkan secret,
+- jangan menganggap operasi berhasil.
+
+Tampilkan error yang aman dan user-friendly sesuai
+convention UI yang sudah ada.
+
+Setelah error:
+
+- state harus kembali konsisten,
+- jangan meninggalkan UI dalam keadaan enabled jika server
+  sebenarnya masih disabled.
+
+==================================================
+BAGIAN 7 — AUTHORIZATION
+==================================================
+
+UI harus menghormati authorization yang sudah ada.
+
+Jangan menambahkan authorization logic palsu di frontend.
+
+Server/API tetap menjadi authority.
+
+Frontend hanya:
+
+- menggunakan authenticated session,
+- workspace context,
+- bot installation context,
+- typed API client.
+
+Jangan menyediakan cara untuk mengganti workspace/bot ID
+secara manual untuk bypass authorization.
+
+==================================================
+BAGIAN 8 — UX
+==================================================
+
+Gunakan UI style yang sudah dipakai `apps/web`.
+
+Jangan memperkenalkan design system baru.
+
+Module list harus:
+
+- mudah dibaca,
+- compact,
+- responsive,
+- jelas mana Enabled/Disabled,
+- mudah melakukan toggle,
+- memiliki empty state jika tidak ada module,
+- memiliki loading state,
+- memiliki error state.
+
+Jika existing UI menggunakan card/table/list:
+
+ikuti pattern existing.
+
+Jangan membuat UI berlebihan.
+
+==================================================
+BAGIAN 9 — CONFIRMATION
+==================================================
+
+Untuk DISABLE:
+
+Periksa apakah UI repository sudah memiliki confirmation
+dialog untuk destructive/behavior-changing action.
+
+Jika pattern tersebut tersedia, gunakan.
+
+Jika tidak tersedia dan disable memang dianggap aman
+menurut existing UX convention, jangan membuat dialog
+kompleks hanya untuk task ini.
+
+Jangan mengubah backend behavior.
+
+==================================================
+BAGIAN 10 — CACHE / REVALIDATION
+==================================================
+
+Audit mekanisme data fetching existing:
+
+- React Query,
+- SWR,
+- server actions,
+- loader,
+- fetcher,
+- custom API hooks,
+- atau pattern lain.
+
+Gunakan pattern yang SUDAH digunakan project.
+
+Setelah enable/disable:
+
+- invalidate/revalidate module state,
+- atau update cache sesuai convention existing.
+
+Jangan membuat state-management system baru.
+
+==================================================
+BAGIAN 11 — TEST
+==================================================
+
+Tambahkan test sesuai testing architecture `apps/web`.
+
+Minimal test behavior:
+
+1. module list berhasil ditampilkan.
+2. enabled state ditampilkan dengan benar.
+3. disabled state ditampilkan dengan benar.
+4. enable memanggil API client yang benar.
+5. disable memanggil API client yang benar.
+6. bot installation context diteruskan dengan benar.
+7. loading state muncul saat mutation.
+8. duplicate click/request dicegah saat mutation.
+9. API failure menampilkan error aman.
+10. state tidak falsely berubah ketika API gagal.
+11. empty module list ditangani.
+12. workspace/bot context tidak hardcoded.
+
+Jangan membuat mock API baru yang berbeda dari
+contract B-053.
+
+Gunakan mock/test helper existing jika tersedia.
+
+==================================================
+BAGIAN 12 — RESPONSIVE
+==================================================
+
+Pastikan UI dapat digunakan pada:
+
+- desktop,
+- tablet,
+- mobile.
+
+Jangan melakukan redesign seluruh `apps/web`.
+
+Hanya buat layout module management yang diperlukan.
+
+==================================================
+BAGIAN 13 — SCOPE KERAS
+==================================================
+
+JANGAN mengerjakan:
+
+- production module definitions,
+- module manifest baru,
+- module handler baru,
+- Telegram polling,
+- Telegram webhook,
+- secret-manager,
+- distributed lock,
+- retry/DLQ,
+- event/outbox,
+- multi-bot multiplexing,
+- share expiry,
+- public-share rate limiting,
+- public-share audit event.
+
+Jangan membuat module baru hanya agar UI mempunyai
+contoh data.
+
+Jika registry module saat ini kosong:
+
+UI harus menangani empty state dengan benar.
+
+Jangan mengarang production module.
+
+==================================================
+BAGIAN 14 — API CONTRACT
+==================================================
+
+Gunakan contract yang sudah tersedia.
+
+Jangan:
+
+- membuat `modules.enable` kedua,
+- membuat `modules.disable` kedua,
+- membuat route kedua,
+- membuat DTO kedua,
+- membuat API client kedua.
+
+Jika B-053 ternyata belum menyediakan method tertentu:
+
+audit repository terlebih dahulu.
+
+Jika benar-benar missing:
+
+buat perubahan minimum yang diperlukan dan tetap
+mengikuti contract existing.
+
+Jangan melakukan refactor besar.
+
+==================================================
+BAGIAN 15 — VALIDATION
+==================================================
+
+Jalankan validation yang tersedia:
+
+pnpm test
+pnpm build
+pnpm typecheck
+pnpm lint
+pnpm format:check
+
+Kemudian:
+
+node scripts/check-imports.mjs
+node scripts/check-ownership.mjs
+node scripts/check-doc-links.mjs
+
+Dan:
+
+git diff --check
+
+Untuk:
+
+node scripts/check-symlinks.mjs
+
+JANGAN membuat script tersebut.
+
+Jika tidak tersedia:
+
+SKIPPED — scripts/check-symlinks.mjs unavailable
+
+Jangan membuat fake validation.
+
+==================================================
+BAGIAN 16 — AUDIT UI
+==================================================
+
+Sebelum commit:
+
+Periksa:
+
+- tidak ada hardcoded credential,
+- tidak ada token di source,
+- tidak ada API key,
+- tidak ada workspace ID hardcoded,
+- tidak ada bot installation ID hardcoded,
+- tidak ada debug console yang tidak diperlukan,
+- tidak ada temporary component,
+- tidak ada unused import,
+- tidak ada duplicate API client,
+- tidak ada unrelated frontend refactor.
+
+Pastikan hanya scope B-054 yang berubah.
+
+==================================================
+BAGIAN 17 — GIT
+==================================================
+
+Jalankan:
+
+git status
+git diff --stat
+git diff
+
+Jika validation PASS dan perubahan valid:
+
+buat SATU commit.
+
+Commit message:
+
+feat: add module management ui
+
+atau gunakan message yang lebih tepat berdasarkan
+perubahan aktual.
+
+Kemudian LANGSUNG:
+
+git push origin backend-dev-recovery
+
+Verifikasi:
+
+git rev-parse HEAD
+
+dan remote branch SHA.
+
+Pastikan:
+
+LOCAL SHA == REMOTE SHA
+
+dan:
+
+WORKING TREE == CLEAN
+
+Jika tidak ada perubahan valid:
+
+jangan membuat empty commit.
+
+Jika push gagal:
+
+- jangan menghapus commit,
+- jangan reset,
+- jangan mengubah credential GitHub sembarangan,
+- tampilkan error push dengan jelas.
+
+==================================================
+FINAL OUTPUT
+==================================================
+
+Tampilkan:
+
+### B-054 STATUS
+
+Module list:
+Enable:
+Disable:
+Per-bot installation:
+Loading:
+Error handling:
+Authorization:
+Responsive UI:
+
+### FILE YANG BERUBAH
+
+Tampilkan daftar file dan alasan singkat.
+
+### TEST
+
+Unit:
+Build:
+Typecheck:
+Lint:
+Format:
+Imports:
+Ownership:
+Docs:
+Diff:
+
+### GIT
+
+Commit:
+Local SHA:
+Remote SHA:
+Push:
+Working tree:
+
+### REMAINING DEFERRED
+
+Hanya tampilkan dependency yang benar-benar masih
+belum tersedia.
+
+### NEXT ROADMAP
+
+Tentukan task berikutnya berdasarkan dependency
+NYATA repository.
+
+Jangan membuat fitur acak.
+
+Kerjakan langsung pada:
+
+/root/botspace
 
 
 ```
