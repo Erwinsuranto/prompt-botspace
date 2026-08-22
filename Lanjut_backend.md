@@ -348,10 +348,95 @@
 
 
 ```
-# 
+# Prompt berikutnya — ADR-011 Decision Matrix
 ```
 
+# Prompt: ADR-011 — Account Authentication Decision Matrix
 
+Lanjutkan project BotSpace dari kondisi repository saat ini.
+
+Kondisi terakhir:
+- Commit HEAD: 4059728
+- Working tree CLEAN.
+- Tidak ada perubahan code dari audit sebelumnya.
+- B-030, B-070, B-071 dan infrastructure foundation yang sudah selesai jangan diulang.
+- Blocker utama sekarang adalah ADR-011 §4 tentang account-session credential/authentication.
+- Keputusan vendor/mekanisme harus dibuat oleh owner, bukan oleh AI.
+
+JANGAN mengubah source code.
+JANGAN membuat commit.
+JANGAN push.
+JANGAN memilih vendor atau mekanisme atas nama owner.
+
+Tugas hanya membuat decision matrix yang akurat berdasarkan repository dan ADR-011 yang ada.
+
+Audit kembali ADR-011 dan kode terkait account/session credential.
+
+Bandingkan hanya mekanisme yang benar-benar relevan dengan repository:
+
+1. Direct client login / Telegram client session
+2. External connector
+3. OAuth/device-code/browser-like authentication jika memang relevan dengan provider/library yang tersedia
+
+Jangan memasukkan opsi yang tidak didukung oleh architecture.
+
+Untuk setiap opsi tampilkan:
+
+- authentication flow
+- apa yang user/operator harus lakukan
+- credential/session material yang dihasilkan
+- bagaimana credential disimpan
+- bagaimana encryption/SecretResolver terlibat
+- MFA handling
+- credential rotation
+- revoke/delete
+- reconnect behavior
+- multi-account support
+- server-side operation
+- compatibility dengan existing `ProviderSessionDriver`
+- compatibility dengan `SecretResolver`
+- security implications
+- implementation complexity
+- dependency/vendor requirement
+- apakah membutuhkan keputusan eksternal
+- apakah cocok dengan ADR-011 saat ini
+
+PENTING:
+- Jangan mengubah code.
+- Jangan membuat provider adapter.
+- Jangan membuat Telegram runtime.
+- Jangan membuat database migration.
+- Jangan membuat fake credential.
+- Jangan memilih opsi default.
+- Jangan menggunakan Bot API token sebagai pilihan otomatis karena ADR-011 sudah menandainya bukan pilihan yang dipilih.
+
+OUTPUT:
+
+### ADR-011 §4 Decision Matrix
+
+Buat tabel perbandingan yang ringkas tetapi lengkap.
+
+### Existing Repository Compatibility
+
+Tunjukkan contract/module yang sudah tersedia dan bagaimana masing-masing opsi akan menggunakannya.
+
+### Decisions Required From Owner
+
+Tampilkan pertanyaan keputusan yang harus dijawab owner.
+
+Buat sesedikit mungkin keputusan, tetapi harus cukup untuk membuka implementasi berikutnya.
+
+### Recommended Decision Order
+
+Urutkan keputusan yang harus dibuat terlebih dahulu.
+
+### After Decision
+
+Jelaskan task B berikutnya yang dapat langsung dikerjakan setelah owner memilih mekanisme.
+
+Tidak ada perubahan repository.
+Tidak ada commit.
+Tidak ada push.
 
 ```
 # Prompt berikutnya — B-062: ADR-011 Decision Readiness
