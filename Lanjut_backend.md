@@ -384,10 +384,312 @@
 
 
 ```
-# 
+# Prompt: B-058 — Bot Credential Provisioning
 ```
 
+Lanjutkan project BotSpace dari kondisi repository saat ini.
 
+KONDISI TERAKHIR
+
+- B-030 Workspace API/Contract SUDAH selesai.
+- B-070 Storage Adapter SUDAH selesai.
+- B-071 File/Share contract SUDAH selesai.
+- B-071 File/Share API SUDAH selesai.
+- Production wiring B-071 SUDAH selesai.
+- Production SecretResolver boundary SUDAH tersedia.
+- ADR-011 §4 credential provisioning boundary SUDAH diputuskan/approved.
+- Working tree terakhir CLEAN.
+- Local dan remote branch `backend-dev-recovery` SUDAH sinkron.
+- Jangan mengulang B-030, B-070, B-071, atau SecretResolver.
+
+SEKARANG KERJAKAN:
+
+B-058 — Bot Credential Provisioning
+
+Tujuan:
+Menyelesaikan lifecycle credential provisioning untuk BotInstallation berdasarkan keputusan ADR-011 §4.
+
+ATURAN UTAMA
+
+Operator/UI harus memberikan raw bot credential/token pada saat create bot.
+
+Operator TIDAK boleh memasukkan atau mengelola internal `secret_ref`.
+
+Raw credential hanya boleh melewati provisioning boundary dan tidak boleh menjadi bagian dari BotInstallation metadata.
+
+Setelah provisioning berhasil:
+- SecretResolver/SecretProvisioner menyimpan credential melalui boundary yang sudah disetujui.
+- Sistem menghasilkan internal `secret_ref`.
+- BotInstallation hanya menyimpan reference tersebut.
+- Raw credential tidak boleh dikembalikan ke client.
+- Raw credential tidak boleh masuk log/error/metadata/database installation.
+
+IMPLEMENTASI 6 LANGKAH
+
+1. CREDENTIALS CONTRACT
+
+Audit `credentials.ts` dan abstraction credential yang sudah ada.
+
+Extend contract yang sudah tersedia untuk mendukung provisioning credential.
+
+Gunakan abstraction existing jika memungkinkan.
+
+Jangan membuat SecretResolver interface kedua.
+
+Tambahkan `SecretProvisioner` hanya jika memang diperlukan oleh ADR-011 §4 dan belum tersedia.
+
+Boundary minimal harus mendukung konsep:
+
+raw credential
+→ provision
+→ secret_ref
+
+Jangan expose secret value setelah provisioning selesai.
+
+2. SECRET PROVISIONER
+
+Implementasikan provisioning melalui boundary secret yang sudah disetujui.
+
+Requirements:
+
+- write-only dari perspektif bot creation flow,
+- credential tidak dikembalikan sebagai response,
+- secret reference dapat dikembalikan secara internal,
+- failure harus fail-closed,
+- jangan menyimpan raw credential di BotInstallation,
+- jangan mencetak credential ke log,
+- jangan memasukkan credential ke thrown error,
+- jangan membuat vendor-specific implementation di business layer.
+
+Gunakan existing SecretResolver/secret abstraction.
+
+Jika existing abstraction memiliki keterbatasan:
+- adaptasikan hanya sejauh diperlukan B-058,
+- jangan membuat architecture baru yang tidak diperlukan.
+
+3. BOT-SERVICE.CREATE
+
+Audit `bot-service.create`.
+
+Ubah create flow agar menerima credential/token sebagai input provisioning, BUKAN `secret_ref` dari operator.
+
+Flow yang diharapkan:
+
+Create Bot request
+→ validate operator/workspace authorization
+→ receive credential
+→ provision credential
+→ receive internal `secret_ref`
+→ create BotInstallation dengan `secret_ref`
+→ return safe BotInstallation response
+
+Jika provisioning gagal:
+
+- BotInstallation tidak boleh dianggap berhasil dibuat,
+- jangan menyimpan installation dengan credential yang belum tersedia,
+- jangan mengembalikan raw credential,
+- jangan membocorkan secret pada error.
+
+Gunakan compensating cleanup jika provisioning berhasil tetapi persistence BotInstallation gagal dan existing abstraction mendukung cleanup.
+
+Jangan membuat fake rollback yang tidak didukung architecture.
+
+4. CONTRACT / HANDLER / CLIENT / UI
+
+Audit seluruh caller create-bot:
+
+- API contract,
+- handler,
+- client,
+- UI,
+- validation/schema,
+- DTO.
+
+Pastikan seluruh layer menggunakan contract baru yang benar.
+
+Operator/UI harus mengirim:
+
+credential/token
+
+bukan:
+
+secret_ref
+
+Internal `secret_ref` hanya boleh muncul pada server-side domain/persistence boundary yang memang membutuhkannya.
+
+Jangan menampilkan secret_ref sebagai field yang harus diisi user.
+
+Jangan mengembalikan raw credential dari API.
+
+Jika UI membutuhkan input credential:
+- gunakan password/secret input yang sesuai,
+- jangan persist credential di browser/localStorage,
+- jangan tampilkan credential kembali setelah submit.
+
+5. SECURITY + FAIL-CLOSED
+
+Audit seluruh B-058 flow untuk memastikan:
+
+- workspace authorization tetap berlaku,
+- operator tidak dapat menulis credential ke workspace lain,
+- raw credential tidak masuk database metadata,
+- raw credential tidak masuk logs,
+- raw credential tidak masuk API response,
+- raw credential tidak masuk error messages,
+- `secret_ref` hanya internal,
+- provisioning failure menghentikan create flow,
+- persistence failure tidak meninggalkan state installation yang invalid,
+- tidak ada credential hardcoded,
+- tidak ada vendor-specific secret implementation di business layer.
+
+Jangan mengubah `BotInstallation.status`.
+
+Jangan mengimplementasikan Telegram polling/webhook runtime.
+
+Jangan mengerjakan account-session credential flow yang memang masih deferred di ADR-011 §4.
+
+6. TEST
+
+Tambahkan test untuk behavior nyata:
+
+- create bot dengan credential valid,
+- credential diteruskan ke provisioning boundary,
+- provisioning menghasilkan secret_ref,
+- BotInstallation hanya menyimpan secret_ref,
+- raw credential tidak muncul pada response,
+- provisioning failure → create bot gagal,
+- provisioning failure → tidak ada installation invalid,
+- persistence failure setelah provisioning → cleanup/compensation jika didukung,
+- unauthorized workspace ditolak,
+- operator tidak dapat memberikan secret_ref sebagai pengganti credential,
+- secret tidak muncul pada error/log,
+- test environment tetap dapat menggunakan fake/injected provisioner.
+
+Jangan membuat mock yang tidak merepresentasikan contract sebenarnya hanya agar test PASS.
+
+VALIDATION
+
+Jalankan:
+
+- pnpm test
+- pnpm build
+- pnpm typecheck
+- pnpm lint
+- pnpm format:check
+- node scripts/check-imports.mjs
+- node scripts/check-ownership.mjs
+- node scripts/check-doc-links.mjs
+- git diff --check
+
+Jangan membuat atau menjalankan:
+
+`node scripts/check-symlinks.mjs`
+
+karena script tersebut memang tidak tersedia.
+
+Jika ada integration test yang membutuhkan external credential/service:
+- jangan membuat credential palsu production,
+- jalankan hanya jika environment memang tersedia,
+- jika tidak tersedia, tandai SKIPPED/UNAVAILABLE.
+
+REVIEW
+
+Sebelum commit:
+
+1. git status
+2. git diff --stat
+3. review seluruh diff.
+
+Pastikan tidak ada:
+- raw credential,
+- API key,
+- token,
+- password,
+- secret,
+- temporary file,
+- unrelated refactor,
+- perubahan B-030/B-070/B-071,
+- perubahan Gorouter.app,
+- perubahan NVIDIA/TokenHarbor.
+
+GIT
+
+Jika implementasi dan validation valid:
+
+buat SATU commit.
+
+Gunakan:
+
+`feat: implement bot credential provisioning`
+
+atau commit message yang lebih tepat berdasarkan perubahan aktual.
+
+Kemudian langsung:
+
+`git push origin backend-dev-recovery`
+
+Verifikasi:
+- local SHA,
+- remote SHA,
+- working tree CLEAN.
+
+Jika push gagal karena credential/network:
+- jangan mengubah credential sembarangan,
+- jangan menghapus commit,
+- tampilkan error push,
+- pastikan commit tetap aman lokal.
+
+OUTPUT AKHIR
+
+### B-058
+- credential input:
+- provisioning boundary:
+- SecretProvisioner:
+- bot-service.create:
+- secret_ref handling:
+- fail-closed behavior:
+- UI/API contract:
+
+### Security
+- raw credential persistence:
+- raw credential response:
+- raw credential logging:
+- workspace isolation:
+
+### Testing
+- test:
+- build:
+- typecheck:
+- lint:
+- format:
+- imports:
+- ownership:
+- docs:
+- diff:
+
+### Git
+- commit SHA:
+- push:
+- local/remote SHA:
+- working tree:
+
+### Remaining Deferred
+Tampilkan hanya dependency yang benar-benar masih blocked.
+
+### Next Roadmap
+Tentukan task berikutnya berdasarkan dependency nyata repository.
+
+PENTING:
+- Jangan mengulang B-030.
+- Jangan mengulang B-070.
+- Jangan mengulang B-071.
+- Jangan membuat SecretResolver kedua.
+- Jangan membuat vendor secret manager baru secara speculative.
+- Jangan menyimpan raw credential di BotInstallation.
+- Jangan mengubah BotInstallation.status.
+- Jangan membuat Telegram runtime.
+- Jangan mengerjakan account-session credential flow yang masih deferred.
+- Kerjakan langsung pada `/root/botspace`.
 
 ```
 # Prompt: ADR-011 §4 — Credential Provisioning Boundary Decision
