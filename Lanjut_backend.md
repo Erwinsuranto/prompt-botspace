@@ -372,9 +372,321 @@
 
 
 ```
-# 
+# Prompt: B-060 — Secret Provisioner Revoke Persistence
 ```
+Lanjutkan project BotSpace dari kondisi repository saat ini.
 
+KONDISI TERAKHIR:
+- B-030 Workspace API/Contract SUDAH selesai.
+- B-070 Storage Adapter SUDAH selesai.
+- B-071 File/Share contract SUDAH selesai.
+- B-071 File/Share API SUDAH selesai.
+- Production wiring B-071 SUDAH selesai.
+- B-058 Bot Credential Provisioning SUDAH selesai.
+- B-059 Credential Revocation + Compensation SUDAH selesai.
+- Working tree terakhir CLEAN.
+- Branch aktif: backend-dev-recovery.
+- Jangan mengulang pekerjaan yang sudah selesai.
+
+ROADMAP SAAT INI:
+B-060 — persistence adapter untuk SecretProvisioner.revoke + integration test.
+
+Tujuan:
+Lengkapi persistence boundary untuk operasi revoke credential pada SecretProvisioner berdasarkan architecture dan contract yang SUDAH ADA.
+
+PENTING:
+ADR-010 Managed Secret Manager vendor selection MASIH DEFERRED.
+Jangan memilih vendor secret manager.
+Jangan menambahkan SDK vendor.
+Jangan membuat integration dengan AWS/GCP/Azure/Vault atau vendor lain.
+Jangan mengubah ADR-010.
+Jangan membuat fake production secret manager.
+
+1. AUDIT TERLEBIH DAHULU
+
+Audit repository secara menyeluruh:
+
+- SecretProvisioner
+- SecretResolver
+- BotCredentialProvisioner
+- revoke flow dari B-059
+- persistence adapter/repository yang sudah ada
+- credential/session boundary
+- composition root
+- existing migrations/schema
+- existing PostgreSQL adapter
+- existing test utilities
+- existing transaction/cleanup pattern.
+
+Cari dependency nyata yang diperlukan B-060.
+
+Jangan langsung coding sebelum memahami flow yang sudah dibuat B-058/B-059.
+
+2. IMPLEMENTASI PERSISTENCE REVOKE
+
+Implementasikan hanya persistence behavior yang memang dibutuhkan oleh revoke flow.
+
+Requirements:
+
+- Gunakan repository/persistence abstraction yang sudah ada jika tersedia.
+- Jangan membuat abstraction kedua yang menduplikasi repository/contract.
+- Jangan mengubah contract B-058/B-059 kecuali benar-benar diperlukan untuk implementasi yang sudah terspesifikasi.
+- Jangan membuat schema baru jika schema existing sudah cukup.
+- Jika migration/schema memang benar-benar dibutuhkan oleh contract existing, buat hanya perubahan minimum yang diperlukan.
+- Jangan menyimpan raw secret/token jika architecture menggunakan reference/digest.
+- Jangan menyimpan credential production secara plaintext.
+- Revoke harus idempotent jika contract/service behavior memang mengharuskannya.
+- Revoke failure harus fail-closed.
+- Jangan membocorkan credential/secret pada error atau log.
+- Jangan melakukan cleanup palsu yang tidak didukung persistence backend.
+
+3. REVOKE + COMPENSATION
+
+Audit kembali flow B-059:
+
+provision → persist → use → revoke → compensation
+
+Pastikan revoke persistence benar-benar terhubung dengan lifecycle tersebut.
+
+Verifikasi:
+
+- credential/reference dapat ditandai revoked sesuai model existing,
+- revoke tidak menghapus data yang masih diperlukan untuk audit/lifecycle jika contract tidak mengizinkannya,
+- failed persistence tidak dianggap sukses,
+- compensation behavior tetap konsisten,
+- repeated revoke tidak merusak state,
+- workspace/bot ownership tetap terjaga.
+
+Jangan mengubah behavior lifecycle yang sudah benar hanya untuk merapikan kode.
+
+4. POSTGRESQL INTEGRATION TEST
+
+Periksa environment:
+
+PERSISTENCE_TEST_DATABASE_URL
+
+Jika tersedia:
+
+- jalankan PostgreSQL integration test yang relevan,
+- gunakan migration repository yang sudah ada,
+- test create/provision persistence,
+- test revoke persistence,
+- test repeated/idempotent revoke jika contract mendukung,
+- test failure/transaction behavior,
+- test workspace/bot isolation,
+- test credential/reference tidak bocor.
+
+Jangan:
+
+- membuat fake PostgreSQL,
+- mengganti PostgreSQL dengan SQLite,
+- membuat database palsu hanya agar test PASS,
+- menjalankan migration destruktif pada database yang bukan test database,
+- mengubah test agar PASS secara artifisial.
+
+Jika PERSISTENCE_TEST_DATABASE_URL tidak tersedia:
+
+SKIPPED — PERSISTENCE_TEST_DATABASE_URL unavailable
+
+Jangan membuat environment variable palsu.
+
+5. UNIT TEST
+
+Tambahkan/perbaiki unit test untuk behavior nyata:
+
+- revoke berhasil,
+- revoke persistence failure,
+- repeated revoke/idempotency bila memang contract mendukung,
+- credential/reference tidak masuk log,
+- credential/reference tidak masuk error response,
+- ownership/isolation,
+- compensation behavior bila memang berada pada boundary B-060.
+
+Jangan membuat mock yang tidak mencerminkan contract sebenarnya.
+
+6. PRODUCTION SECRET MANAGER
+
+JANGAN mengimplementasikan vendor Secret Manager.
+
+Tetap pertahankan:
+
+DEFERRED — ADR-010 managed secret-manager vendor selection.
+
+B-060 hanya boleh menggunakan abstraction/boundary yang sudah ada.
+
+Jangan:
+- memilih vendor,
+- menambah SDK,
+- membuat credentials,
+- membuat secret store baru,
+- mengubah deployment architecture.
+
+7. SECURITY REVIEW
+
+Audit perubahan B-060 terhadap:
+
+- credential leakage,
+- raw secret storage,
+- token leakage,
+- log leakage,
+- error leakage,
+- workspace isolation,
+- bot ownership,
+- revoke authorization,
+- fail-closed behavior,
+- transaction consistency.
+
+Pastikan tidak ada secret/token credential yang muncul di:
+
+- source,
+- git diff,
+- logs,
+- test output,
+- HTTP response.
+
+8. VALIDATION
+
+Jalankan:
+
+pnpm test
+pnpm build
+pnpm typecheck
+pnpm lint
+pnpm format:check
+node scripts/check-imports.mjs
+node scripts/check-ownership.mjs
+node scripts/check-doc-links.mjs
+git diff --check
+
+Jangan menjalankan atau membuat:
+
+node scripts/check-symlinks.mjs
+
+karena file tersebut memang tidak tersedia.
+
+Jika PostgreSQL environment tersedia, jalankan integration test.
+
+Jika tidak tersedia, tandai SKIPPED dan jangan menyamarkannya sebagai PASS.
+
+Jangan menjalankan integration test Gorouter.app.
+
+NVIDIA dan TokenHarbor tidak perlu disentuh karena tidak terkait B-060.
+
+9. REVIEW DIFF
+
+Sebelum commit:
+
+git status
+git diff --stat
+git diff
+
+Pastikan perubahan hanya terkait:
+
+- B-060 persistence revoke,
+- test yang diperlukan,
+- dokumentasi/status jika benar-benar diperlukan.
+
+Hapus perubahan unrelated.
+
+Jangan melakukan:
+- refactor besar,
+- perubahan frontend,
+- Telegram runtime,
+- public share,
+- share expiry,
+- rate limiting,
+- audit event,
+- provider changes,
+- Gorouter changes.
+
+10. COMMIT + PUSH
+
+Jika ada perubahan valid dan validation yang tersedia PASS:
+
+buat SATU commit dengan message:
+
+feat: persist credential revocation
+
+atau gunakan message yang lebih tepat berdasarkan perubahan aktual.
+
+Kemudian langsung:
+
+git push origin backend-dev-recovery
+
+Verifikasi:
+
+- local HEAD SHA,
+- remote branch SHA,
+- working tree clean.
+
+Jika push gagal:
+
+- jangan mengubah credential Git secara sembarangan,
+- jangan menghapus commit,
+- tampilkan error,
+- pastikan commit tetap aman lokal.
+
+Jika ternyata tidak ada perubahan yang diperlukan:
+
+- jangan membuat empty commit,
+- jangan push kosong.
+
+11. OUTPUT AKHIR
+
+Tampilkan laporan:
+
+### B-060
+- persistence revoke:
+- repository/adapter:
+- compensation:
+- idempotency:
+- status:
+
+### PostgreSQL
+- PERSISTENCE_TEST_DATABASE_URL:
+- integration test:
+- status:
+
+### Security
+- credential leakage:
+- log sanitization:
+- fail-closed:
+- ownership/isolation:
+
+### Validation
+- test:
+- build:
+- typecheck:
+- lint:
+- format:
+- imports:
+- ownership:
+- docs:
+- diff check:
+- symlink check:
+
+### Git
+- commit SHA:
+- push:
+- local/remote SHA:
+- working tree:
+
+### Remaining Deferred
+Hanya tampilkan dependency nyata yang masih tertahan, terutama:
+- ADR-010 managed secret-manager vendor selection,
+- environment PostgreSQL jika belum tersedia,
+- dependency lain yang benar-benar ditemukan saat audit.
+
+### NEXT ROADMAP
+
+Setelah B-060 selesai, tentukan task berikutnya berdasarkan dependency nyata repository.
+
+Jangan otomatis mengerjakan B-061 jika dependency-nya masih belum siap.
+Jika B-061 memang sudah bisa dikerjakan tanpa keputusan vendor eksternal, jelaskan alasannya.
+
+Kerjakan langsung pada:
+
+/root/botspace
 
 
 ```
