@@ -402,10 +402,210 @@
 
 
 ```
-# 
+# Prompt: B-057 — Managed Secret Reference Flow
 ```
 
+Lanjutkan project BotSpace dari kondisi repository saat ini.
 
+KONDISI TERAKHIR
+
+- B-030 Workspace API/Contract SUDAH selesai.
+- B-070 Storage Adapter SUDAH selesai.
+- B-071 File/Share contract SUDAH selesai.
+- B-071 File/Share API SUDAH selesai.
+- Production wiring B-071 SUDAH selesai.
+- Production SecretResolver boundary SUDAH tersedia.
+- B-054 Module Management UI SUDAH selesai.
+- B-055 Bot Installation Listing SUDAH selesai.
+- B-056 Bot Installation Lifecycle UI SUDAH selesai.
+- Working tree terakhir CLEAN.
+- Branch: backend-dev-recovery.
+
+Jangan mengulang B-030, B-070, B-071, B-054, B-055, atau B-056.
+
+NEXT TASK: B-057 — MANAGED SECRET REFERENCE FLOW
+
+Tujuan:
+
+Perbaiki lifecycle pembuatan bot agar operator memasukkan credential/bot token yang sebenarnya, sementara aplikasi menyimpan credential melalui secret-handling boundary yang sudah tersedia dan hanya menggunakan `secret_ref` sebagai reference internal.
+
+Masalah yang ditemukan pada audit B-056:
+
+- Create bot masih meminta `secret_ref` mentah dari operator.
+- Ini bukan UX yang benar.
+- Operator seharusnya memasukkan credential/bot token.
+- Sistem kemudian menyerahkan credential tersebut ke secret-handling mechanism yang sudah tersedia.
+- Setelah tersimpan, aplikasi menggunakan reference/identifier secret, bukan raw credential.
+- Jangan membuat secret-management system baru jika repository sudah memiliki pola yang dapat digunakan.
+
+TUGAS
+
+1. Audit implementation B-056 dan flow `createBot`.
+
+2. Cari dan gunakan secret-handling pattern yang SUDAH ADA di repository, terutama:
+   - connection-service.ts
+   - SecretResolver
+   - existing secret boundary
+   - existing credential handling
+   - existing configuration/composition root.
+
+3. Jangan membuat interface `SecretResolver` kedua.
+
+4. Jangan membuat secret manager baru.
+
+5. Jangan memilih vendor secret manager baru.
+
+6. Ubah create-bot flow agar input operator adalah credential/bot token, bukan internal `secret_ref`.
+
+7. Setelah credential diterima:
+   - jangan menyimpan raw credential sebagai BotInstallation field jika architecture tidak mengharuskannya,
+   - jangan mengembalikan raw credential melalui API response,
+   - jangan mencetak credential ke log,
+   - gunakan existing secret-storage/secret boundary,
+   - simpan hanya reference yang memang diperlukan oleh domain/application.
+
+8. Jika existing secret-handling API membutuhkan `secret_ref`, buat reference tersebut secara internal setelah credential berhasil disimpan.
+
+9. Pastikan UI create-bot tidak meminta operator mengetahui atau mengetik `secret_ref` internal.
+
+10. Pastikan response API create-bot hanya mengembalikan data aman:
+    - installation ID,
+    - bot metadata,
+    - status,
+    - secret reference hanya jika contract memang secara eksplisit mengizinkan reference tersebut dikembalikan.
+
+11. Jangan pernah mengembalikan raw bot token.
+
+12. Pastikan error handling tidak membocorkan credential.
+
+13. Pastikan test menggunakan synthetic/test credential saja.
+
+14. Tambahkan test untuk:
+    - create bot dengan credential valid,
+    - credential diteruskan ke existing secret boundary,
+    - secret reference dibuat/disimpan dengan benar,
+    - raw credential tidak masuk response,
+    - raw credential tidak masuk log/error,
+    - missing credential ditolak,
+    - secret-storage failure ditangani dengan aman,
+    - create bot tidak meninggalkan installation invalid jika secret storage gagal,
+    - existing lifecycle enable/disable/delete tetap bekerja.
+
+15. Audit route + client/UI:
+    - API request,
+    - DTO,
+    - create-bot form,
+    - validation,
+    - response mapping.
+
+16. Jangan mengubah BotInstallation.status menjadi runtime/process state.
+
+17. Jangan mengimplementasikan Telegram polling/webhook runtime.
+
+18. Jangan menambahkan managed secret vendor baru.
+
+19. Jangan mengerjakan public-share rate limiting, audit event, share expiry, distributed lock, retry/DLQ, event/outbox, atau multi-bot multiplexing.
+
+20. Jangan menyentuh Gorouter.app.
+
+21. NVIDIA dan TokenHarbor tidak perlu disentuh.
+
+VALIDATION
+
+Jalankan validation yang tersedia dan relevan:
+
+- pnpm test
+- pnpm build
+- pnpm typecheck
+- pnpm lint
+- pnpm format:check
+- node scripts/check-imports.mjs
+- node scripts/check-ownership.mjs
+- node scripts/check-doc-links.mjs
+- git diff --check
+
+Jangan membuat atau menjalankan:
+
+node scripts/check-symlinks.mjs
+
+karena file tersebut tidak tersedia.
+
+SECURITY CHECK
+
+Sebelum selesai, audit diff untuk memastikan tidak ada:
+
+- raw bot token,
+- API key,
+- password,
+- credential,
+- secret,
+- token test yang tertinggal,
+- secret di log,
+- secret di HTTP response,
+- secret di error message.
+
+Jika menemukan raw credential yang sudah ada sebelumnya, jangan menyalinnya ke tempat lain. Perbaiki hanya jika memang bagian dari B-057.
+
+COMMIT
+
+Jika implementation valid dan validation PASS:
+
+1. Review git diff.
+2. Pastikan hanya perubahan B-057.
+3. Buat satu commit:
+
+feat: implement managed secret reference flow
+
+4. Push:
+
+git push origin backend-dev-recovery
+
+5. Verifikasi local SHA dan remote SHA sama.
+6. Pastikan working tree CLEAN.
+
+Jika tidak ada perubahan valid:
+- jangan membuat empty commit,
+- jangan push kosong.
+
+OUTPUT AKHIR
+
+Tampilkan:
+
+### B-057
+- create credential flow:
+- secret storage:
+- secret reference:
+- API:
+- UI:
+- security:
+- tests:
+
+### Validation
+- test:
+- build:
+- typecheck:
+- lint:
+- format:
+- imports:
+- ownership:
+- docs:
+- diff:
+
+### Git
+- commit SHA:
+- push:
+- local/remote SHA:
+- working tree:
+
+### Remaining Deferred
+Hanya item yang benar-benar masih membutuhkan infrastructure, contract, environment, atau keputusan product.
+
+### Next Roadmap
+Tentukan task berikutnya berdasarkan dependency nyata repository.
+
+Kerjakan langsung pada:
+
+/root/botspace
 
 ```
 # Prompt: B-056 — Bot Installation Lifecycle UI
