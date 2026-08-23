@@ -306,10 +306,207 @@
 
 
 ```
-# 
+# Prompt: ADR-010 — Production Secret Manager Adapter
 ```
 
+Lanjutkan project BotSpace dari kondisi repository saat ini di /root/botspace.
 
+STATUS TERAKHIR:
+- B-030 DONE.
+- B-070 DONE.
+- B-071 DONE.
+- Telegram enrollment contract DONE.
+- Telegram enrollment API DONE.
+- Typed API client DONE.
+- F-040 Connection/Enrollment UI DONE.
+- Test terakhir: 178/178 PASS.
+- Commit terakhir: d24c2be.
+- Push ke origin/backend-dev-recovery BERHASIL.
+- Local dan remote SHA SAMA.
+- Working tree CLEAN.
+
+Jangan mengulang pekerjaan yang sudah DONE.
+
+NEXT TASK:
+ADR-010 — deployment-owned SecretProvisioner/SecretResolver implementation.
+
+TUJUAN:
+Menyelesaikan production secret boundary yang dibutuhkan connector Telegram tanpa mengunci BotSpace ke vendor tertentu secara spekulatif.
+
+Tugas:
+
+1. Audit seluruh repository terkait:
+   - SecretResolver
+   - SecretProvisioner
+   - SecretResolver/Provider boundary
+   - configuration
+   - composition root
+   - Telegram connector
+   - enrollment flow
+   - provider-session storage
+   - production deployment configuration.
+
+2. Tentukan terlebih dahulu apakah repository SUDAH menentukan managed secret-manager vendor.
+
+3. Jika vendor SUDAH ditentukan secara eksplisit:
+   - implementasikan adapter vendor tersebut,
+   - gunakan abstraction SecretResolver/SecretProvisioner yang sudah ada,
+   - jangan membuat abstraction kedua.
+
+4. Jika vendor BELUM ditentukan:
+   - JANGAN memilih vendor sendiri,
+   - JANGAN menambahkan SDK vendor secara spekulatif,
+   - JANGAN membuat fake production secret manager,
+   - selesaikan boundary deployment-owned sejauh yang dapat dibuktikan dari repository,
+   - dokumentasikan dependency vendor sebagai deferred.
+
+5. Production application/business layer hanya boleh bergantung pada SecretResolver/SecretProvisioner abstraction.
+
+6. Detail vendor secret manager harus tetap berada di deployment/infrastructure boundary.
+
+7. Credential/secret yang harus dilindungi:
+   - TELEGRAM_API_ID
+   - TELEGRAM_API_HASH
+   - session credential/string
+   - provider credential
+   - storage credential
+   - API key/token/password lain yang memang masuk secret boundary.
+
+8. Jangan:
+   - hardcode secret,
+   - menyimpan secret di source code,
+   - menyimpan secret di database plaintext,
+   - memasukkan secret ke log,
+   - memasukkan secret ke HTTP response,
+   - memasukkan secret ke error message,
+   - mencetak session string,
+   - menyimpan credential di localStorage/browser.
+
+9. Pastikan test environment tetap dapat menggunakan fake/in-memory SecretResolver/SecretProvisioner.
+
+10. Pastikan production configuration dapat gagal secara aman jika secret reference/configuration tidak tersedia.
+
+11. Jika SecretProvisioner diperlukan untuk membuat/update/delete secret:
+   - gunakan interface yang sudah ada,
+   - jangan membuat API kedua,
+   - jangan mengubah contract enrollment kecuali benar-benar diperlukan.
+
+12. Audit session storage:
+   - UI/API hanya menerima opaque reference/status yang memang diperlukan,
+   - session secret tidak boleh dikirim kembali ke frontend setelah provisioning,
+   - provider-session persistence harus menyimpan reference/opaque handle sesuai boundary yang tersedia.
+
+13. Jangan implementasikan Telegram polling/runtime worker sekarang.
+
+14. Jangan implementasikan connection lifecycle outbox/event emission sekarang.
+   Itu task berikutnya setelah ADR-010 selesai.
+
+15. Jangan mengubah:
+   - BotInstallation.status,
+   - B-030,
+   - B-070,
+   - B-071,
+   - enrollment API contract,
+   - F-040 UI,
+   kecuali compatibility fix benar-benar diperlukan.
+
+16. Jangan menyentuh Gorouter.app.
+17. NVIDIA dan TokenHarbor tidak perlu disentuh.
+
+TESTING:
+
+Tambahkan/perbaiki test yang relevan untuk:
+- SecretResolver injection,
+- SecretProvisioner injection,
+- resolve secret,
+- provision secret,
+- missing secret/reference,
+- resolver failure,
+- provisioner failure,
+- secret tidak bocor ke error,
+- secret tidak bocor ke log,
+- fake resolver/provisioner pada test environment,
+- provider session hanya menggunakan opaque reference jika contract memang mendukungnya.
+
+Jika integration test membutuhkan managed secret manager nyata tetapi environment belum menyediakannya:
+- jangan membuat credential palsu,
+- jangan membuat fake production integration,
+- tandai integration sebagai DEFERRED/UNAVAILABLE.
+
+VALIDATION:
+
+Jalankan:
+- pnpm test
+- pnpm build
+- pnpm typecheck
+- pnpm lint
+- pnpm format:check
+- node scripts/check-imports.mjs
+- node scripts/check-ownership.mjs
+- node scripts/check-doc-links.mjs
+- git diff --check
+
+Jangan membuat atau menjalankan:
+node scripts/check-symlinks.mjs
+
+Jika semua validation PASS:
+
+1. review git diff,
+2. pastikan hanya perubahan ADR-010,
+3. buat SATU commit,
+4. langsung push:
+
+git push origin backend-dev-recovery
+
+5. verifikasi local SHA == remote SHA,
+6. pastikan working tree CLEAN.
+
+Jika vendor secret manager belum dapat ditentukan dari repository:
+- jangan membuat implementation vendor palsu,
+- tetap selesaikan boundary yang memang bisa diselesaikan,
+- laporkan dependency vendor secara eksplisit.
+
+OUTPUT:
+
+### ADR-010
+- SecretResolver:
+- SecretProvisioner:
+- deployment boundary:
+- vendor:
+- status:
+
+### Security
+- secret storage:
+- session handling:
+- frontend exposure:
+- logging:
+
+### Tests
+- test:
+- build:
+- typecheck:
+- lint:
+- format:
+- imports:
+- ownership:
+- docs:
+- diff:
+
+### Git
+- commit SHA:
+- push:
+- local/remote SHA:
+- working tree:
+
+### Remaining Deferred
+Hanya dependency nyata.
+
+### Next Roadmap
+Setelah ADR-010 selesai, evaluasi apakah:
+1. Telegram real integration test sudah dapat dilakukan, atau
+2. lanjut ke connection lifecycle event/outbox.
+
+Jangan mengerjakan task lain.
 
 ```
 # Prompt: F-040 — Telegram Connection & Enrollment UI
