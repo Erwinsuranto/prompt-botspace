@@ -252,11 +252,283 @@
 
 
 ```
-# 
+# Prompt berikutnya — Redis Outbox Consumer
 ```
 
 
+Prompt: BotSpace — Implement Redis Outbox Consumer
 
+Lanjutkan project BotSpace dari kondisi repository TERAKHIR.
+
+KONDISI SUDAH SELESAI
+
+- B-030 Workspace API/Contract selesai.
+- B-070 Storage Adapter selesai.
+- B-071 File/Share API + production wiring selesai.
+- SecretResolver application boundary selesai.
+- Redis OutboxPublisher selesai.
+- Redis sudah menjadi transport resmi berdasarkan ADR.
+- `runWorkerProcess` adalah host process yang benar.
+- Outbox producer sudah dapat melakukan Redis RPUSH.
+- JobEnvelope contract SUDAH ADA dan jangan diubah.
+- `jobs` table/schema SUDAH ADA dan gunakan yang existing.
+- Working tree terakhir CLEAN.
+- Local dan remote `origin/backend-dev-recovery` sudah sinkron.
+
+TASK SEKARANG
+
+Implementasikan SATU hal:
+
+WORKER-SIDE REDIS OUTBOX CONSUMER
+
+Tujuan:
+
+Redis list → consumer → deserialize JobEnvelope → jobs table.
+
+Jangan mengubah producer yang sudah selesai kecuali diperlukan untuk kompatibilitas nyata.
+
+1. Audit terlebih dahulu:
+
+- existing Redis OutboxPublisher,
+- `QUEUE_URL`,
+- JobEnvelope,
+- `serialize()` / deserialize mechanism,
+- jobs table/schema,
+- jobs repository,
+- persistence adapter,
+- `runWorkerProcess`,
+- existing worker/runtime lifecycle,
+- existing transaction primitives.
+
+2. Gunakan Redis list yang SUDAH dipilih oleh ADR.
+
+Jangan:
+- BullMQ,
+- RabbitMQ,
+- Kafka,
+- queue framework baru,
+- dependency queue tambahan.
+
+3. Implementasikan consumer secara modular.
+
+Consumer harus:
+
+- mengambil envelope dari Redis,
+- deserialize menggunakan JobEnvelope contract existing,
+- memvalidasi envelope,
+- memasukkan job ke existing `jobs` persistence,
+- tidak membuat schema jobs baru,
+- tidak membuat JobEnvelope contract kedua.
+
+4. Reliability:
+
+Gunakan pola Redis yang sesuai dengan architecture existing.
+
+Consumer TIDAK boleh kehilangan job secara diam-diam.
+
+Pertimbangkan pola:
+
+Redis pending/in-flight → persist jobs → acknowledge/remove
+
+Gunakan mekanisme Redis yang memang didukung dependency/version repository.
+
+Jangan mengarang reliability mechanism yang tidak diperlukan.
+
+5. Idempotency:
+
+Gunakan existing JobEnvelope identity/idempotency field jika tersedia.
+
+Jika jobs table sudah mempunyai unique identity/idempotency constraint:
+- manfaatkan constraint tersebut.
+
+Jangan membuat idempotency schema baru tanpa kebutuhan.
+
+Repeated delivery tidak boleh menghasilkan duplicate job jika existing contract/database sudah menyediakan identity yang sesuai.
+
+6. Failure behavior:
+
+Jika deserialize gagal:
+- jangan crash seluruh worker,
+- jangan loop tanpa batas,
+- jangan membocorkan payload/secret ke log.
+
+Jika database insert gagal:
+- jangan menghapus message Redis secara premature,
+- message harus dapat diproses ulang sesuai semantics consumer.
+
+Jika Redis connection gagal:
+- worker harus menangani failure dengan aman,
+- graceful shutdown tetap bekerja.
+
+7. Lifecycle:
+
+Integrasikan consumer ke `runWorkerProcess`.
+
+Startup:
+- Redis consumer siap,
+- persistence siap,
+- worker loop berjalan.
+
+Shutdown:
+- hentikan polling/consumer loop,
+- jangan mengambil job baru,
+- selesaikan operasi yang aman untuk diselesaikan,
+- tutup Redis connection,
+- tutup persistence sesuai lifecycle existing.
+
+Jangan membuat process/service baru.
+
+8. Jobs table:
+
+Audit existing schema sebelum coding.
+
+Gunakan field yang memang sudah tersedia.
+
+Jangan:
+- membuat migration baru hanya untuk consumer,
+- menambah kolom speculative,
+- mengganti schema jobs,
+- mengganti semantics JobEnvelope.
+
+9. Testing:
+
+Tambahkan test nyata untuk:
+
+- Redis message berhasil dikonsumsi,
+- JobEnvelope berhasil dideserialize,
+- job berhasil masuk jobs table,
+- duplicate/idempotent delivery,
+- malformed envelope,
+- database failure,
+- Redis failure,
+- retry/reprocessing behavior sesuai existing contract,
+- graceful shutdown,
+- no secret/payload leakage.
+
+Gunakan fake/in-memory boundary hanya jika repository memang sudah memiliki test boundary tersebut.
+
+Jangan membuat fake Redis hanya untuk memaksa PASS.
+
+10. Telegram:
+
+Real Telegram integration tetap DEFERRED.
+
+Jangan:
+- membutuhkan API_ID,
+- API_HASH,
+- session,
+- fake Telegram credentials,
+- menjalankan Telegram integration test tanpa safe live account.
+
+11. Gorouter:
+
+JANGAN menjalankan atau menambahkan test Gorouter.app.
+
+NVIDIA dan TokenHarbor tidak perlu disentuh.
+
+12. Validation:
+
+Jalankan:
+
+pnpm test
+pnpm build
+pnpm typecheck
+pnpm lint
+pnpm format:check
+node scripts/check-imports.mjs
+node scripts/check-ownership.mjs
+node scripts/check-doc-links.mjs
+git diff --check
+
+Jangan membuat atau menjalankan:
+
+node scripts/check-symlinks.mjs
+
+Jika memang tidak tersedia, catat:
+
+SKIPPED — scripts/check-symlinks.mjs unavailable
+
+13. Review:
+
+Sebelum commit:
+
+git status
+git diff --stat
+review seluruh diff.
+
+Pastikan tidak ada:
+- schema jobs baru,
+- contract baru,
+- queue framework baru,
+- credential,
+- secret,
+- temporary files,
+- unrelated refactor,
+- perubahan Gorouter,
+- perubahan NVIDIA/TokenHarbor.
+
+14. Commit:
+
+Jika validation PASS dan ada perubahan valid:
+
+git commit -m "feat: add redis outbox consumer"
+
+Kemudian:
+
+git push origin backend-dev-recovery
+
+Verifikasi:
+- local SHA,
+- remote SHA,
+- working tree clean.
+
+Jika tidak ada perubahan valid:
+- jangan membuat empty commit.
+
+Jika push gagal:
+- jangan mengubah credential sembarangan,
+- jangan menghapus commit.
+
+OUTPUT
+
+### Redis Consumer
+- Redis list:
+- consumer:
+- deserialization:
+- jobs persistence:
+- idempotency:
+- failure handling:
+
+### Runtime
+- host:
+- startup:
+- shutdown:
+- Redis lifecycle:
+
+### Tests
+- test:
+- build:
+- typecheck:
+- lint:
+- format:
+- imports:
+- ownership:
+- docs:
+- diff:
+
+### Git
+- commit SHA:
+- push:
+- local/remote SHA:
+- working tree:
+
+### Remaining Deferred
+Hanya tampilkan dependency yang benar-benar masih tertunda.
+
+### Next Roadmap
+Tentukan SATU task berikutnya berdasarkan dependency nyata repository.
+
+Kerjakan langsung pada `/root/botspace`.
 ```
 # Prompt berikutnya — Implement Redis Outbox
 ```
