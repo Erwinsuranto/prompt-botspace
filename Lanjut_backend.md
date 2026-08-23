@@ -246,10 +246,238 @@
 
 
 ```
-# 
+# Prompt: BotSpace — Job State Machine + Worker Executor
 ```
 
+Lanjutkan project BotSpace dari kondisi repository TERAKHIR.
 
+KONDISI SUDAH SELESAI
+
+- B-030 Workspace API/Contract selesai.
+- B-070 Storage Adapter selesai.
+- B-071 File/Share contract selesai.
+- B-071 File/Share API selesai.
+- Production wiring selesai.
+- Production SecretResolver boundary selesai sejauh yang dapat dilakukan.
+- Redis OutboxPublisher selesai.
+- Redis OutboxConsumer selesai.
+- Redis → jobs table sudah berjalan.
+- `runWorkerProcess` adalah host worker yang benar.
+- JobEnvelope contract existing harus dipertahankan.
+- jobs schema existing harus dipertahankan.
+- Working tree terakhir CLEAN.
+- Jangan mengulang pekerjaan yang sudah selesai.
+
+TASK SEKARANG
+
+Implementasikan:
+
+JOB STATE MACHINE + WORKER EXECUTOR
+
+Tujuan:
+
+jobs rows yang sudah dimaterialisasi consumer harus dapat diproses worker secara aman:
+
+pending → running → completed
+                    ↘ failed
+
+Gunakan state/field yang SUDAH ADA pada jobs schema dan architecture repository.
+
+ATURAN UTAMA
+
+1. Audit dahulu:
+
+- jobs schema
+- jobs repository
+- JobEnvelope
+- Redis consumer
+- runWorkerProcess
+- existing worker lifecycle
+- existing transaction primitives
+- OPERATIONS_DESIGN
+- ADR-012
+- existing retry/error semantics
+
+2. Jangan membuat jobs schema baru.
+
+3. Jangan menambah state baru jika existing state machine sudah cukup.
+
+4. Worker executor harus:
+- mengambil job pending,
+- melakukan atomic claim ke running,
+- mengeksekusi workload melalui existing execution boundary,
+- menyimpan completed/failed state sesuai contract,
+- tidak memproses job yang sudah claimed worker lain.
+
+5. Claim harus aman terhadap concurrent workers.
+
+Gunakan transaction/conditional update yang sudah didukung repository.
+
+Jangan membuat distributed lock baru jika tidak diperlukan.
+
+6. Failure handling:
+
+Jika workload gagal:
+- job masuk state failed sesuai existing semantics,
+- error harus disanitasi,
+- jangan menyimpan secret,
+- jangan membocorkan credential,
+- jangan membuat infinite retry.
+
+Jika retry semantics belum ditetapkan oleh ADR/contract:
+- jangan mengarang retry policy,
+- tandai retry/backoff/DLQ sebagai deferred.
+
+7. Worker lifecycle:
+
+Startup:
+- worker executor aktif setelah persistence/consumer siap.
+
+Shutdown:
+- jangan mengambil pekerjaan baru,
+- pekerjaan yang sedang berjalan ditangani sesuai lifecycle existing,
+- persistence ditutup dengan graceful order,
+- Redis consumer tetap aman.
+
+Jangan membuat process/service kedua.
+
+8. Execution boundary:
+
+Cari existing workload execution abstraction.
+
+Jika sudah ada:
+- gunakan abstraction tersebut.
+
+Jika belum ada:
+- jangan membuat business workload speculative.
+- Buat executor boundary minimum hanya jika memang dibutuhkan untuk menjalankan job state machine.
+
+Jangan mengarang fitur bot/Telegram baru.
+
+9. Testing wajib:
+
+Tambahkan test untuk:
+
+- pending job dapat di-claim,
+- concurrent claim hanya dimenangkan satu worker,
+- running job berhasil menjadi completed,
+- execution failure menjadi failed,
+- missing job ditangani aman,
+- malformed job ditangani aman,
+- duplicate execution tidak terjadi karena claim,
+- graceful shutdown,
+- error tidak membocorkan secret.
+
+Jangan membuat fake behavior hanya untuk membuat test PASS.
+
+10. Telegram:
+
+Real Telegram integration tetap DEFERRED.
+
+Jangan:
+- meminta API_ID/API_HASH,
+- membuat fake credential,
+- menjalankan real Telegram integration tanpa safe live account.
+
+11. Gorouter:
+
+Jangan menjalankan atau menambahkan test Gorouter.app.
+
+NVIDIA dan TokenHarbor tidak perlu disentuh.
+
+12. Validation:
+
+Jalankan:
+
+pnpm test
+pnpm build
+pnpm typecheck
+pnpm lint
+pnpm format:check
+node scripts/check-imports.mjs
+node scripts/check-ownership.mjs
+node scripts/check-doc-links.mjs
+git diff --check
+
+Jangan menjalankan atau membuat:
+
+node scripts/check-symlinks.mjs
+
+Jika tidak tersedia:
+SKIPPED — scripts/check-symlinks.mjs unavailable
+
+13. Review sebelum commit:
+
+git status
+git diff --stat
+review seluruh diff.
+
+Pastikan tidak ada:
+- schema baru yang tidak diperlukan,
+- state baru speculative,
+- queue framework baru,
+- credential,
+- secret,
+- temporary files,
+- unrelated refactor,
+- perubahan Gorouter,
+- perubahan NVIDIA/TokenHarbor.
+
+14. Commit + push:
+
+Jika implementation valid dan validation PASS:
+
+git commit -m "feat: add job state machine executor"
+
+git push origin backend-dev-recovery
+
+Verifikasi:
+- local SHA,
+- remote SHA,
+- working tree clean.
+
+Jika tidak ada perubahan valid:
+- jangan membuat empty commit.
+
+OUTPUT
+
+### Job State Machine
+- existing states:
+- claim mechanism:
+- completed:
+- failed:
+- concurrency:
+
+### Worker Executor
+- execution boundary:
+- startup:
+- shutdown:
+- error handling:
+
+### Tests
+- test:
+- build:
+- typecheck:
+- lint:
+- format:
+- imports:
+- ownership:
+- docs:
+- diff:
+
+### Git
+- commit SHA:
+- push:
+- local/remote SHA:
+- working tree:
+
+### Remaining Deferred
+Hanya dependency yang benar-benar masih membutuhkan infrastructure, contract, atau credential nyata.
+
+### Next Roadmap
+Tentukan SATU task berikutnya berdasarkan dependency nyata repository.
+
+Kerjakan langsung pada /root/botspace.
 
 ```
 # Prompt berikutnya — Redis Outbox Consumer
