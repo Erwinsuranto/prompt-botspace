@@ -279,7 +279,120 @@
 # 
 ```
 
+Prompt: BotSpace — Outbox Dispatch Observability
 
+Lanjutkan project BotSpace dari kondisi repository saat ini.
+
+KONDISI TERAKHIR
+
+- Outbox CAS + JobEnvelope + dispatcher + periodic runner code boundary SUDAH selesai.
+- Commit terakhir: 8e1fa06b.
+- Push ke origin/backend-dev-recovery SUCCESS.
+- Local/remote SHA sama.
+- Working tree CLEAN.
+
+REMAINING DEFERRED
+
+1. Host process/entrypoint dispatch runner — menunggu keputusan deployment/infrastructure.
+2. Concrete OutboxPublisher transport — vendor/transport belum dipilih.
+3. Real Telegram integration — tidak ada live API_ID/API_HASH/session yang aman.
+
+JANGAN mengimplementasikan tiga deferred item tersebut.
+
+TUGAS
+
+Audit `DispatchResult`, `ScopeTickResult`, dispatcher, periodic runner, dan existing logging/metrics/observability boundary.
+
+Jika repository SUDAH memiliki observability/metrics abstraction:
+- gunakan abstraction tersebut,
+- jangan membuat abstraction kedua.
+
+Jika boundary belum ada:
+- jangan menambahkan vendor metrics,
+- jangan menambahkan Prometheus/OpenTelemetry hanya berdasarkan asumsi,
+- buat perubahan minimal hanya jika benar-benar diperlukan untuk membuat hasil dispatch dapat diobservasi melalui existing application boundary.
+
+Pastikan hasil dispatch dapat dibedakan secara aman, minimal:
+- dispatched,
+- skipped,
+- failed,
+- retryable/permanent failure jika memang sudah didukung contract.
+
+Jangan log:
+- secret,
+- credential,
+- raw token,
+- session,
+- sensitive payload.
+
+Jangan mengubah:
+- JobEnvelope contract,
+- persistence schema,
+- SecretResolver,
+- B-030,
+- B-070,
+- B-071,
+- Telegram runtime,
+- transport/vendor choice.
+
+Testing:
+- jalankan test yang relevan,
+- pnpm test
+- pnpm build
+- pnpm typecheck
+- pnpm lint
+- pnpm format:check
+- node scripts/check-imports.mjs
+- node scripts/check-ownership.mjs
+- node scripts/check-doc-links.mjs
+- git diff --check
+
+Jangan membuat atau menjalankan scripts/check-symlinks.mjs.
+
+Review git diff.
+
+Jika ada perubahan valid:
+- satu commit,
+- push ke origin/backend-dev-recovery,
+- verifikasi local/remote SHA,
+- working tree CLEAN.
+
+Jika tidak ada perubahan yang benar-benar diperlukan:
+- jangan membuat empty commit,
+- jangan push kosong.
+
+OUTPUT:
+
+### Observability
+- existing boundary:
+- dispatch result:
+- logging/metrics:
+- status:
+
+### Validation
+- test:
+- build:
+- typecheck:
+- lint:
+- format:
+- imports:
+- ownership:
+- docs:
+- diff:
+
+### Git
+- commit:
+- push:
+- SHA:
+- working tree:
+
+### Remaining Deferred
+Hanya dependency nyata.
+
+### Next Roadmap
+Tentukan task berikutnya berdasarkan dependency nyata repository.
+
+Kerjakan langsung pada /root/botspace.
 
 ```
 # 
