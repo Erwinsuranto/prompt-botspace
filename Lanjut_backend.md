@@ -273,7 +273,240 @@
 # 
 ```
 
+Prompt: BotSpace — Deployment Target & Outbox Runtime Architecture Decision
 
+Lanjutkan project BotSpace dari kondisi repository saat ini.
+
+KONDISI TERAKHIR
+
+- B-030 Workspace API/Contract SUDAH selesai.
+- B-070 Storage Adapter SUDAH selesai.
+- B-071 File/Share contract SUDAH selesai.
+- B-071 File/Share API SUDAH selesai.
+- Production wiring B-071 SUDAH selesai.
+- SecretResolver boundary SUDAH tersedia.
+- Outbox delivery stack sudah complete dan observable end-to-end.
+- Commit terakhir: 311809c.
+- Push ke origin/backend-dev-recovery SUCCESS.
+- Local/remote SHA sama.
+- Working tree CLEAN.
+
+REMAINING DEFERRED
+
+1. Host process/entrypoint untuk dispatch runner — deployment/infrastructure decision belum ditentukan.
+2. Concrete OutboxPublisher transport — vendor/transport belum dipilih.
+3. Real Telegram integration — belum tersedia safe live API_ID/API_HASH/session.
+
+TUJUAN
+
+Sekarang JANGAN mengimplementasikan worker runtime atau memilih vendor secara spekulatif.
+
+Lakukan audit arsitektur deployment untuk menentukan dependency nyata sebelum coding berikutnya.
+
+BAGIAN 1 — HOST PROCESS / ENTRYPOINT
+
+Audit:
+
+- package.json scripts
+- process entrypoints
+- existing application/server entrypoints
+- dispatcher
+- periodic runner
+- deployment configuration
+- Docker/container configuration jika ada
+- systemd/service configuration jika ada
+- existing VPS/runtime assumptions
+- environment configuration
+- README/deployment documentation.
+
+Tentukan:
+
+- process mana yang secara natural menjadi owner dispatch loop,
+- bagaimana runner seharusnya dimulai,
+- apakah runner sebaiknya menjadi process terpisah atau bagian dari existing application process,
+- graceful shutdown behavior,
+- startup ordering,
+- failure/restart behavior,
+- bagaimana duplicate runner dapat dicegah jika architecture memang memerlukannya.
+
+JANGAN memilih systemd/Docker/PM2/Kubernetes secara sepihak jika repository/deployment belum menentukan pilihan.
+
+Jika deployment target sudah jelas di repository, gunakan target tersebut.
+
+Jika belum jelas:
+- jangan membuat implementation,
+- jangan membuat config speculative,
+- dokumentasikan pilihan yang membutuhkan keputusan deployment.
+
+BAGIAN 2 — OUTBOX TRANSPORT
+
+Audit:
+
+- OutboxPublisher contract
+- dispatcher
+- JobEnvelope
+- existing queue abstractions
+- package dependencies
+- deployment documentation
+- existing infrastructure references.
+
+Tentukan apakah repository sudah memiliki transport yang dipilih.
+
+Jika sudah:
+- jelaskan bagaimana transport tersebut harus di-wire.
+
+Jika belum:
+- JANGAN memilih Redis/BullMQ/SQS/RabbitMQ/Kafka atau vendor lain secara sepihak.
+- Bandingkan kebutuhan contract dengan opsi yang masuk akal hanya berdasarkan evidence repository.
+- Tentukan dependency yang benar-benar dibutuhkan untuk memilih transport.
+
+Jangan menambahkan dependency.
+
+BAGIAN 3 — TELEGRAM
+
+Jangan melakukan real Telegram integration.
+
+Pastikan status tetap:
+
+DEFERRED — membutuhkan safe live API_ID/API_HASH/session.
+
+Jangan membuat credential palsu.
+Jangan membuat fake live integration.
+Jangan menambahkan Telegram runtime hanya untuk menghilangkan deferred status.
+
+BAGIAN 4 — SECURITY / OPERABILITY
+
+Audit kebutuhan:
+
+- graceful shutdown,
+- retry behavior,
+- duplicate dispatch protection,
+- idempotency,
+- error handling,
+- logging,
+- secret handling,
+- process restart,
+- health/readiness signal.
+
+Gunakan contract yang SUDAH ada.
+
+Jangan membuat contract baru hanya untuk melengkapi laporan.
+
+BAGIAN 5 — CODE CHANGE POLICY
+
+PENTING:
+
+Tahap ini adalah architecture/deployment decision audit.
+
+Jangan melakukan perubahan kode kecuali ada perubahan kecil yang benar-benar diperlukan untuk mendokumentasikan atau memperjelas existing boundary.
+
+Jika tidak ada perubahan kode yang diperlukan:
+- jangan membuat empty commit,
+- jangan push kosong.
+
+Jangan menyentuh:
+- B-030,
+- B-070,
+- B-071,
+- SecretResolver,
+- Gorouter.app,
+- NVIDIA,
+- TokenHarbor.
+
+BAGIAN 6 — VALIDATION
+
+Jika tidak ada perubahan kode, cukup lakukan repository verification yang relevan.
+
+Jika ada perubahan kode valid, jalankan:
+
+- pnpm test
+- pnpm build
+- pnpm typecheck
+- pnpm lint
+- pnpm format:check
+- node scripts/check-imports.mjs
+- node scripts/check-ownership.mjs
+- node scripts/check-doc-links.mjs
+- git diff --check
+
+Jangan membuat atau menjalankan:
+scripts/check-symlinks.mjs
+
+BAGIAN 7 — GIT
+
+Jika ada perubahan valid:
+- review git diff,
+- satu commit,
+- push origin/backend-dev-recovery,
+- verifikasi local/remote SHA,
+- working tree CLEAN.
+
+Jika tidak ada perubahan:
+- tidak perlu commit,
+- tidak perlu push.
+
+OUTPUT
+
+### Deployment Target
+- detected target:
+- evidence:
+- recommended process owner:
+- startup:
+- shutdown:
+- restart:
+- status:
+
+### Outbox Runtime
+- dispatcher:
+- periodic runner:
+- host process:
+- entrypoint:
+- duplicate protection:
+- status:
+
+### Outbox Transport
+- existing contract:
+- existing transport:
+- vendor decision:
+- missing dependency:
+- status:
+
+### Telegram
+- API_ID:
+- API_HASH:
+- session:
+- integration status:
+
+### Security / Operability
+- idempotency:
+- retry:
+- graceful shutdown:
+- logging:
+- secrets:
+- health/readiness:
+
+### Code Changes
+- files changed:
+- reason:
+- or "NO CODE CHANGES REQUIRED"
+
+### Git
+- commit:
+- push:
+- SHA:
+- working tree:
+
+### FINAL DECISION
+
+Berikan satu rekomendasi arsitektur terbaik berdasarkan evidence repository.
+
+Jangan membuat keputusan vendor/deployment yang tidak didukung evidence.
+
+### Next Roadmap
+
+Tentukan SATU task berikutnya yang paling tepat berdasarkan dependency nyata.
+
+Kerjakan langsung pada /root/botspace.
 
 ```
 # 
