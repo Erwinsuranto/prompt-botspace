@@ -288,10 +288,262 @@
 
 
 ```
-# 
+# Prompt: ADR-007 — JobEnvelope & Outbox Dispatcher
 ```
 
+Lanjutkan project BotSpace dari kondisi repository saat ini.
 
+KONDISI TERAKHIR
+
+- B-030 Workspace API/Contract selesai.
+- B-070 Storage Adapter selesai.
+- B-071 File/Share contract + API + production wiring selesai.
+- SecretResolver boundary sudah selesai sejauh yang dapat dilakukan dari repository.
+- Connection lifecycle/integrity sudah selesai.
+- Outbox persistence layer sudah tersedia.
+- Telegram real integration tetap DEFERRED karena environment tidak menyediakan API_ID/API_HASH/session live.
+- Working tree terakhir CLEAN.
+- Branch aktif: backend-dev-recovery.
+- Jangan mengulang B-030, B-070, B-071, SecretResolver, atau connection lifecycle.
+- Jangan membuat fitur acak.
+
+NEXT DEPENDENCY
+
+Hasil audit terakhir menyatakan dependency nyata berikutnya adalah:
+
+ADR-007 — JobEnvelope / queue contract.
+
+Outbox dispatcher/publisher belum boleh dibuat penuh sebelum contract JobEnvelope/queue ditetapkan.
+
+TUJUAN
+
+Audit dan selesaikan ADR-007 secara evidence-based dari repository.
+
+Tugas:
+
+1. Audit seluruh implementasi outbox yang sudah ada:
+   - outbox event/model,
+   - persistence layer,
+   - listUnpublished,
+   - markPublished,
+   - transaction boundary,
+   - connection lifecycle events,
+   - existing worker/runtime abstractions,
+   - queue/job abstractions jika sudah ada.
+
+2. Cari apakah repository sudah memiliki:
+   - JobEnvelope,
+   - queue contract,
+   - publisher interface,
+   - dispatcher interface,
+   - retry model,
+   - idempotency key,
+   - event versioning,
+   - serialization contract.
+
+3. Jika contract sudah ada:
+   - jangan membuat contract kedua,
+   - gunakan contract tersebut,
+   - hanya lengkapi bagian yang benar-benar kurang.
+
+4. Jika ADR-007 memang belum memiliki contract final:
+   - tentukan minimum contract berdasarkan kebutuhan nyata outbox yang sudah ada,
+   - jangan membuat speculative distributed queue architecture,
+   - jangan memilih Redis/BullMQ/SQS/Kafka/vendor tertentu tanpa dasar repository,
+   - jangan menambahkan dependency eksternal hanya untuk membuat queue terlihat selesai.
+
+5. JobEnvelope minimal harus memiliki konsep yang memang dibutuhkan oleh repository, seperti:
+   - stable job/event identifier,
+   - event type,
+   - version,
+   - payload/reference yang aman,
+   - creation timestamp,
+   - retry/delivery metadata hanya jika memang diperlukan oleh existing architecture.
+
+6. Pastikan contract mendukung:
+   - idempotent publication,
+   - versioned event handling,
+   - safe serialization,
+   - retry/failure handling,
+   - hubungan yang jelas dengan persisted outbox record.
+
+7. Jangan menyimpan credential atau secret di JobEnvelope.
+
+8. Jangan memasukkan:
+   - API key,
+   - password,
+   - session,
+   - Telegram credential,
+   - raw secret,
+   ke payload/event.
+
+9. Audit transaction boundary.
+
+Pastikan pola berikut tetap benar:
+
+DB state change + outbox event creation
+
+harus tetap atomik jika database transaction architecture repository mendukungnya.
+
+Jangan membuat fake transaction jika backend tidak mendukungnya.
+
+10. Jika contract ADR-007 sudah cukup jelas dan dependency siap:
+    implementasikan dispatcher/publisher minimum yang benar-benar dapat dijalankan menggunakan abstraction yang sudah tersedia.
+
+11. Dispatcher harus:
+    - membaca unpublished jobs,
+    - membuat JobEnvelope,
+    - publish melalui abstraction yang benar,
+    - menangani success/failure,
+    - tidak kehilangan event,
+    - tidak menandai event published sebelum publish berhasil,
+    - aman terhadap duplicate execution.
+
+12. Jangan membuat worker infrastructure production baru jika repository belum memiliki deployment/runtime boundary untuk worker.
+
+Jika worker runtime belum tersedia:
+- selesaikan contract + dispatcher boundary,
+- jangan membuat daemon/service deployment speculative,
+- tandai worker deployment sebagai DEFERRED.
+
+13. Jangan mengimplementasikan Telegram real integration sekarang.
+14. Jangan membutuhkan API_ID/API_HASH/session hanya untuk unit test.
+15. Jangan membuat fake Telegram credentials.
+16. Jangan menyentuh Gorouter.app.
+17. NVIDIA dan TokenHarbor tidak perlu disentuh.
+
+TESTING
+
+Tambahkan/perbaiki test untuk behavior yang benar-benar diimplementasikan:
+
+- JobEnvelope creation,
+- event versioning,
+- serialization,
+- stable event/job ID,
+- unpublished event retrieval,
+- successful publish,
+- failed publish,
+- event tidak ditandai published ketika publish gagal,
+- duplicate/second dispatch tidak merusak state,
+- retry behavior jika contract mendukung retry,
+- transaction/outbox atomicity jika sudah didukung repository.
+
+Jangan membuat mock/schema palsu hanya supaya test PASS.
+
+VALIDATION
+
+Jalankan:
+
+- pnpm test
+- pnpm build
+- pnpm typecheck
+- pnpm lint
+- pnpm format:check
+- node scripts/check-imports.mjs
+- node scripts/check-ownership.mjs
+- node scripts/check-doc-links.mjs
+- git diff --check
+
+Jangan membuat atau menjalankan:
+
+node scripts/check-symlinks.mjs
+
+karena script tersebut memang tidak tersedia.
+
+REVIEW
+
+Sebelum commit:
+
+- git status
+- git diff --stat
+- review seluruh git diff.
+
+Pastikan tidak ada:
+
+- credential,
+- secret,
+- temporary file,
+- generated junk,
+- unrelated refactor,
+- perubahan B-071,
+- perubahan Gorouter.app,
+- perubahan provider NVIDIA/TokenHarbor.
+
+COMMIT + PUSH
+
+Jika ada implementation valid:
+
+1. Buat SATU commit dengan message yang sesuai, misalnya:
+
+feat: define outbox job envelope contract
+
+atau gunakan message yang lebih tepat berdasarkan perubahan aktual.
+
+2. Langsung push:
+
+git push origin backend-dev-recovery
+
+3. Verifikasi:
+   - local SHA,
+   - remote SHA,
+   - working tree clean.
+
+Jika tidak ada perubahan valid:
+- jangan membuat empty commit,
+- jangan push kosong.
+
+Jika push gagal:
+- jangan mengubah credential GitHub sembarangan,
+- jangan menghapus commit lokal.
+
+OUTPUT AKHIR
+
+Tampilkan:
+
+### ADR-007
+- existing contract:
+- contract yang ditambahkan/diubah:
+- status:
+
+### Outbox
+- persistence:
+- JobEnvelope:
+- dispatcher:
+- publisher:
+- retry/idempotency:
+- status:
+
+### Testing
+- test:
+- build:
+- typecheck:
+- lint:
+- format:
+- imports:
+- ownership:
+- docs:
+- diff check:
+
+### Git
+- commit SHA:
+- push status:
+- local/remote SHA:
+- working tree:
+
+### Remaining Deferred
+Hanya dependency yang benar-benar masih terblokir.
+
+### Next Roadmap
+Tentukan task berikutnya berdasarkan dependency nyata repository.
+
+PENTING:
+- Jangan mengulang pekerjaan yang sudah selesai.
+- Jangan membuat queue infrastructure speculative.
+- Jangan memilih vendor queue tanpa dasar.
+- Jangan membuat credential palsu.
+- Jangan mengubah schema/contract yang tidak terkait ADR-007.
+- Jangan mengerjakan fitur acak.
+- Kerjakan langsung pada /root/botspace.
 
 ```
 # Prompt: Connection Transaction Atomicity
