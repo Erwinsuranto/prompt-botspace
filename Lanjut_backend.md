@@ -294,10 +294,278 @@
 
 
 ```
-# 
+# Prompt: Connection Transaction Atomicity
 ```
 
+Lanjutkan project BotSpace dari kondisi repository saat ini di /root/botspace.
 
+KONDISI TERAKHIR:
+- B-030 Workspace API/Contract: DONE.
+- B-070 Storage Adapter: DONE.
+- B-071 File/Share contract: DONE.
+- B-071 File/Share API: DONE.
+- Production wiring: DONE.
+- SecretResolver boundary: DONE.
+- Connection lifecycle event persistence: DONE.
+- Outbox persistence: DONE.
+- listUnpublished/markPublished sudah tersedia.
+- Outbox dispatcher/publisher masih DEFERRED karena ADR-007 JobEnvelope/queue contract belum terversi dan belum ada worker publisher.
+- Real Telegram integration test masih DEFERRED karena API_ID/API_HASH/session live tidak tersedia.
+- Working tree terakhir CLEAN.
+- Jangan mengulang pekerjaan yang sudah DONE.
+
+TASK BERIKUTNYA:
+Implementasikan transaction primitive yang diperlukan agar perubahan connection lifecycle state dan pembuatan outbox event dapat dilakukan secara ATOMIC.
+
+SEBELUM CODING:
+
+1. Audit implementation terbaru:
+   - telegramConnections.updateStatus
+   - outboxEvents.create
+   - PostgreSQL repository
+   - existing transaction abstraction
+   - Pool/Client handling
+   - composition root
+   - connection lifecycle service
+   - outbox repository.
+
+2. Jangan membuat transaction abstraction kedua jika repository sudah memiliki abstraction yang dapat digunakan.
+
+3. Jika PostgreSQL repository belum memiliki withTransaction/transaction primitive:
+   implementasikan SATU primitive minimal yang sesuai architecture existing.
+
+REQUIREMENT:
+
+Dengan transaction primitive tersedia, lifecycle transition harus dapat melakukan:
+
+BEGIN
+  update connection state
+  create lifecycle outbox event
+COMMIT
+
+Jika salah satu gagal:
+  ROLLBACK
+
+Tidak boleh terjadi kondisi:
+- connection status berhasil berubah tetapi event tidak tersimpan,
+- event tersimpan tetapi state transition gagal.
+
+TRANSACTION DESIGN:
+
+1. Gunakan PostgreSQL transaction yang benar-benar menggunakan satu database client/connection yang sama.
+2. Jangan menggunakan pool.query secara terpisah untuk operasi yang seharusnya atomic.
+3. Pastikan seluruh repository operation dalam transaction menerima client/transaction context yang sama.
+4. Jangan membuat fake transaction.
+5. Jangan menganggap Promise.all sebagai transaction.
+6. Jangan membuat distributed transaction.
+7. Jangan menambahkan external message broker.
+
+API:
+
+Jika architecture membutuhkan:
+
+withTransaction(async (tx) => {
+  ...
+})
+
+gunakan bentuk yang paling natural terhadap repository saat ini.
+
+Jangan memaksakan nama API jika repository sudah memiliki convention berbeda.
+
+CONNECTION LIFECYCLE:
+
+Wire transaction primitive ke lifecycle operation yang saat ini sudah membuat:
+
+- connection status transition
+- lifecycle outbox event
+
+Gunakan event model yang SUDAH ada.
+
+Jangan membuat event baru yang tidak dibutuhkan.
+
+ATOMICITY TEST:
+
+Tambahkan test nyata untuk:
+
+1. state update + event create berhasil → COMMIT.
+2. state update gagal → ROLLBACK.
+3. event creation gagal → state update ikut ROLLBACK.
+4. transaction callback error → ROLLBACK.
+5. transaction connection/client selalu release setelah selesai.
+6. transaction connection/client release setelah failure.
+7. tidak ada partial persistence.
+8. event payload tetap tidak mengandung:
+   - API_ID
+   - API_HASH
+   - session string
+   - password
+   - MFA/2FA secret
+   - access token
+   - provider credential.
+
+POSTGRESQL:
+
+Jika repository sudah memiliki integration test infrastructure:
+
+- gunakan infrastructure tersebut.
+
+Jika membutuhkan:
+PERSISTENCE_TEST_DATABASE_URL
+
+dan variable tidak tersedia:
+
+- jangan membuat database palsu,
+- jangan menggunakan SQLite,
+- jangan mengubah test agar PASS,
+- tandai PostgreSQL integration sebagai SKIPPED/UNAVAILABLE.
+
+Unit test transaction behavior boleh menggunakan repository/test database abstraction yang memang sudah tersedia.
+
+QUEUE / OUTBOX:
+
+JANGAN mengimplementasikan dispatcher/publisher baru.
+
+JANGAN mengerjakan ADR-007 JobEnvelope versioning.
+
+JANGAN membuat worker queue.
+
+Outbox hanya perlu memastikan persistence atomic dengan lifecycle state.
+
+SECURITY:
+
+Pastikan:
+
+- tidak ada secret di event,
+- tidak ada secret di log,
+- error transaction tidak membocorkan credential,
+- workspace/account isolation tetap utuh,
+- transaction tidak memungkinkan cross-account update.
+
+TELEGRAM:
+
+Jangan menjalankan real Telegram integration.
+
+Tidak perlu:
+- API_ID
+- API_HASH
+- session live.
+
+Real Telegram integration tetap:
+
+DEFERRED — safe live Telegram account/credentials unavailable.
+
+VALIDATION:
+
+Jalankan:
+
+- pnpm test
+- pnpm build
+- pnpm typecheck
+- pnpm lint
+- pnpm format:check
+- node scripts/check-imports.mjs
+- node scripts/check-ownership.mjs
+- node scripts/check-doc-links.mjs
+- git diff --check
+
+Jangan menjalankan atau membuat:
+
+node scripts/check-symlinks.mjs
+
+karena file tersebut tidak tersedia.
+
+Jika PostgreSQL integration membutuhkan environment yang tidak tersedia:
+- laporkan SKIPPED/UNAVAILABLE,
+- jangan memalsukan PASS.
+
+REVIEW:
+
+Sebelum commit:
+
+1. git status
+2. git diff --stat
+3. git diff
+
+Pastikan perubahan hanya terkait:
+- PostgreSQL transaction primitive,
+- transaction-aware repository operations,
+- lifecycle atomicity,
+- test.
+
+Jangan menyentuh:
+- B-030,
+- B-070,
+- B-071,
+- SecretResolver,
+- Gorouter.app,
+- NVIDIA,
+- TokenHarbor,
+- Telegram runtime,
+- queue dispatcher.
+
+COMMIT:
+
+Jika ada perubahan valid:
+
+buat SATU commit dengan message yang sesuai, misalnya:
+
+feat: make connection lifecycle atomic
+
+Kemudian:
+
+git push origin backend-dev-recovery
+
+Verifikasi:
+- local HEAD SHA
+- remote SHA
+- working tree CLEAN
+
+Jika tidak ada perubahan valid:
+- jangan membuat empty commit,
+- jangan push kosong.
+
+OUTPUT:
+
+### Transaction
+- primitive:
+- PostgreSQL client handling:
+- commit/rollback:
+- status:
+
+### Connection Lifecycle
+- state update:
+- outbox event:
+- atomicity:
+- status:
+
+### Tests
+- unit:
+- integration:
+- build:
+- typecheck:
+- lint:
+- format:
+- imports:
+- ownership:
+- docs:
+- diff:
+
+### Telegram
+- status: DEFERRED
+- reason:
+
+### Outbox Publisher
+- status: DEFERRED
+- reason: ADR-007 JobEnvelope/queue contract belum terversi.
+
+### Git
+- commit SHA:
+- push:
+- local/remote SHA:
+- working tree:
+
+### Next Roadmap
+Setelah transaction atomicity selesai, tentukan langkah berikutnya berdasarkan dependency nyata repository. Jangan membuat fitur acak.
 
 ```
 # Prompt: Connection Lifecycle Event / Outbox
