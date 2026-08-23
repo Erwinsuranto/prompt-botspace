@@ -268,7 +268,288 @@
 ```
 
 
+Prompt: BotSpace — ADR Outbox Transport + JobEnvelope Contract
 
+Lanjutkan project BotSpace dari kondisi repository saat ini.
+
+KONDISI TERAKHIR
+
+- B-030 Workspace API/Contract SUDAH selesai.
+- B-070 Storage Adapter SUDAH selesai.
+- B-071 File/Share contract SUDAH selesai.
+- B-071 File/Share API SUDAH selesai.
+- Production wiring B-071 SUDAH selesai.
+- SecretResolver application boundary SUDAH tersedia.
+- Outbox delivery stack sudah lengkap sampai code boundary:
+  atomic CAS/outbox → versioned JobEnvelope → dispatcher → periodic runner.
+- `runWorkerProcess` sudah teridentifikasi sebagai host process yang tepat untuk dispatch runner.
+- Working tree terakhir CLEAN.
+- Local dan remote `origin/backend-dev-recovery` sudah sinkron.
+- Real Telegram integration tetap DEFERRED karena tidak ada safe live API_ID/API_HASH/session.
+
+HASIL AUDIT TERAKHIR
+
+Remaining blocker:
+
+1. Concrete OutboxPublisher transport belum dipilih.
+2. Vendor/transport masih `unchosen`.
+3. JobEnvelope perlu direkonsiliasi dengan `OPERATIONS_DESIGN`.
+4. Dispatcher/runner tidak boleh dibuat berdasarkan asumsi vendor.
+5. `runWorkerProcess` sudah merupakan host yang benar dan tidak perlu diganti.
+
+TUJUAN
+
+Sekarang buat keputusan arsitektur resmi untuk outbox transport.
+
+JANGAN langsung implementasikan Redis/BullMQ/SQS/RabbitMQ/Kafka atau library lain.
+
+Tahap ini harus menghasilkan ADR/decision record berdasarkan evidence repository.
+
+---
+
+## BAGIAN 1 — AUDIT EXISTING CONTRACT
+
+Audit:
+
+- OutboxPublisher
+- Outbox/dispatcher
+- JobEnvelope
+- `dispatchOnce`
+- `runWorkerProcess`
+- `OPERATIONS_DESIGN`
+- queue abstractions
+- transaction boundary
+- persistence layer
+- configuration system
+- package.json
+- existing dependencies
+- deployment documentation.
+
+Tentukan:
+
+- siapa producer JobEnvelope,
+- siapa consumer JobEnvelope,
+- bagaimana state outbox berubah,
+- bagaimana retry bekerja,
+- bagaimana attempt count bekerja,
+- bagaimana not-before/DLQ semantics bekerja,
+- bagaimana idempotency dipertahankan,
+- bagaimana queue transport harus mengirim JobEnvelope.
+
+Jangan mengubah implementation yang sudah benar.
+
+---
+
+## BAGIAN 2 — QUEUE TRANSPORT DECISION
+
+Gunakan evidence repository untuk menentukan transport yang paling tepat.
+
+Pertimbangkan hanya opsi yang memang relevan:
+
+- Redis-backed queue,
+- database-backed dispatch,
+- existing queue infrastructure,
+- atau transport lain jika repository memang sudah memiliki dependency/configuration yang mendukungnya.
+
+Jangan menambahkan dependency hanya untuk eksperimen.
+
+Jika `QUEUE_URL` sudah menjadi configuration boundary:
+
+- tentukan semantic yang harus dimiliki `QUEUE_URL`,
+- tentukan transport adapter yang seharusnya berada di belakang boundary tersebut.
+
+Jika Redis memang merupakan keputusan yang paling tepat:
+
+- jangan install Redis,
+- jangan menambahkan library dulu,
+- cukup buat ADR yang menetapkan keputusan dan dependency yang diperlukan.
+
+Jika Redis bukan pilihan yang didukung evidence:
+
+- jelaskan alasannya,
+- pilih alternatif terbaik berdasarkan repository.
+
+---
+
+## BAGIAN 3 — JOBENVELOPE VS OPERATIONS_DESIGN
+
+Audit kedua contract tersebut secara detail.
+
+Tentukan:
+
+- field yang wajib,
+- field yang redundant,
+- attempt count ownership,
+- `notBefore`,
+- dead-letter semantics,
+- correlation/idempotency key,
+- job type,
+- payload boundary,
+- versioning.
+
+Jangan membuat duplicate JobEnvelope model.
+
+Jika ada mismatch:
+
+- jangan langsung membuat migration atau refactor besar,
+- dokumentasikan mismatch secara eksplisit,
+- tentukan minimal perubahan yang diperlukan agar contract konsisten.
+
+---
+
+## BAGIAN 4 — FAILURE / RETRY SEMANTICS
+
+Pastikan ADR menjawab:
+
+- bagaimana transient failure diperlakukan,
+- kapan job retry,
+- bagaimana attempt count bertambah,
+- kapan job dianggap terminal,
+- bagaimana DLQ/failed state direpresentasikan,
+- bagaimana duplicate delivery ditangani,
+- bagaimana crash worker ditangani,
+- bagaimana job yang `notBefore` belum waktunya diperlakukan.
+
+Jangan membuat implementation speculative.
+
+---
+
+## BAGIAN 5 — DEPLOYMENT
+
+Karena `runWorkerProcess` sudah terbukti sebagai host process:
+
+JANGAN:
+
+- membuat process baru,
+- membuat worker service baru,
+- mengubah `BotInstallation.status`,
+- membuat scheduler baru,
+- memilih PM2/systemd/Docker secara speculative.
+
+ADR cukup menentukan:
+
+- `runWorkerProcess` sebagai host,
+- dispatch loop ownership,
+- transport boundary,
+- graceful shutdown requirements.
+
+---
+
+## BAGIAN 6 — SECURITY
+
+Pastikan ADR mencakup:
+
+- secret/credential hanya melalui configuration/SecretResolver,
+- `QUEUE_URL` tidak boleh bocor ke log jika mengandung credential,
+- JobEnvelope tidak boleh membawa raw secret,
+- payload harus memiliki boundary yang jelas,
+- error logging tidak boleh mencetak credential.
+
+---
+
+## BAGIAN 7 — CODE CHANGE POLICY
+
+Tahap ini adalah ADR/architecture decision.
+
+Jangan mengimplementasikan transport dulu.
+
+Perubahan kode hanya diperbolehkan jika repository memang memiliki ADR/documentation convention yang harus diperbarui.
+
+Jika tidak ada kebutuhan perubahan:
+
+- jangan membuat empty commit,
+- jangan mengubah implementation.
+
+Jangan menyentuh:
+
+- B-030,
+- B-070,
+- B-071,
+- SecretResolver,
+- Gorouter.app,
+- NVIDIA,
+- TokenHarbor,
+- Telegram runtime.
+
+---
+
+## BAGIAN 8 — VALIDATION
+
+Jika tidak ada code change:
+
+- lakukan repository/documentation verification yang relevan,
+- pastikan working tree tetap clean.
+
+Jika ada perubahan documentation/ADR:
+
+- jalankan validation documentation yang tersedia,
+- `git diff --check`.
+
+Jangan membuat test palsu.
+
+---
+
+## BAGIAN 9 — OUTPUT
+
+Tampilkan:
+
+### Current Runtime
+- host process:
+- dispatcher:
+- periodic runner:
+- lifecycle:
+
+### Outbox Contract
+- producer:
+- consumer:
+- JobEnvelope:
+- retry:
+- attempt:
+- notBefore:
+- DLQ:
+- idempotency:
+
+### Transport Decision
+- selected transport:
+- reason:
+- existing dependency:
+- required dependency:
+- QUEUE_URL semantics:
+- deployment requirement:
+
+### OPERATIONS_DESIGN Reconciliation
+- mismatch:
+- required change:
+- compatibility:
+
+### Security
+- credential handling:
+- logging:
+- payload boundary:
+
+### ADR
+Tuliskan keputusan final yang dapat langsung dijadikan architecture decision record.
+
+### Code Changes
+- files changed:
+- or `NO CODE CHANGES REQUIRED`
+
+### Git
+- status:
+- commit:
+- push:
+
+### FINAL DECISION
+
+Berikan SATU keputusan transport terbaik berdasarkan evidence repository.
+
+Jangan memilih vendor hanya karena umum digunakan.
+
+### NEXT ROADMAP
+
+Setelah ADR selesai, tentukan SATU task implementasi berikutnya yang paling tepat.
+
+Kerjakan langsung pada `/root/botspace`.
 ```
 # 
 ```
