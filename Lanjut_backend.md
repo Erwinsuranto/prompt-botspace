@@ -300,11 +300,356 @@
 
 
 ```
-# 
+# Prompt: Connection Lifecycle Event / Outbox
 ```
 
 
+Lanjutkan project BotSpace dari kondisi repository saat ini di /root/botspace.
 
+KONDISI TERAKHIR:
+- B-030 Workspace API/Contract: DONE.
+- B-070 Storage Adapter: DONE.
+- B-071 File/Share contract: DONE.
+- B-071 File/Share API: DONE.
+- B-071 production wiring: DONE.
+- ADR-010 SecretResolver / deployment secret boundary: DONE.
+- Commit terakhir: 160542b.
+- Push ke origin/backend-dev-recovery: BERHASIL.
+- Working tree: CLEAN.
+- Real Telegram integration test masih DEFERRED karena environment tidak memiliki akun Telegram test yang aman dengan API_ID/API_HASH/session.
+- Jangan mengulang pekerjaan yang sudah DONE.
+
+NEXT TASK:
+Implementasikan Connection Lifecycle Event / Outbox sesuai architecture repository yang SUDAH ADA.
+
+TUJUAN:
+Menyediakan lifecycle event yang reliable untuk perubahan status koneksi/provider account tanpa membuat architecture baru secara speculative.
+
+SEBELUM CODING:
+
+1. Audit repository secara menyeluruh untuk:
+   - connection lifecycle,
+   - provider session,
+   - account enrollment,
+   - connection status,
+   - event/outbox,
+   - event publisher,
+   - queue,
+   - JobEnvelope,
+   - existing repository/service boundaries,
+   - transaction handling,
+   - composition root,
+   - database schema/migration yang sudah ada.
+
+2. Cari apakah sudah ada:
+   - event abstraction,
+   - outbox abstraction,
+   - event repository,
+   - publisher,
+   - JobEnvelope,
+   - worker queue,
+   - transaction boundary.
+
+3. Gunakan abstraction yang SUDAH ADA.
+   Jangan membuat abstraction kedua yang menduplikasi fungsi existing.
+
+4. Jika ADR-007 JobEnvelope/queue contract sudah tersedia:
+   - gunakan contract tersebut.
+   - Jangan membuat queue contract baru.
+
+5. Jika event/outbox boundary memang belum tersedia:
+   - implementasikan hanya minimum boundary yang secara langsung diperlukan oleh lifecycle connection,
+   - jangan membuat distributed event system,
+   - jangan menambahkan message broker eksternal,
+   - jangan menambahkan infrastructure yang belum diperlukan.
+
+CONNECTION LIFECYCLE:
+
+Implementasikan event hanya untuk lifecycle yang benar-benar sudah didefinisikan repository.
+
+Audit dan gunakan state/event yang sudah ada untuk minimal:
+
+- enrollment started,
+- enrollment/provisioning succeeded,
+- connection established,
+- connection failed,
+- connection revoked/disconnected,
+
+Hanya implementasikan event yang memang sesuai dengan model/status repository.
+Jangan mengarang status baru.
+
+ATURAN PENTING:
+
+1. Event harus merepresentasikan domain transition, bukan process heartbeat.
+2. Jangan mengubah BotInstallation.status menjadi runtime process state.
+3. Runtime worker state harus tetap terpisah dari lifecycle/domain state.
+4. Event payload tidak boleh berisi:
+   - API_ID,
+   - API_HASH,
+   - session string,
+   - password,
+   - MFA/2FA secret,
+   - access token,
+   - provider credential,
+   - raw secret.
+5. Event hanya boleh membawa opaque identifier/reference yang diperlukan.
+6. Jangan menyimpan credential ke event/outbox.
+7. Jangan menulis secret ke log.
+8. Jangan mengembalikan secret melalui API response.
+9. Jangan membuat event hanya untuk logging.
+
+OUTBOX:
+
+Jika repository memang sudah memiliki transaction boundary yang sesuai:
+
+- buat persistence event secara atomic dengan domain state transition,
+- pastikan event tidak dianggap published sebelum persistence berhasil,
+- gunakan status/retry mechanism yang memang sudah ada.
+
+Jika JobEnvelope sudah menjadi contract queue:
+
+- outbox/event harus dapat dipetakan ke JobEnvelope tanpa membuat contract queue kedua.
+
+Jika retry policy belum ditentukan:
+
+- jangan membuat exponential backoff/policy arbitrer,
+- gunakan mechanism yang sudah ada,
+- atau tandai retry policy sebagai deferred.
+
+Jika worker/queue publisher belum tersedia:
+
+- jangan membuat worker system baru hanya untuk task ini,
+- selesaikan persistence/event boundary yang memang dapat dilakukan,
+- tandai delivery/publishing sebagai deferred bila infrastructure memang belum tersedia.
+
+IDEMPOTENCY:
+
+Audit apakah repository sudah mempunyai idempotency key/event ID.
+
+Jika sudah:
+- gunakan mekanisme existing.
+
+Jika belum:
+- jangan membuat sistem idempotency besar secara speculative.
+- gunakan identifier domain/event yang sudah tersedia bila memang aman.
+
+ERROR HANDLING:
+
+Pastikan:
+
+- domain state tidak berubah secara salah ketika event persistence gagal,
+- event tidak terduplikasi akibat retry transaction,
+- event failure tidak membocorkan credential,
+- HTTP layer menerima error yang aman,
+- event/outbox error dapat di-debug tanpa secret.
+
+TRANSACTION:
+
+Audit transaction abstraction PostgreSQL yang sudah ada.
+
+Jika tersedia:
+- gunakan abstraction tersebut.
+
+Jika tidak tersedia:
+- jangan membuat fake transaction layer.
+- gunakan pola repository yang sudah ada dan dokumentasikan limitation jika atomicity belum dapat dijamin.
+
+TESTING:
+
+Tambahkan test yang benar-benar memverifikasi:
+
+1. lifecycle transition menghasilkan event yang benar,
+2. event payload tidak mengandung secret,
+3. event persistence,
+4. domain state + event atomicity jika transaction boundary tersedia,
+5. event failure handling,
+6. duplicate/retry behavior berdasarkan mechanism existing,
+7. workspace/account isolation,
+8. revoked/disconnected lifecycle,
+9. enrollment failure lifecycle,
+10. mapping event ke existing JobEnvelope jika contract tersedia.
+
+Jangan membuat mock/schema palsu hanya agar test PASS.
+
+TELEGRAM:
+
+Jangan menjalankan real Telegram integration test.
+
+Jangan membutuhkan:
+- API_ID,
+- API_HASH,
+- live Telegram session.
+
+Jika repository memiliki test yang sepenuhnya fake/client-layer:
+- jalankan test tersebut.
+
+Real Telegram integration tetap:
+
+DEFERRED — safe live Telegram test account/credentials unavailable.
+
+SECURITY:
+
+Lakukan targeted security review:
+
+- secret leakage,
+- session leakage,
+- event payload,
+- logs,
+- error messages,
+- authorization,
+- workspace isolation,
+- provider/account ownership,
+- event replay,
+- duplicate event,
+- raw token/session persistence.
+
+Jangan mengubah security boundary yang sudah benar tanpa alasan.
+
+JANGAN MENGERJAKAN:
+
+- Telegram polling runtime,
+- Telegram webhook runtime,
+- real Telegram integration,
+- share expiry,
+- public-share rate limiting,
+- public-share audit system baru,
+- Gorouter.app,
+- provider NVIDIA,
+- TokenHarbor,
+- fitur unrelated.
+
+VALIDATION:
+
+Jalankan:
+
+- pnpm test
+- pnpm build
+- pnpm typecheck
+- pnpm lint
+- pnpm format:check
+- node scripts/check-imports.mjs
+- node scripts/check-ownership.mjs
+- node scripts/check-doc-links.mjs
+- git diff --check
+
+Jangan menjalankan:
+
+node scripts/check-symlinks.mjs
+
+karena script tersebut tidak tersedia.
+
+Jika PostgreSQL integration membutuhkan:
+
+PERSISTENCE_TEST_DATABASE_URL
+
+dan environment tidak tersedia:
+- jangan membuat database palsu,
+- laporkan SKIPPED/UNAVAILABLE.
+
+Jika integration test membutuhkan akun Telegram live:
+- jangan membuat credential palsu,
+- jangan memalsukan PASS,
+- laporkan DEFERRED.
+
+REVIEW:
+
+Sebelum commit:
+
+1. git status
+2. git diff --stat
+3. review seluruh git diff.
+
+Pastikan tidak ada:
+
+- secret,
+- credential,
+- session string,
+- temporary file,
+- generated junk,
+- unrelated refactor.
+
+COMMIT:
+
+Jika implementasi valid dan validation PASS:
+
+buat SATU commit dengan message paling sesuai, misalnya:
+
+feat: add connection lifecycle events
+
+Kemudian langsung:
+
+git push origin backend-dev-recovery
+
+Verifikasi:
+
+- local HEAD SHA,
+- remote SHA,
+- working tree CLEAN.
+
+Jika tidak ada perubahan valid:
+- jangan membuat empty commit,
+- jangan push kosong.
+
+Jika push gagal:
+- jangan mengubah credential sembarangan,
+- jangan menghapus commit lokal.
+
+OUTPUT:
+
+### Connection Lifecycle
+- events:
+- state transitions:
+- event payload:
+- status:
+
+### Outbox
+- persistence:
+- transaction:
+- JobEnvelope mapping:
+- publishing:
+- retry:
+
+### Security
+- secret exposure:
+- session handling:
+- workspace isolation:
+
+### Tests
+- test:
+- build:
+- typecheck:
+- lint:
+- format:
+- imports:
+- ownership:
+- docs:
+- diff:
+
+### Telegram Integration
+- status: DEFERRED
+- reason:
+
+### Git
+- commit SHA:
+- push:
+- local/remote SHA:
+- working tree:
+
+### Remaining Deferred
+Hanya tampilkan dependency nyata.
+
+### Next Roadmap
+Tentukan task berikutnya berdasarkan hasil audit dan implementation aktual.
+
+PENTING:
+- Jangan mengulang ADR-010.
+- Jangan mengulang B-071.
+- Jangan membuat architecture speculative.
+- Jangan membuat queue/message broker baru tanpa dependency nyata.
+- Jangan menyimpan secret di event/outbox.
+- Jangan menyentuh Gorouter.app.
+- NVIDIA dan TokenHarbor tidak perlu disentuh.
+- Kerjakan langsung pada `/root/botspace`.
 ```
 # Prompt: ADR-010 — Production Secret Manager Adapter
 ```
