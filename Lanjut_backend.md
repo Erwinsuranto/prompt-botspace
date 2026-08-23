@@ -312,10 +312,120 @@
 
 
 ```
-# 
+# Prompt: F-040 — Telegram Connection & Enrollment UI
 ```
 
+Lanjutkan project BotSpace dari kondisi repository saat ini di /root/botspace.
 
+Kondisi terakhir:
+- B-030 Workspace API/Contract DONE.
+- B-070 Storage Adapter DONE.
+- B-071 File/Share contract DONE.
+- B-071 File/Share API DONE.
+- Production wiring B-071 DONE.
+- Backend Telegram enrollment/connection contract sekarang SUDAH tersedia.
+- Commit terakhir sudah berhasil di-push.
+- Working tree terakhir CLEAN.
+- F-040 Connection/Enrollment UI sekarang SUDAH UNBLOCKED.
+
+Sekarang kerjakan HANYA F-040: Telegram Connection / Enrollment UI.
+
+Tugas:
+
+1. Audit frontend/web architecture terlebih dahulu.
+2. Audit typed API client dan backend enrollment DTO/contract yang sudah tersedia.
+3. Jangan membuat API contract baru jika contract backend sudah tersedia.
+4. Implementasikan UI connection/enrollment Telegram berdasarkan contract yang nyata.
+
+UI harus mendukung flow yang memang didukung backend, termasuk:
+- membuka halaman connection/enrollment,
+- memasukkan data yang memang diwajibkan contract,
+- menampilkan state/progress enrollment,
+- menangani challenge/verification sesuai response backend,
+- menampilkan connection status,
+- loading state,
+- success state,
+- error state,
+- retry/reconnect jika contract mendukungnya.
+
+PENTING:
+- Jangan mengarang flow Telegram yang tidak didukung backend.
+- Jangan meminta/mengelola secret secara tidak aman.
+- Jangan menyimpan API_HASH, password, session string, atau credential sensitif di localStorage.
+- Jangan mencetak credential/session ke console atau UI.
+- Jangan membuat Telegram polling/webhook runtime.
+- Jangan mengubah BotInstallation.status menjadi process/runtime state.
+- Jangan mengubah B-071 schema/contract.
+- Jangan mengimplementasikan secret-manager vendor.
+- Jangan mengimplementasikan outbox/event system.
+- Jangan membuat rate limiting/audit event/expiry.
+- Jangan menyentuh Gorouter.app.
+- NVIDIA dan TokenHarbor tidak perlu disentuh.
+
+Gunakan typed API client yang sudah ada.
+Jangan melakukan fetch langsung jika architecture repository sudah menyediakan API client.
+
+Pastikan UI:
+- mobile-friendly,
+- error message aman,
+- tidak membocorkan credential,
+- tidak memiliki dead button,
+- state transition jelas,
+- dapat digunakan dari workspace yang benar,
+- menghormati authorization yang diberikan backend.
+
+Testing:
+- tambahkan test untuk rendering/state utama,
+- successful enrollment,
+- validation/error response,
+- loading state,
+- connection status,
+- retry behavior jika memang didukung contract.
+
+Validation:
+- pnpm test
+- pnpm build
+- pnpm typecheck
+- pnpm lint
+- pnpm format:check
+- node scripts/check-imports.mjs
+- node scripts/check-ownership.mjs
+- node scripts/check-doc-links.mjs
+- git diff --check
+
+Jangan menjalankan atau membuat:
+node scripts/check-symlinks.mjs
+
+Jika test Telegram integration membutuhkan API_ID/API_HASH/session dan environment belum tersedia:
+- jangan membuat credential palsu,
+- jangan mengubah test agar PASS,
+- tandai integration test sebagai SKIPPED/UNAVAILABLE.
+
+Sebelum commit:
+- git status
+- git diff --stat
+- review seluruh diff
+- pastikan hanya perubahan F-040.
+
+Jika validation PASS:
+1. buat satu commit dengan message yang sesuai, misalnya:
+   feat: add telegram connection enrollment ui
+2. push:
+   git push origin backend-dev-recovery
+3. verifikasi local SHA dan remote SHA sama.
+4. pastikan working tree clean.
+
+Output akhir:
+- UI yang dibuat,
+- route/component yang berubah,
+- API contract yang digunakan,
+- test/validation,
+- commit SHA,
+- push status,
+- remaining deferred,
+- next roadmap.
+
+Jangan mengerjakan task lain di luar F-040.
 
 ```
 # Prompt: B-04x — Telegram GramJS Composition & Enrollment
