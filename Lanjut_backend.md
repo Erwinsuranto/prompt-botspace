@@ -318,10 +318,347 @@
 
 
 ```
-# 
+# Prompt: B-04x — Telegram GramJS Composition & Enrollment
 ```
 
+Lanjutkan project BotSpace dari kondisi repository saat ini.
 
+KONDISI TERAKHIR
+
+- B-030 Workspace API/Contract SUDAH selesai.
+- B-070 Storage Adapter SUDAH selesai.
+- B-071 File/Share contract SUDAH selesai.
+- B-071 File/Share API SUDAH selesai.
+- Production wiring B-071 SUDAH selesai.
+- Telegram D1 SUDAH diputuskan:
+  External Connector.
+- Telegram library/vendor SUDAH diputuskan:
+  GramJS.
+- Telegram external connector + GramJS factory SUDAH dibuat pada task sebelumnya.
+- Commit terakhir sudah berhasil dipush ke:
+  origin/backend-dev-recovery
+- Local SHA dan remote SHA terakhir sama.
+- Working tree terakhir CLEAN.
+
+JANGAN mengulang:
+- B-030
+- B-070
+- B-071
+- keputusan D1
+- pemilihan GramJS
+- implementasi connector dasar yang sudah selesai.
+
+SEKARANG FOKUS:
+
+B-04x — connector composition + enrollment.
+
+TUJUAN
+
+Wire Telegram GramJS connector yang sudah ada ke application composition root dan buat enrollment flow yang benar-benar dapat digunakan untuk membuat/provision session Telegram.
+
+ROADMAP YANG SUDAH DISETUJUI
+
+1. Tambahkan TELEGRAM_API_ID ke configuration/secret boundary yang memang digunakan repository.
+2. Tambahkan TELEGRAM_API_HASH ke configuration/secret boundary yang memang digunakan repository.
+3. Inject factory/connector GramJS yang SUDAH dibuat ke composition root.
+4. Hubungkan connector ke existing ProviderSessionDriver / connectionSessions / provider-session boundary.
+5. Expose enrollment operation melalui API route yang memang sudah sesuai dengan architecture repository.
+6. Enrollment harus mendukung:
+   - phone number,
+   - verification code,
+   - 2FA password jika diperlukan,
+   - session provisioning.
+7. Setelah authorization berhasil:
+   - session harus disimpan melalui existing SecretProvisioner/SecretResolver boundary,
+   - raw session tidak boleh dikembalikan ke client,
+   - raw session tidak boleh masuk log.
+8. Session berikutnya harus dapat di-resolve kembali melalui SecretResolver dan digunakan untuk reconnect/validate.
+9. Jangan membuat persistence/session schema baru jika existing secret boundary sudah cukup.
+10. Jangan mengekspos TelegramClient/GramJS object ke domain/application layer.
+11. Jangan membuat Telegram polling/webhook runtime.
+12. Jangan membuat runtime daemon baru.
+13. Jangan mengubah BotInstallation.status menjadi process/runtime state.
+14. Jangan membuat API contract kedua yang menduplikasi contract existing.
+15. Jangan menambahkan vendor/library lain.
+16. Jangan menyentuh Gorouter.app.
+17. NVIDIA dan TokenHarbor tidak perlu disentuh.
+
+CONFIGURATION
+
+Audit terlebih dahulu bagaimana repository saat ini menangani configuration dan secrets.
+
+Gunakan mekanisme existing.
+
+Jika repository memang memiliki typed configuration:
+
+- tambahkan TELEGRAM_API_ID,
+- tambahkan TELEGRAM_API_HASH,
+- validasi tipe dan required/optional behavior sesuai architecture.
+
+Jika credential memang seharusnya melalui SecretResolver:
+
+- jangan membaca secret langsung dari random process.env di business layer,
+- gunakan existing configuration/secret boundary.
+
+Jangan hardcode:
+
+- Telegram API ID,
+- Telegram API HASH,
+- phone number,
+- verification code,
+- 2FA password,
+- session string.
+
+ENROLLMENT FLOW
+
+Implementasikan flow berdasarkan contract API yang SUDAH ADA.
+
+Secara konseptual:
+
+POST enrollment/start
+    -> validate request
+    -> create Telegram GramJS client
+    -> start/send authentication
+    -> return safe enrollment state
+
+POST enrollment/verify
+    -> receive verification code
+    -> continue existing enrollment session
+    -> if 2FA required, transition ke 2FA state
+    -> if authorized, persist session
+    -> return safe authenticated result
+
+Jika architecture repository sudah memiliki route/state abstraction yang berbeda:
+
+- ikuti abstraction tersebut,
+- jangan memaksakan endpoint naming di atas.
+
+Enrollment state tidak boleh menyimpan:
+
+- verification code plaintext,
+- 2FA password plaintext,
+- session string plaintext.
+
+Gunakan lifecycle/state yang sesuai dengan existing architecture.
+
+2FA
+
+Jika Telegram meminta 2FA:
+
+- return safe `2FA_REQUIRED`/equivalent melalui existing error/state contract,
+- client kemudian mengirim password melalui endpoint/state yang memang sesuai,
+- password hanya digunakan selama proses authentication,
+- jangan persist password,
+- jangan log password.
+
+VERIFICATION CODE
+
+- Jangan log code.
+- Jangan persist code.
+- Jangan mengembalikan code.
+- Jangan memasukkan code ke error message.
+
+SESSION PERSISTENCE
+
+Setelah authenticated:
+
+- ambil session dari GramJS hanya sesuai API resmi/library,
+- simpan melalui existing SecretProvisioner,
+- simpan reference/identifier melalui mechanism yang memang sudah tersedia,
+- jangan membuat database session table baru tanpa kebutuhan architecture.
+
+Saat reconnect:
+
+- resolve session melalui SecretResolver,
+- create GramJS client dengan session,
+- validate connection/auth state,
+- map result ke ProviderSessionDriver contract.
+
+ERROR HANDLING
+
+Map error ke abstraction repository yang sudah ada.
+
+Minimal bedakan jika contract mendukung:
+
+- invalid configuration,
+- authentication required,
+- invalid verification code,
+- 2FA required,
+- invalid 2FA,
+- revoked/invalid session,
+- Telegram connection failure,
+- Telegram API failure.
+
+Jangan bocorkan:
+
+- API HASH,
+- verification code,
+- 2FA password,
+- session string,
+- internal secret reference.
+
+TESTING
+
+Tambahkan test untuk:
+
+1. configuration missing TELEGRAM_API_ID.
+2. configuration missing TELEGRAM_API_HASH.
+3. composition root membuat connector dengan dependency yang benar.
+4. enrollment start.
+5. verification code flow.
+6. 2FA-required flow.
+7. successful enrollment.
+8. session provisioning melalui fake SecretProvisioner.
+9. session reload melalui fake SecretResolver.
+10. invalid session.
+11. Telegram error mapping.
+12. secret sanitization.
+13. verification code tidak muncul di log/error.
+14. 2FA password tidak muncul di log/error.
+15. session string tidak muncul di response/log.
+16. existing test environment tetap dapat berjalan tanpa real Telegram credentials.
+
+REAL TELEGRAM TEST
+
+Jika TELEGRAM_API_ID + TELEGRAM_API_HASH + akun test Telegram tidak tersedia:
+
+JANGAN membuat credential palsu.
+
+Tandai:
+
+SKIPPED — Telegram integration credentials unavailable
+
+Jika tersedia credential TEST yang aman:
+
+- gunakan hanya akun test,
+- jangan gunakan production account,
+- jangan mencetak session,
+- cleanup/revoke bila aman dan didukung.
+
+VALIDATION
+
+Jalankan:
+
+pnpm test
+pnpm build
+pnpm typecheck
+pnpm lint
+pnpm format:check
+node scripts/check-imports.mjs
+node scripts/check-ownership.mjs
+node scripts/check-doc-links.mjs
+git diff --check
+
+Jangan menjalankan atau membuat:
+
+node scripts/check-symlinks.mjs
+
+karena file tersebut tidak tersedia.
+
+Pastikan test Gorouter.app tidak dijalankan.
+
+REVIEW
+
+Sebelum commit:
+
+git status
+git diff --stat
+review seluruh git diff
+
+Pastikan tidak ada:
+
+- secret,
+- API HASH,
+- Telegram session,
+- phone code,
+- 2FA password,
+- credential test,
+- temporary file,
+- unrelated refactor,
+- B-071 changes,
+- Gorouter changes,
+- NVIDIA changes,
+- TokenHarbor changes.
+
+COMMIT + PUSH
+
+Jika implementation valid dan validation tersedia sudah selesai:
+
+Buat SATU commit:
+
+feat: wire telegram gramjs enrollment
+
+Kemudian LANGSUNG:
+
+git push origin backend-dev-recovery
+
+Verifikasi:
+
+- local HEAD SHA,
+- remote branch SHA,
+- working tree clean.
+
+Jika push gagal:
+
+- jangan mengubah credential GitHub sembarangan,
+- jangan menghapus commit,
+- tampilkan error,
+- commit tetap aman lokal.
+
+OUTPUT AKHIR
+
+### B-04x
+- Telegram configuration:
+- GramJS composition:
+- enrollment:
+- verification:
+- 2FA:
+- session provisioning:
+- session reload:
+- status:
+
+### Tests
+- unit:
+- enrollment:
+- 2FA:
+- session:
+- error mapping:
+- secret sanitization:
+- real Telegram integration:
+
+### Validation
+- test:
+- build:
+- typecheck:
+- lint:
+- format:
+- imports:
+- ownership:
+- docs:
+- diff:
+
+### Git
+- commit SHA:
+- push:
+- local/remote SHA:
+- working tree:
+
+### Remaining Deferred
+Hanya tampilkan dependency nyata yang masih tertahan.
+
+### Next Roadmap
+Tentukan task berikutnya berdasarkan dependency nyata repository.
+
+PENTING:
+- D1 sudah final: External Connector.
+- GramJS sudah final.
+- Jangan meminta keputusan vendor.
+- Jangan mengulang connector dasar.
+- Jangan membuat schema session baru secara speculative.
+- Jangan membuat fake Telegram login.
+- Jangan menyimpan credential/session plaintext.
+- Jangan menyentuh Gorouter.app.
+- Kerjakan langsung pada /root/botspace.
 
 ```
 # Prompt: B-04x — Telegram External Connector dengan GramJS
