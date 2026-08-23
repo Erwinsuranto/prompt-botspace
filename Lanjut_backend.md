@@ -286,7 +286,166 @@
 ```
 
 
+Prompt: Outbox Worker Runtime Boundary Audit
 
+Lanjutkan project BotSpace dari kondisi repository saat ini.
+
+KONDISI TERAKHIR
+
+- B-030 Workspace API/Contract selesai.
+- B-070 Storage Adapter selesai.
+- B-071 File/Share contract + API + production wiring selesai.
+- SecretResolver boundary selesai sejauh yang didukung repository.
+- ADR-007 JobEnvelope / Outbox contract dan dispatcher foundation sudah selesai.
+- Commit terakhir: 559d059.
+- Push ke origin/backend-dev-recovery berhasil.
+- Local dan remote SHA sama.
+- Working tree CLEAN.
+
+REMAINING DEFERRED
+
+1. Outbox worker runtime loop belum memiliki deployment/runtime boundary.
+2. Concrete OutboxPublisher transport adapter masih membutuhkan keputusan deployment/transport.
+3. Real Telegram integration tetap DEFERRED karena tidak tersedia live API_ID/API_HASH/session yang aman.
+
+TUGAS SEKARANG
+
+Audit repository secara evidence-based untuk menentukan boundary runtime worker yang PALING tepat.
+
+1. Audit:
+   - JobEnvelope,
+   - outbox persistence,
+   - dispatchOnce,
+   - dispatcher,
+   - OutboxPublisher,
+   - application composition root,
+   - existing worker/runtime module,
+   - package scripts,
+   - deployment configuration,
+   - process/runtime entrypoints.
+
+2. Cari apakah repository SUDAH memiliki:
+   - worker process,
+   - background job runner,
+   - queue abstraction,
+   - scheduler,
+   - process supervisor,
+   - deployment worker definition.
+
+3. Jika runtime worker boundary sudah ada:
+   - gunakan boundary tersebut,
+   - wire dispatcher ke boundary,
+   - jangan membuat worker architecture kedua.
+
+4. Jika belum ada:
+   - JANGAN memilih Redis/BullMQ/Kafka/SQS/vendor transport secara sepihak.
+   - Jangan menambahkan dependency queue hanya untuk membuat task terlihat selesai.
+   - Definisikan minimum runtime boundary yang dibutuhkan oleh dispatcher berdasarkan architecture repository.
+   - Tandai deployment-specific worker process sebagai DEFERRED jika memang membutuhkan keputusan infrastructure.
+
+5. Audit `OutboxPublisher`.
+   Jika transport abstraction sudah ada, tentukan bagaimana dispatcher akan menggunakannya.
+   Jika belum ada transport yang dipilih:
+   - jangan membuat fake production transport,
+   - jangan membuat network publisher palsu,
+   - jangan mengirim event ke Telegram.
+
+6. Pastikan dispatcher tetap:
+   - idempotent,
+   - tidak kehilangan event,
+   - tidak mark published sebelum publish berhasil,
+   - aman terhadap duplicate execution,
+   - tidak memasukkan secret ke JobEnvelope.
+
+7. Jangan mengubah:
+   - B-030,
+   - B-070,
+   - B-071,
+   - SecretResolver,
+   - JobEnvelope contract,
+   kecuali benar-benar diperlukan untuk kompatibilitas yang terbukti.
+
+8. Jangan mengimplementasikan real Telegram integration.
+9. Jangan menggunakan fake API_ID/API_HASH/session.
+10. Jangan menjalankan test Gorouter.app.
+11. NVIDIA dan TokenHarbor tidak perlu disentuh.
+
+TESTING
+
+Jalankan test yang memang relevan dengan perubahan.
+
+Kemudian:
+
+- pnpm test
+- pnpm build
+- pnpm typecheck
+- pnpm lint
+- pnpm format:check
+- node scripts/check-imports.mjs
+- node scripts/check-ownership.mjs
+- node scripts/check-doc-links.mjs
+- git diff --check
+
+Jangan menjalankan atau membuat:
+scripts/check-symlinks.mjs
+
+REVIEW
+
+Jika ada perubahan:
+- review git diff,
+- pastikan hanya terkait worker runtime boundary,
+- tidak ada credential/secret,
+- tidak ada generated junk,
+- tidak ada unrelated refactor.
+
+Jika implementation valid dan validation PASS:
+- buat SATU commit,
+- push ke `origin/backend-dev-recovery`,
+- verifikasi local/remote SHA,
+- pastikan working tree CLEAN.
+
+Jika audit menyimpulkan deployment decision belum tersedia:
+- jangan membuat perubahan speculative,
+- jangan membuat empty commit,
+- tampilkan alasan dependency tersebut masih DEFERRED.
+
+OUTPUT
+
+### Worker Runtime
+- existing boundary:
+- dispatcher:
+- runtime entrypoint:
+- status:
+
+### OutboxPublisher
+- existing transport:
+- adapter:
+- status:
+
+### Validation
+- test:
+- build:
+- typecheck:
+- lint:
+- format:
+- imports:
+- ownership:
+- docs:
+- diff check:
+
+### Git
+- commit:
+- push:
+- SHA:
+- working tree:
+
+### Remaining Deferred
+Hanya dependency nyata yang masih terblokir.
+
+### Next Roadmap
+Tentukan task berikutnya berdasarkan dependency repository.
+
+Kerjakan langsung pada /root/botspace.
 ```
 # Prompt: ADR-007 — JobEnvelope & Outbox Dispatcher
 ```
