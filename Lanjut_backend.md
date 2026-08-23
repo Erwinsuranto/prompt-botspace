@@ -258,10 +258,220 @@
 
 
 ```
-# 
+# Prompt berikutnya — Implement Redis Outbox
 ```
 
+Prompt: BotSpace — Implement Redis Outbox Transport
 
+Lanjutkan project BotSpace dari kondisi repository saat ini.
+
+HASIL ADR TERBARU
+
+- Outbox transport resmi dipilih: Redis.
+- Redis harus berada di belakang existing `QUEUE_URL` configuration boundary.
+- Gunakan raw `node-redis`.
+- Jangan gunakan BullMQ, RabbitMQ, Kafka, atau queue framework lain.
+- `runWorkerProcess` sudah dipastikan sebagai host process yang benar.
+- JobEnvelope dan outbox contract sudah tersedia.
+- Jangan membuat contract baru.
+- Jangan membuat worker process/service baru.
+- Jangan menyentuh B-030, B-070, B-071.
+- Real Telegram integration tetap DEFERRED karena tidak ada safe live API_ID/API_HASH/session.
+
+TASK
+
+Implementasikan keputusan ADR tersebut secara langsung.
+
+1. Audit terlebih dahulu:
+   - existing OutboxPublisher port,
+   - JobEnvelope,
+   - serialize(),
+   - outbox repository,
+   - dispatcher,
+   - `dispatchOnce`,
+   - `runWorkerProcess`,
+   - `QUEUE_URL`,
+   - existing dependencies/package.json,
+   - worker composition root.
+
+2. Tambahkan dependency Redis yang memang diperlukan:
+   - gunakan `node-redis`,
+   - jangan menambahkan queue framework.
+
+3. Implementasikan concrete Redis OutboxPublisher di belakang existing OutboxPublisher port.
+
+Behavior minimum:
+
+- menerima JobEnvelope,
+- serialize melalui contract yang sudah ada,
+- publish ke Redis,
+- menggunakan `QUEUE_URL`,
+- connection failure harus menghasilkan error yang aman,
+- jangan log credential dari QUEUE_URL,
+- jangan mengubah JobEnvelope contract,
+- jangan membuat duplicate serialization model.
+
+4. Wire Redis publisher ke dispatcher/runtime.
+
+`runWorkerProcess` tetap menjadi host.
+
+Jangan:
+- membuat process baru,
+- membuat service baru,
+- membuat scheduler baru,
+- menggunakan PM2/systemd/Docker hanya untuk task ini,
+- mengubah BotInstallation.status.
+
+5. Pastikan lifecycle benar:
+
+Startup:
+- configuration dibaca,
+- Redis client dibuat,
+- dependency graph dibuat,
+- dispatcher/runner diaktifkan.
+
+Shutdown:
+- runner dihentikan,
+- Redis connection ditutup,
+- persistence ditutup sesuai lifecycle yang sudah ada,
+- tidak ada resource leak.
+
+6. Pastikan Redis failure tidak menyebabkan secret bocor.
+
+Jangan pernah menampilkan:
+- password Redis,
+- credential,
+- API key,
+- token,
+- full authenticated QUEUE_URL.
+
+7. Test:
+
+Tambahkan test hanya untuk behavior nyata:
+
+- JobEnvelope berhasil diserialisasi,
+- publisher mengirim payload ke Redis,
+- Redis publish failure ditangani,
+- invalid/missing QUEUE_URL ditolak sesuai configuration contract,
+- lifecycle startup/shutdown,
+- tidak ada secret dalam error/log.
+
+Gunakan fake/in-memory test boundary jika architecture sudah menyediakan.
+
+Jangan membuat fake Redis implementation hanya untuk memaksa PASS.
+
+8. Jangan melakukan real Telegram integration.
+
+9. Jangan menjalankan atau menambahkan test Gorouter.app.
+
+10. NVIDIA dan TokenHarbor tidak perlu disentuh.
+
+VALIDATION
+
+Jalankan:
+
+- pnpm test
+- pnpm build
+- pnpm typecheck
+- pnpm lint
+- pnpm format:check
+- node scripts/check-imports.mjs
+- node scripts/check-ownership.mjs
+- node scripts/check-doc-links.mjs
+- git diff --check
+
+Jangan membuat atau menjalankan:
+
+`node scripts/check-symlinks.mjs`
+
+karena script tersebut tidak tersedia.
+
+Jika test membutuhkan Redis nyata dan environment Redis tidak tersedia:
+- jangan install Redis permanen hanya untuk membuat test PASS,
+- jangan membuat credential palsu,
+- gunakan test boundary yang memang sudah didukung repository,
+- laporkan real Redis integration sebagai DEFERRED/UNAVAILABLE.
+
+REVIEW
+
+Sebelum commit:
+
+- git status
+- git diff --stat
+- review seluruh diff.
+
+Pastikan hanya perubahan:
+- Redis dependency,
+- Redis OutboxPublisher,
+- runtime wiring,
+- lifecycle,
+- test,
+- documentation/ADR bila memang diperlukan.
+
+Jangan melakukan refactor unrelated.
+
+COMMIT
+
+Jika validation PASS:
+
+git commit -m "feat: implement redis outbox transport"
+
+Kemudian:
+
+git push origin backend-dev-recovery
+
+Verifikasi:
+- local SHA,
+- remote SHA,
+- working tree clean.
+
+Jika push gagal:
+- jangan mengubah credential sembarangan,
+- jangan menghapus commit,
+- laporkan error.
+
+OUTPUT
+
+Tampilkan:
+
+### Redis Outbox
+- transport:
+- dependency:
+- QUEUE_URL:
+- publisher:
+- serialization:
+- failure handling:
+
+### Runtime
+- host:
+- dispatcher:
+- lifecycle:
+- graceful shutdown:
+
+### Tests
+- test:
+- build:
+- typecheck:
+- lint:
+- format:
+- imports:
+- ownership:
+- docs:
+- diff:
+
+### Git
+- commit SHA:
+- push:
+- local/remote SHA:
+- working tree:
+
+### Remaining Deferred
+Hanya dependency yang benar-benar masih tertunda.
+
+### Next Roadmap
+Tentukan SATU task berikutnya berdasarkan repository setelah Redis Outbox selesai.
+
+Kerjakan langsung pada `/root/botspace`.
 
 ```
 # 
