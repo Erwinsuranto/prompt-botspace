@@ -240,9 +240,359 @@
 
 
 ```
-# 
+# Prompt: BotSpace — Job Retry / Backoff / DLQ Policy
 ```
+Lanjutkan project BotSpace dari kondisi repository TERAKHIR.
 
+STATUS SUDAH SELESAI
+
+- B-030 Workspace API/Contract selesai.
+- B-070 Storage Adapter selesai.
+- B-071 File/Share contract + API + production wiring selesai.
+- Redis OutboxPublisher selesai.
+- Redis OutboxConsumer selesai.
+- Job State Machine + Worker Executor selesai.
+- Atomic job claim sudah tersedia.
+- jobs state pending → running → completed/failed sudah tersedia.
+- Existing jobs schema harus dipertahankan kecuali perubahan migration benar-benar diperlukan oleh retry policy.
+- Working tree terakhir CLEAN.
+- Local dan remote `origin/backend-dev-recovery` sinkron.
+- Jangan mengulang pekerjaan yang sudah selesai.
+
+REMAINING DEFERRED
+
+1. Real Telegram integration — tetap DEFERRED karena membutuhkan API_ID/API_HASH/session nyata.
+2. Concrete production JobHandler — DEFERRED sampai ada workload nyata.
+3. Retry / exponential backoff / DLQ policy — INILAH TASK SEKARANG.
+4. Optional correlationId pada JobEnvelope — tetap DEFERRED kecuali retry policy benar-benar membutuhkan metadata tersebut.
+
+TASK SEKARANG
+
+Rancang dan implementasikan JOB RETRY / BACKOFF / DLQ POLICY berdasarkan architecture repository yang SUDAH ADA.
+
+PENTING:
+
+Jangan langsung mengarang angka retry/backoff.
+
+TAHAP 1 — AUDIT
+
+Audit terlebih dahulu:
+
+- ADR-007
+- ADR-012
+- JobEnvelope
+- jobs schema
+- job repository
+- worker executor
+- job state machine
+- outbox consumer
+- dispatcher
+- existing OPERATIONS_DESIGN
+- existing error handling
+- existing attempt/retry-related fields
+- migration structure
+
+Cari apakah repository sudah memiliki keputusan tentang:
+
+- max attempts,
+- retryable vs terminal error,
+- backoff strategy,
+- next-run timestamp,
+- dead/DLQ state,
+- attempt counter,
+- failure reason,
+- jitter,
+- lease/claim timeout.
+
+Jangan mengarang policy jika architecture belum memutuskannya.
+
+TAHAP 2 — POLICY DECISION
+
+Jika ADR-007/ADR-012 belum menentukan policy:
+
+- jangan langsung memilih angka arbitrary,
+- buat/extend ADR yang memang menjadi tempat keputusan tersebut,
+- dokumentasikan policy minimum yang diperlukan untuk worker executor.
+
+Policy minimal harus menjawab:
+
+1. Berapa maksimum attempt?
+2. Error apa yang retryable?
+3. Error apa yang terminal?
+4. Bagaimana exponential backoff dihitung?
+5. Apakah menggunakan jitter?
+6. Field apa yang menyimpan attempt?
+7. Field apa yang menyimpan next eligible run?
+8. Kapan job menjadi `dead`?
+9. Apakah dead job tetap dapat diaudit/replayed?
+10. Apa behavior saat worker restart?
+11. Bagaimana mencegah job dieksekusi sebelum next-run?
+12. Bagaimana concurrent worker menghormati retry schedule?
+
+Gunakan keputusan yang sudah ada jika tersedia.
+
+Jika keputusan belum ada, pilih desain yang paling sederhana dan konsisten dengan repository, dokumentasikan dalam ADR, dan jangan membuat fitur tambahan di luar kebutuhan retry.
+
+TAHAP 3 — SCHEMA / MIGRATION
+
+Hanya jika policy membutuhkan field yang belum ada:
+
+Tambahkan migration minimal untuk field yang benar-benar diperlukan, misalnya:
+
+- attempt count,
+- next eligible run,
+- retry metadata,
+
+dengan nama dan tipe yang konsisten dengan schema existing.
+
+JANGAN:
+
+- membuat jobs table baru,
+- mengganti schema existing secara besar-besaran,
+- membuat queue system baru,
+- menambahkan Redis queue framework baru,
+- menambahkan DLQ service terpisah jika state `dead` pada jobs sudah cukup,
+- membuat migration speculative.
+
+Jika existing schema sudah cukup, jangan membuat migration.
+
+TAHAP 4 — RETRY EXECUTION
+
+Integrasikan policy ke worker executor.
+
+Behavior yang diharapkan:
+
+pending
+  ↓
+running
+  ↓
+success → completed
+
+failure:
+  retryable + attempts remaining
+      → pending/eligible retry state
+
+  retryable + attempts exhausted
+      → dead
+
+  terminal error
+      → failed/dead sesuai policy yang diputuskan ADR
+
+Pastikan:
+
+- retry hanya terjadi setelah next eligible time,
+- worker tidak mengambil job yang belum eligible,
+- attempt increment atomic,
+- concurrent workers tidak dapat membuat duplicate retry,
+- failure metadata aman,
+- secret tidak masuk error persistence/log.
+
+Jangan mengimplementasikan infinite retry.
+
+TAHAP 5 — BACKOFF
+
+Implementasikan backoff hanya sesuai policy ADR.
+
+Jika exponential backoff dipilih:
+
+- gunakan fungsi deterministic yang mudah diuji,
+- gunakan integer/time duration yang aman,
+- cegah overflow,
+- gunakan maximum backoff bila policy menetapkannya,
+- jitter hanya jika memang diputuskan.
+
+Tambahkan unit test untuk boundary:
+
+- attempt pertama,
+- attempt tengah,
+- maximum attempt,
+- maximum delay,
+- overflow/invalid value.
+
+TAHAP 6 — DLQ / DEAD STATE
+
+Gunakan existing `dead` state jika memang sudah tersedia.
+
+Pastikan:
+
+- exhausted retry menjadi dead,
+- dead tidak otomatis diproses ulang,
+- dead dapat dibedakan dari temporary failure,
+- tidak ada infinite loop,
+- state transition atomic.
+
+Jangan membuat DLQ infrastructure baru jika existing jobs table/state sudah dimaksudkan sebagai terminal DLQ.
+
+TAHAP 7 — WORKER RESTART
+
+Pastikan job yang:
+
+- pending,
+- retryable,
+- next-run sudah lewat,
+
+dapat diproses setelah worker restart.
+
+Job yang:
+
+- running tetapi worker mati,
+
+hanya dipulihkan jika repository memang sudah memiliki lease/recovery semantics.
+
+JANGAN membuat lease/recovery system baru dalam task ini jika belum menjadi dependency yang sudah diputuskan.
+
+Jika recovery running-job belum memiliki contract:
+- dokumentasikan sebagai deferred,
+- jangan mengarang behavior.
+
+TAHAP 8 — TEST
+
+Tambahkan test yang benar-benar memverifikasi:
+
+- retryable failure dijadwalkan ulang,
+- attempt bertambah secara atomic,
+- next-run dihormati,
+- job belum eligible tidak diproses,
+- retry sampai maksimum,
+- exhausted retry menjadi dead,
+- terminal error tidak retry,
+- concurrent workers tidak membuat duplicate retry,
+- dead job tidak dieksekusi lagi,
+- worker restart terhadap pending retry job,
+- backoff calculation,
+- invalid/overflow backoff,
+- error metadata tidak membocorkan secret.
+
+Jangan membuat fake behavior hanya untuk PASS.
+
+TAHAP 9 — TELEGRAM
+
+Tetap:
+
+- jangan meminta API_ID,
+- jangan meminta API_HASH,
+- jangan meminta session,
+- jangan menjalankan real Telegram integration,
+- jangan membuat fake Telegram credential.
+
+Real Telegram tetap DEFERRED.
+
+TAHAP 10 — GOROUTER
+
+Jangan menjalankan atau menambahkan test Gorouter.app.
+
+NVIDIA dan TokenHarbor tidak perlu disentuh.
+
+TAHAP 11 — VALIDATION
+
+Jalankan:
+
+pnpm test
+pnpm build
+pnpm typecheck
+pnpm lint
+pnpm format:check
+node scripts/check-imports.mjs
+node scripts/check-ownership.mjs
+node scripts/check-doc-links.mjs
+git diff --check
+
+Jangan menjalankan atau membuat:
+
+node scripts/check-symlinks.mjs
+
+Jika tidak tersedia:
+
+SKIPPED — scripts/check-symlinks.mjs unavailable
+
+TAHAP 12 — REVIEW
+
+Sebelum commit:
+
+git status
+git diff --stat
+review seluruh diff.
+
+Pastikan tidak ada:
+
+- credential,
+- secret,
+- temporary files,
+- generated junk,
+- unrelated refactor,
+- perubahan B-071,
+- perubahan Gorouter,
+- perubahan NVIDIA/TokenHarbor,
+- queue framework baru,
+- speculative infrastructure.
+
+TAHAP 13 — COMMIT + PUSH
+
+Jika ada implementation valid:
+
+Buat SATU commit dengan message yang sesuai, misalnya:
+
+feat: add job retry backoff policy
+
+Kemudian:
+
+git push origin backend-dev-recovery
+
+Verifikasi:
+
+- local SHA,
+- remote SHA,
+- working tree clean.
+
+Jika tidak ada perubahan valid:
+- jangan membuat empty commit.
+
+OUTPUT
+
+### Retry Policy
+- max attempts:
+- retryable errors:
+- terminal errors:
+- backoff:
+- jitter:
+- next-run:
+- dead/DLQ:
+
+### Schema
+- migration:
+- fields added:
+- existing fields reused:
+
+### Worker
+- retry transition:
+- atomicity:
+- concurrency:
+- restart behavior:
+
+### Tests
+- test:
+- build:
+- typecheck:
+- lint:
+- format:
+- imports:
+- ownership:
+- docs:
+- diff:
+
+### Git
+- commit SHA:
+- push:
+- local/remote SHA:
+- working tree:
+
+### Remaining Deferred
+Hanya dependency nyata yang belum dapat dikerjakan.
+
+### Next Roadmap
+Tentukan SATU task berikutnya berdasarkan dependency nyata repository.
+
+Kerjakan langsung pada /root/botspace.
 
 
 ```
