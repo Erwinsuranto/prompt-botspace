@@ -231,7 +231,343 @@
 # 
 ```
 
+# Prompt: BotSpace — Orphaned Running Job Recovery Contract + Reaper
 
+Lanjutkan project BotSpace dari kondisi repository TERAKHIR.
+
+KONDISI TERAKHIR
+
+- B-030 Workspace API/Contract SUDAH selesai.
+- B-070 Storage Adapter SUDAH selesai.
+- B-071 File/Share contract SUDAH selesai.
+- B-071 File/Share API SUDAH selesai.
+- Production wiring B-071 SUDAH selesai.
+- Redis OutboxPublisher/Consumer SUDAH selesai.
+- Job State Machine SUDAH selesai.
+- Worker Executor SUDAH selesai.
+- Retry / exponential backoff / DLQ policy SUDAH selesai.
+- Commit terakhir: 94e947a
+- Push ke origin/backend-dev-recovery SUKSES.
+- Local dan remote SHA sinkron.
+- Working tree CLEAN.
+
+REMAINING DEFERRED
+
+1. Real Telegram integration — tetap deferred karena tidak ada API_ID/API_HASH/session nyata.
+2. Concrete production JobHandler — deferred sampai ada workload nyata.
+3. Orphaned running-job recovery / visibility timeout + reaper — TASK SEKARANG.
+4. Automated dead-letter operator replay control — tetap deferred.
+5. Optional correlationId pada JobEnvelope — tetap deferred.
+6. Jangan membuat fitur speculative lainnya.
+
+TUJUAN
+
+Sekarang selesaikan dependency:
+
+ORPHANED RUNNING-JOB RECOVERY
+
+Masalah yang harus diselesaikan:
+
+Jika worker mengambil job dan membuat state:
+
+pending → running
+
+lalu process mati sebelum job selesai, job tidak boleh selamanya tertinggal dalam state running.
+
+Namun jangan langsung mengarang timeout/reaper behavior.
+
+TAHAP 1 — AUDIT
+
+Audit terlebih dahulu:
+
+- jobs schema
+- job repository
+- JobEnvelope
+- worker executor
+- job state machine
+- claim/atomic claim implementation
+- outbox consumer
+- retry/backoff/DLQ implementation TERAKHIR
+- existing timestamps
+- existing attempt fields
+- existing `claimed_at` atau equivalent
+- existing OPERATIONS_DESIGN
+- ADR-007
+- ADR-012
+- migration history
+- worker lifecycle/startup/shutdown
+
+Cari apakah repository sudah memiliki contract untuk:
+
+- visibility timeout,
+- lease,
+- claimed_at,
+- heartbeat,
+- stale running job,
+- reaper,
+- recovery transition.
+
+Jangan mengarang contract jika belum ada.
+
+TAHAP 2 — CONTRACT DECISION
+
+Jika contract recovery belum ada:
+
+Buat ADR/architecture decision yang mendefinisikan recovery semantics sebelum implementation.
+
+Contract minimal harus menjawab:
+
+1. Bagaimana job menjadi "orphaned"?
+2. Field/timestamp apa yang menjadi dasar penentuan stale job?
+3. Berapa visibility timeout?
+4. Apakah timeout fixed atau configuration-driven?
+5. Apakah worker membutuhkan heartbeat?
+6. Bagaimana reaper menentukan job aman untuk direcover?
+7. Bagaimana mencegah dua worker merecover job yang sama?
+8. Bagaimana recovery berinteraksi dengan attempt counter?
+9. Bagaimana recovery berinteraksi dengan retry/backoff/DLQ yang SUDAH ADA?
+10. Apa yang terjadi jika attempt sudah exhausted?
+11. Apa yang terjadi jika worker sebenarnya masih hidup tetapi lambat?
+12. Apakah recovery langsung mengembalikan job ke pending atau menjalankan transition lain?
+13. Apakah recovery harus atomic?
+14. Bagaimana worker restart memengaruhi recovery?
+
+Jangan memilih angka timeout secara arbitrary.
+
+Gunakan evidence dari repository dan architecture yang sudah ada.
+
+Jika belum ada evidence untuk angka timeout:
+- jadikan configuration/operational decision,
+- dokumentasikan dependency tersebut,
+- jangan hardcode angka hanya agar implementation selesai.
+
+TAHAP 3 — SCHEMA
+
+Jika contract memang membutuhkan field baru seperti:
+
+- claimed_at,
+- lease/visibility deadline,
+- worker ownership identifier,
+
+tambahkan migration MINIMAL.
+
+Sebelum migration:
+
+- pastikan field benar-benar dibutuhkan,
+- jangan membuat duplicate field,
+- jangan mengubah schema jobs secara besar-besaran.
+
+Jika existing schema sudah memiliki field yang cukup:
+- gunakan field tersebut,
+- jangan membuat migration baru.
+
+TAHAP 4 — ATOMIC RECOVERY
+
+Implementasikan recovery secara aman.
+
+Requirements:
+
+- hanya job `running` yang stale yang boleh direcover,
+- recovery harus atomic,
+- dua reaper/worker tidak boleh recover job yang sama,
+- job yang masih aktif tidak boleh direcover,
+- completed/failed/dead job tidak boleh direcover,
+- attempt/retry policy harus tetap konsisten,
+- jangan membuat infinite retry,
+- jangan bypass DLQ policy.
+
+Jika recovery membuat job kembali ke retry flow:
+- gunakan retry/backoff policy yang SUDAH ADA,
+- jangan membuat policy kedua.
+
+TAHAP 5 — REAPER
+
+Implementasikan reaper hanya jika repository sudah memiliki worker/runtime boundary yang tepat.
+
+Jangan membuat daemon/process baru secara speculative.
+
+Jika existing worker runtime merupakan tempat yang tepat:
+
+- tambahkan recovery loop secara modular,
+- jangan mencampur reaper dengan business handler,
+- pastikan graceful shutdown,
+- jangan membuat loop yang tidak dapat dihentikan.
+
+Jika deployment/host process boundary belum ditentukan:
+
+- implementasikan recovery primitive/repository operation,
+- dokumentasikan runtime scheduler/reaper sebagai deployment dependency,
+- jangan membuat process architecture baru.
+
+TAHAP 6 — WORKER SAFETY
+
+Pastikan normal worker execution tetap aman:
+
+- claim tetap atomic,
+- worker tidak mengambil job yang belum eligible,
+- worker tidak kehilangan ownership secara diam-diam,
+- recovery tidak membuat duplicate execution jika architecture belum menjamin exactly-once,
+- failure tetap masuk retry/DLQ policy yang sudah ada.
+
+Jangan mengklaim exactly-once execution jika repository hanya menyediakan at-least-once semantics.
+
+TAHAP 7 — TEST
+
+Tambahkan test nyata untuk:
+
+- running job belum stale → tidak direcover,
+- running job stale → dapat direcover,
+- completed job → tidak direcover,
+- failed job → tidak direcover,
+- dead job → tidak direcover,
+- concurrent reaper → hanya satu recovery berhasil,
+- recovery mempertahankan attempt semantics,
+- recovery menghormati retry/backoff/DLQ,
+- worker restart,
+- boundary timeout,
+- timestamp handling,
+- invalid/stale ownership jika contract mendukungnya.
+
+Jangan membuat fake behavior hanya untuk PASS.
+
+TAHAP 8 — TELEGRAM
+
+Tetap DEFERRED.
+
+Jangan:
+
+- meminta API_ID,
+- meminta API_HASH,
+- meminta session,
+- menjalankan real Telegram integration,
+- membuat fake Telegram credentials.
+
+TAHAP 9 — GOROUTER
+
+Jangan menjalankan atau menambahkan test Gorouter.app.
+
+NVIDIA dan TokenHarbor tidak perlu disentuh.
+
+TAHAP 10 — VALIDATION
+
+Jalankan:
+
+pnpm test
+pnpm build
+pnpm typecheck
+pnpm lint
+pnpm format:check
+node scripts/check-imports.mjs
+node scripts/check-ownership.mjs
+node scripts/check-doc-links.mjs
+git diff --check
+
+Jangan menjalankan atau membuat:
+
+node scripts/check-symlinks.mjs
+
+Jika tidak tersedia:
+
+SKIPPED — scripts/check-symlinks.mjs unavailable
+
+Jika PostgreSQL integration membutuhkan:
+
+PERSISTENCE_TEST_DATABASE_URL
+
+dan environment tidak tersedia:
+- jangan membuat database palsu,
+- laporkan skipped/unavailable.
+
+TAHAP 11 — REVIEW
+
+Sebelum commit:
+
+git status
+git diff --stat
+
+Review seluruh diff.
+
+Pastikan tidak ada:
+
+- secret,
+- credential,
+- temporary files,
+- generated junk,
+- unrelated refactor,
+- perubahan B-071,
+- perubahan provider,
+- Gorouter integration,
+- Telegram runtime speculative,
+- retry policy kedua.
+
+TAHAP 12 — COMMIT + PUSH
+
+Jika implementation valid dan validation selesai:
+
+buat SATU commit dengan message yang sesuai, misalnya:
+
+feat: add orphaned job recovery
+
+Kemudian:
+
+git push origin backend-dev-recovery
+
+Verifikasi:
+
+- local SHA,
+- remote SHA,
+- working tree clean.
+
+Jika tidak ada perubahan valid:
+- jangan membuat empty commit.
+
+OUTPUT AKHIR
+
+### Recovery Contract
+- orphan detection:
+- visibility timeout:
+- ownership:
+- recovery transition:
+- concurrency safety:
+
+### Schema
+- migration:
+- fields added/reused:
+
+### Reaper
+- primitive:
+- runtime integration:
+- graceful shutdown:
+
+### Retry/DLQ Integration
+- attempt handling:
+- backoff:
+- dead state:
+
+### Tests
+- test:
+- build:
+- typecheck:
+- lint:
+- format:
+- imports:
+- ownership:
+- docs:
+- diff:
+
+### Git
+- commit SHA:
+- push:
+- local/remote SHA:
+- working tree:
+
+### Remaining Deferred
+Hanya dependency nyata.
+
+### Next Roadmap
+Tentukan SATU dependency berikutnya berdasarkan architecture repository.
+
+Kerjakan langsung pada /root/botspace.
 
 ```
 # 
