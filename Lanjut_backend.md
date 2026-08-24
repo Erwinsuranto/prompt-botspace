@@ -201,7 +201,270 @@
 # 
 ```
 
+Prompt: BotSpace — Resolve Worker System Actor Policy
 
+Lanjutkan project BotSpace dari kondisi repository TERAKHIR.
+
+KONDISI TERAKHIR:
+- Durable job machinery sudah selesai.
+- Redis outbox/consumer sudah selesai.
+- Job state machine sudah selesai.
+- Retry/backoff/DLQ sudah selesai.
+- Orphan running-job recovery sudah selesai.
+- aggregateRef sudah dipertahankan sampai handler boundary.
+- AuditEventRepository boundary sudah diaudit.
+- Working tree terakhir CLEAN.
+- Branch: backend-dev-recovery.
+- Commit terakhir sudah berhasil dipush.
+
+BLOCKER NYATA SAAT INI:
+
+Worker-generated audit event membutuhkan actor identity.
+
+Masalah:
+- connection.job tidak memiliki user actor.
+- audit event memiliki actor_id NOT NULL + FK.
+- repository belum memiliki reserved system-user yang dapat digunakan worker.
+- Actor-less architecture juga belum terbukti didukung oleh schema/contract saat ini.
+
+JANGAN mengimplementasikan Concrete JobHandler dulu.
+
+TUJUAN:
+
+Selesaikan keputusan dan implementasi identity policy untuk worker-generated audit event berdasarkan evidence repository, bukan asumsi.
+
+BAGIAN 1 — AUDIT
+
+Audit secara menyeluruh:
+
+- audit event schema/model,
+- actor_id FK,
+- users/accounts table,
+- workspace ownership,
+- connection.job,
+- JobEnvelope,
+- worker context,
+- existing system-user/system-actor mechanism,
+- seed data,
+- migration history,
+- audit repository,
+- authorization policy,
+- existing actor-less event pattern jika ada.
+
+Cari apakah repository SUDAH memiliki:
+- system user,
+- service account,
+- system actor,
+- actor-less event,
+- nullable actor relationship,
+- event source/type yang dapat mewakili system event.
+
+Jangan membuat keputusan sebelum seluruh evidence diperiksa.
+
+BAGIAN 2 — DECISION
+
+Pilih SATU dari dua architecture berikut hanya jika repository mendukungnya:
+
+A. RESERVED SYSTEM ACTOR
+
+Gunakan system actor jika:
+- actor_id memang wajib,
+- FK memang sengaja wajib,
+- architecture repository mendukung identity khusus untuk system/worker,
+- tidak melanggar workspace/authorization model.
+
+Jika pilihan ini benar:
+
+- tentukan representasi system actor yang paling sesuai,
+- jangan hardcode user ID di worker,
+- jangan membuat user biasa sebagai fake actor,
+- gunakan stable identity mechanism,
+- jika membutuhkan migration/seed, buat secara minimal dan deterministic,
+- pastikan tidak bisa digunakan sebagai user login biasa,
+- dokumentasikan ownership/semantics system actor.
+
+ATAU
+
+B. ACTOR-LESS AUDIT EVENT
+
+Gunakan actor-less hanya jika:
+- repository memang sudah memiliki pattern tersebut,
+- schema/contract dapat mendukungnya tanpa speculative redesign,
+- audit event memang secara semantik dapat berasal dari worker tanpa user actor.
+
+Jika pilihan ini benar:
+- jangan sekadar membuat actor_id nullable agar test PASS,
+- jelaskan migration/contract impact,
+- hanya implementasikan jika architecture evidence mendukung.
+
+Jika kedua pilihan belum dapat dipastikan dari repository:
+
+STOP sebelum perubahan schema.
+
+Laporkan:
+- evidence yang kurang,
+- file/schema yang menjadi blocker,
+- keputusan yang harus disetujui architecture owner.
+
+Jangan membuat architecture speculative.
+
+BAGIAN 3 — IMPLEMENTATION
+
+Jika decision dapat dibuktikan:
+
+Implementasikan policy tersebut secara modular.
+
+Pastikan:
+- worker dapat menghasilkan audit event tanpa fake user,
+- actor identity deterministic,
+- audit event tetap memenuhi FK/contract,
+- workspace isolation tidak rusak,
+- system actor tidak memperoleh akses user biasa,
+- tidak ada credential/secret yang disimpan,
+- tidak ada hardcoded production credential.
+
+Jika system actor membutuhkan migration:
+- buat migration kecil,
+- jangan mengubah schema lain,
+- jangan mengubah BotInstallation.status,
+- jangan mengubah job state machine.
+
+Jika actor-less membutuhkan schema change:
+- hanya lakukan jika evidence repository benar-benar mendukungnya.
+
+BAGIAN 4 — TEST
+
+Tambahkan test yang benar-benar relevan:
+
+- worker audit event dapat menentukan actor policy,
+- system actor valid jika policy system actor dipilih,
+- invalid/missing actor ditolak,
+- actor tidak dapat dipalsukan menjadi arbitrary user,
+- FK tetap valid,
+- workspace isolation tetap benar,
+- normal user audit event tetap bekerja,
+- worker audit event tidak membutuhkan user session.
+
+Jangan membuat fake schema hanya untuk membuat test PASS.
+
+BAGIAN 5 — SECURITY
+
+Pastikan:
+
+- system actor bukan user biasa,
+- tidak ada privilege escalation,
+- worker tidak dapat memilih actor_id arbitrary,
+- actor identity tidak berasal dari input user,
+- tidak ada secret/token/password di audit event,
+- audit event tidak membocorkan credential.
+
+BAGIAN 6 — VALIDATION
+
+Jalankan:
+
+pnpm test
+pnpm build
+pnpm typecheck
+pnpm lint
+pnpm format:check
+node scripts/check-imports.mjs
+node scripts/check-ownership.mjs
+node scripts/check-doc-links.mjs
+git diff --check
+
+Jangan menjalankan atau membuat:
+
+node scripts/check-symlinks.mjs
+
+Jika tidak tersedia:
+SKIPPED — scripts/check-symlinks.mjs unavailable
+
+Jangan menjalankan test Gorouter.app.
+
+NVIDIA dan TokenHarbor tidak perlu disentuh.
+
+BAGIAN 7 — REVIEW
+
+Sebelum commit:
+
+git status
+git diff --stat
+git diff
+
+Pastikan perubahan hanya berkaitan dengan:
+- worker actor policy,
+- system actor atau actor-less implementation,
+- migration/seed jika memang terbukti diperlukan,
+- test terkait.
+
+Jangan melakukan refactor unrelated.
+
+BAGIAN 8 — COMMIT
+
+Jika implementation valid:
+
+Buat SATU commit dengan message sesuai perubahan aktual, misalnya:
+
+feat: define worker audit actor policy
+
+Kemudian:
+
+git push origin backend-dev-recovery
+
+Verifikasi:
+- local SHA,
+- remote SHA,
+- working tree clean.
+
+Jika tidak ada implementation yang aman karena decision belum dapat dibuktikan:
+
+- jangan membuat empty commit,
+- jangan mengubah schema,
+- tampilkan blocker secara jelas.
+
+OUTPUT:
+
+### Decision
+- chosen policy:
+- evidence:
+- alasan:
+
+### Implementation
+- files changed:
+- migration/seed:
+- worker behavior:
+
+### Security
+- system actor isolation:
+- actor spoofing protection:
+
+### Validation
+- test:
+- build:
+- typecheck:
+- lint:
+- format:
+- imports:
+- ownership:
+- docs:
+- diff:
+
+### Git
+- commit SHA:
+- push:
+- local/remote SHA:
+- working tree:
+
+### Remaining Deferred
+Hanya dependency nyata.
+
+### Next Roadmap
+Jika actor policy sudah selesai dan validation PASS, task berikutnya adalah:
+Concrete JobHandler + job-type registry.
+
+Jangan mengerjakan Concrete JobHandler pada task ini.
+Jangan mengerjakan Telegram integration.
+Kerjakan langsung pada /root/botspace.
 
 ```
 # Prompt berikutnya — AuditEventRepository + Actor Policy
