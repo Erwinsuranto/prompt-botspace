@@ -216,10 +216,173 @@
 
 
 ```
-# 
+# Prompt: Preserve aggregateRef on Jobs
 ```
 
+Lanjutkan project BotSpace dari kondisi repository TERAKHIR.
 
+KONDISI:
+- Outbox sudah selesai.
+- Redis consumer sudah selesai.
+- Worker/dispatcher sudah selesai.
+- Job state machine sudah selesai.
+- Retry/backoff/DLQ sudah selesai.
+- Orphan recovery sudah selesai.
+- Working tree terakhir CLEAN.
+- Branch: backend-dev-recovery.
+- Jangan mengulang infrastructure yang sudah selesai.
+- Jangan implementasikan Telegram integration.
+- Jangan membuat Concrete JobHandler dulu.
+
+HASIL AUDIT TERAKHIR:
+
+Ada satu blocker konkret sebelum Concrete JobHandler:
+
+JobEnvelope memiliki `aggregateRef`, tetapi ketika consumer mematerialisasi envelope menjadi row pada tabel `jobs`, `aggregateRef` hilang.
+
+Akibatnya future JobHandler tidak dapat menentukan aggregate/domain target dari job.
+
+TUJUAN:
+
+Preserve `aggregateRef` dari:
+
+JobEnvelope
+→ Redis outbox consumer
+→ jobs row
+→ materialized job
+→ worker/handler boundary
+
+TASK:
+
+1. Audit:
+   - JobEnvelope
+   - redis-outbox-consumer
+   - jobs schema/model
+   - jobs repository
+   - migrations
+   - materialization logic
+   - worker executor.
+
+2. Pastikan `aggregateRef` dipersist secara konsisten.
+
+3. Jika jobs schema memang belum memiliki field tersebut:
+   - tambahkan migration minimal,
+   - gunakan tipe/format yang konsisten dengan JobEnvelope,
+   - jangan mengubah field lain yang tidak diperlukan.
+
+4. Update:
+   - persistence model,
+   - repository mapping,
+   - insert/materialization,
+   - read/materialization,
+   - worker-facing job representation
+   agar `aggregateRef` tidak hilang.
+
+5. Jangan membuat contract kedua.
+
+6. Jangan membuat aggregateRef baru dengan nilai buatan.
+
+7. Jangan membuat fake/default aggregateRef hanya agar test PASS.
+
+8. Pastikan NULL/optional behavior mengikuti contract JobEnvelope yang sudah ada.
+
+9. Tambahkan test untuk:
+   - envelope dengan aggregateRef → jobs row menyimpan nilai yang sama,
+   - jobs row → materialized job mengembalikan nilai yang sama,
+   - envelope tanpa aggregateRef mengikuti optional semantics yang sudah ada,
+   - tidak terjadi perubahan aggregateRef saat retry/recovery.
+
+10. Jangan implementasikan Concrete JobHandler pada prompt ini.
+
+11. Jangan mengubah:
+   - Telegram integration,
+   - BotInstallation.status,
+   - retry policy,
+   - DLQ semantics,
+   - worker state machine,
+   - JobEnvelope contract kecuali benar-benar diperlukan untuk kompatibilitas persistence.
+
+VALIDATION:
+
+Jalankan:
+
+pnpm test
+pnpm build
+pnpm typecheck
+pnpm lint
+pnpm format:check
+node scripts/check-imports.mjs
+node scripts/check-ownership.mjs
+node scripts/check-doc-links.mjs
+git diff --check
+
+Jangan menjalankan atau membuat:
+
+node scripts/check-symlinks.mjs
+
+Jika memang tidak tersedia:
+SKIPPED — scripts/check-symlinks.mjs unavailable
+
+Jangan menjalankan test/integration Gorouter.app.
+
+REVIEW:
+
+Sebelum commit:
+
+git status
+git diff --stat
+git diff
+
+Pastikan perubahan hanya untuk preservation/persistence `aggregateRef`.
+
+Jika validation PASS:
+
+Buat SATU commit:
+
+fix: preserve aggregate ref in jobs
+
+Kemudian:
+
+git push origin backend-dev-recovery
+
+Verifikasi:
+- local SHA,
+- remote SHA,
+- working tree clean.
+
+Jika tidak ada perubahan yang diperlukan:
+- jangan membuat empty commit.
+
+OUTPUT:
+
+### AggregateRef
+- source:
+- persistence:
+- materialization:
+- worker visibility:
+
+### Tests
+- test:
+- build:
+- typecheck:
+- lint:
+- format:
+- imports:
+- ownership:
+- docs:
+- diff:
+
+### Git
+- commit SHA:
+- push:
+- local/remote SHA:
+- working tree:
+
+### Remaining Deferred
+Hanya dependency nyata.
+
+### Next Roadmap
+Setelah `aggregateRef` benar-benar preserved, tentukan apakah repository sudah siap untuk **Concrete JobHandler + job-type registry**. Jangan implementasikan handler pada task ini.
 
 ```
 # 
