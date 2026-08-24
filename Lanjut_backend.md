@@ -204,10 +204,271 @@
 
 
 ```
-# 
+# Prompt berikutnya — AuditEventRepository + Actor Policy
 ```
 
+Prompt: BotSpace — AuditEventRepository + Worker Actor Policy
 
+Lanjutkan project BotSpace dari kondisi repository TERAKHIR.
+
+KONDISI TERAKHIR:
+- Outbox delivery stack selesai.
+- Redis consumer selesai.
+- Jobs persistence selesai.
+- Job state machine selesai.
+- Retry/backoff/DLQ selesai.
+- Orphan running-job recovery selesai.
+- aggregateRef sudah dipertahankan sampai handler boundary.
+- Concrete JobHandler + job-type registry SUDAH diaudit.
+- Concrete JobHandler saat ini TERBLOCKIR oleh dependency nyata:
+  1. keputusan system-actor / actor-less policy untuk audit event actor_id yang memiliki FK NOT NULL,
+  2. implementasi + wiring AuditEventRepository atau downstream audit sink.
+- Commit terakhir berhasil dipush ke:
+  origin/backend-dev-recovery
+- Working tree terakhir CLEAN.
+
+JANGAN mengimplementasikan Concrete JobHandler pada task ini.
+
+TUJUAN:
+
+Selesaikan dependency audit-event yang menjadi blocker nyata sebelum Concrete JobHandler.
+
+BAGIAN 1 — AUDIT
+
+Audit repository terlebih dahulu untuk menemukan:
+
+- audit event model,
+- audit event contract/interface,
+- actor_id semantics,
+- actor/user/account relation,
+- existing audit repository,
+- persistence schema,
+- foreign key constraint,
+- worker persistence,
+- JobEnvelope,
+- JobHandler contract,
+- existing system actor pattern,
+- actor-less event pattern,
+- existing event publisher/sink,
+- migration terkait audit event.
+
+Jangan membuat contract kedua jika contract audit event sudah ada.
+
+BAGIAN 2 — ACTOR POLICY
+
+Tentukan berdasarkan code/schema yang benar-benar ada:
+
+Apakah worker-generated audit event menggunakan:
+
+A. system actor,
+atau
+B. actor-less event.
+
+JANGAN memilih berdasarkan asumsi bisnis.
+
+Jika `actor_id` adalah NOT NULL/FK dan repository memang membutuhkan actor:
+
+- gunakan system actor mechanism hanya jika architecture repository sudah mendukungnya,
+- jangan hardcode user ID,
+- jangan membuat fake user sembarangan,
+- jangan melemahkan FK hanya agar worker PASS.
+
+Jika architecture memang mendukung actor-less event:
+
+- gunakan representation yang sudah tersedia,
+- jangan menambahkan nullable actor_id hanya untuk task ini kecuali migration/contract memang diperlukan dan justified.
+
+Jika keputusan membutuhkan perubahan schema/contract:
+
+- jangan langsung mengubah schema,
+- dokumentasikan dependency dan alasan,
+- hanya implementasikan jika repository evidence benar-benar mendukung perubahan tersebut.
+
+BAGIAN 3 — AUDITEVENTREPOSITORY
+
+Implementasikan/wire `AuditEventRepository` hanya berdasarkan contract yang sudah ada.
+
+Requirements:
+
+1. Repository hanya menangani persistence.
+2. Business logic tetap berada di service/application layer.
+3. Jangan membuat audit repository kedua.
+4. Gunakan database adapter/persistence abstraction yang sudah digunakan project.
+5. Jangan membuat database abstraction baru.
+6. Pastikan worker-generated audit event dapat dipersist dengan actor policy yang benar.
+7. Jangan menyimpan secret atau credential.
+8. Jangan menyimpan raw token jika event hanya membutuhkan identifier/digest.
+9. Jangan membuat audit event palsu hanya untuk membuat test PASS.
+
+BAGIAN 4 — WORKER INTEGRATION
+
+Audit bagaimana worker nantinya akan menggunakan audit event.
+
+Jangan mengimplementasikan seluruh Concrete JobHandler.
+
+Yang boleh dilakukan hanya:
+
+- dependency injection AuditEventRepository,
+- persistence boundary,
+- actor policy,
+- wiring yang memang diperlukan agar handler berikutnya tidak speculative.
+
+Jangan mengubah:
+
+- pending,
+- running,
+- completed,
+- failed,
+- dead/DLQ,
+- retry/backoff,
+- orphan recovery semantics.
+
+Jangan membuat retry policy baru.
+
+BAGIAN 5 — TEST
+
+Tambahkan test yang benar-benar relevan:
+
+- audit event dapat dipersist,
+- actor policy valid,
+- invalid actor ditolak,
+- worker/system actor behavior sesuai architecture,
+- actor-less behavior jika memang contract mendukungnya,
+- repository tidak membocorkan secret,
+- audit event repository menggunakan persistence abstraction yang benar,
+- dependency injection berhasil.
+
+Jika PostgreSQL integration test membutuhkan:
+
+PERSISTENCE_TEST_DATABASE_URL
+
+dan environment tidak tersedia:
+
+- jangan membuat fake PostgreSQL,
+- jangan mengubah test agar PASS,
+- tandai SKIPPED/UNAVAILABLE sesuai mekanisme repository.
+
+BAGIAN 6 — SECURITY
+
+Pastikan:
+
+- tidak ada raw secret,
+- tidak ada credential,
+- tidak ada API key,
+- tidak ada raw share token,
+- tidak ada password,
+- actor identity tidak dapat dipalsukan secara bebas,
+- audit event tidak dapat digunakan untuk cross-workspace access.
+
+BAGIAN 7 — VALIDATION
+
+Jalankan:
+
+pnpm test
+pnpm build
+pnpm typecheck
+pnpm lint
+pnpm format:check
+node scripts/check-imports.mjs
+node scripts/check-ownership.mjs
+node scripts/check-doc-links.mjs
+git diff --check
+
+Jangan menjalankan atau membuat:
+
+node scripts/check-symlinks.mjs
+
+Jika tidak tersedia:
+
+SKIPPED — scripts/check-symlinks.mjs unavailable
+
+Jangan menjalankan atau menambahkan test Gorouter.app.
+
+NVIDIA dan TokenHarbor tidak perlu disentuh.
+
+BAGIAN 8 — REVIEW
+
+Sebelum commit:
+
+git status
+git diff --stat
+git diff
+
+Pastikan perubahan hanya berkaitan dengan:
+
+- AuditEventRepository,
+- actor policy,
+- persistence wiring,
+- test yang diperlukan.
+
+Jangan mengubah Concrete JobHandler kecuali perubahan kecil benar-benar diperlukan untuk dependency injection dan tidak mengimplementasikan business logic.
+
+Jika tidak ada perubahan valid:
+- jangan membuat empty commit.
+
+BAGIAN 9 — COMMIT + PUSH
+
+Jika implementation valid dan validation PASS:
+
+Buat satu commit:
+
+feat: add audit event persistence
+
+Kemudian:
+
+git push origin backend-dev-recovery
+
+Verifikasi:
+
+- local SHA,
+- remote SHA,
+- working tree clean.
+
+Jika push gagal:
+- jangan mengubah credential GitHub,
+- jangan menghapus commit,
+- tampilkan error dengan jelas.
+
+OUTPUT:
+
+### Audit Event
+- existing contract:
+- repository:
+- persistence:
+- actor policy:
+
+### Worker Dependency
+- dependency yang sekarang sudah terpenuhi:
+- Concrete JobHandler masih blocker atau tidak:
+
+### Tests
+- test:
+- build:
+- typecheck:
+- lint:
+- format:
+- imports:
+- ownership:
+- docs:
+- diff:
+
+### Git
+- commit SHA:
+- push:
+- local/remote SHA:
+- working tree:
+
+### Remaining Deferred
+Hanya dependency nyata.
+
+### Next Roadmap
+Jika AuditEventRepository sudah selesai dan tidak ada blocker lain, tentukan apakah task berikutnya adalah:
+
+Concrete JobHandler + job-type registry.
+
+Jangan mengerjakan Telegram integration atau business workload nyata pada task ini.
+
+Kerjakan langsung pada `/root/botspace`.
 
 ```
 # Prompt berikutnya — Concrete JobHandler + Job-Type Registry
