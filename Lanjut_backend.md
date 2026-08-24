@@ -210,10 +210,217 @@
 
 
 ```
-# 
+# Prompt berikutnya — Concrete JobHandler + Job-Type Registry
 ```
 
+Prompt: BotSpace — Concrete JobHandler + Job-Type Registry
 
+Lanjutkan project BotSpace dari kondisi repository TERAKHIR.
+
+KONDISI:
+- Outbox delivery stack SUDAH selesai.
+- Redis consumer SUDAH selesai.
+- Jobs persistence SUDAH selesai.
+- Job state machine SUDAH selesai.
+- Retry/backoff/DLQ SUDAH selesai.
+- Orphan running-job recovery SUDAH selesai.
+- aggregateRef SUDAH berhasil dipertahankan dari JobEnvelope → jobs row → materialized job → handler boundary.
+- Migration 0012 SUDAH selesai.
+- Commit terakhir berhasil dipush.
+- Working tree terakhir CLEAN.
+- Branch: backend-dev-recovery.
+
+JANGAN mengulang pekerjaan yang sudah selesai.
+
+TUJUAN:
+
+Sekarang implementasikan dependency berikutnya yang memang sudah teridentifikasi:
+
+Concrete JobHandler + job-type registry.
+
+Sebelum coding:
+
+1. Audit repository untuk menemukan:
+   - JobHandler contract/interface yang sudah ada,
+   - JobEnvelope,
+   - materialized jobs representation,
+   - jobs repository,
+   - worker executor,
+   - aggregateRef,
+   - job-type field/registry boundary,
+   - existing domain event/use-case handler patterns.
+
+2. Jangan membuat contract kedua jika JobHandler contract sudah tersedia.
+
+3. Jangan mengarang business logic production.
+
+PENTING:
+
+Kita belum memiliki workload production nyata yang aman untuk ditebak.
+
+Karena itu:
+- gunakan job type yang memang sudah memiliki contract/handler boundary di repository,
+- jangan menciptakan domain behavior palsu,
+- jangan membuat Telegram integration,
+- jangan membuat fake production workload hanya agar executor terlihat bekerja.
+
+IMPLEMENTASI:
+
+1. Buat/selesaikan job-type registry sesuai architecture yang sudah ada.
+
+2. Registry harus:
+   - deterministic,
+   - mudah diperluas,
+   - tidak bergantung pada global mutable state,
+   - menggunakan dependency injection yang sudah dipakai repository.
+
+3. Hubungkan worker executor dengan registry.
+
+4. Saat job masuk:
+   - resolve job type,
+   - resolve handler,
+   - pass materialized job yang memiliki aggregateRef,
+   - execute handler,
+   - gunakan state transition yang SUDAH ada.
+
+5. Unknown job type harus menghasilkan error yang aman dan deterministic.
+   Jangan silently succeed.
+
+6. Jangan mengubah semantics:
+   - pending,
+   - running,
+   - completed,
+   - failed,
+   - dead/DLQ,
+   - retry/backoff.
+
+7. Jangan membuat retry policy baru.
+
+8. Jangan mengubah JobEnvelope contract kecuali audit membuktikan benar-benar diperlukan.
+
+9. Jangan mengubah schema jobs kecuali dependency nyata ditemukan.
+
+10. Jangan mengimplementasikan:
+    - Telegram API,
+    - polling,
+    - webhook,
+    - real credentials,
+    - provider integration,
+    - speculative business logic.
+
+TEST:
+
+Tambahkan test untuk:
+
+- registry dapat resolve registered job type,
+- unknown job type ditolak,
+- handler menerima materialized job yang benar,
+- aggregateRef tetap tersedia di handler,
+- executor memanggil handler yang benar,
+- handler success menghasilkan state transition yang benar,
+- handler failure mengikuti state machine yang SUDAH ADA,
+- tidak terjadi silent success untuk unknown handler,
+- registry tidak memiliki global mutable state.
+
+VALIDATION:
+
+Jalankan:
+
+pnpm test
+pnpm build
+pnpm typecheck
+pnpm lint
+pnpm format:check
+node scripts/check-imports.mjs
+node scripts/check-ownership.mjs
+node scripts/check-doc-links.mjs
+git diff --check
+
+Jangan menjalankan atau membuat:
+
+node scripts/check-symlinks.mjs
+
+Jika tidak tersedia:
+SKIPPED — scripts/check-symlinks.mjs unavailable
+
+Jangan menjalankan atau menambahkan test Gorouter.app.
+
+NVIDIA dan TokenHarbor tidak perlu disentuh.
+
+REVIEW:
+
+Sebelum commit:
+
+git status
+git diff --stat
+git diff
+
+Pastikan perubahan hanya berkaitan dengan:
+
+- JobHandler,
+- job-type registry,
+- executor wiring,
+- test yang diperlukan.
+
+Jika workload production nyata belum tersedia, jangan mengarangnya.
+
+Jika validation PASS:
+
+Buat SATU commit:
+
+feat: add job handler registry
+
+Kemudian:
+
+git push origin backend-dev-recovery
+
+Verifikasi:
+- local SHA,
+- remote SHA,
+- working tree clean.
+
+Jika tidak ada perubahan valid:
+- jangan membuat empty commit,
+- jangan push kosong.
+
+OUTPUT:
+
+### JobHandler
+- existing contract:
+- implementation:
+- registry:
+- executor wiring:
+
+### State Machine
+- success:
+- failure:
+- retry/DLQ:
+
+### Tests
+- test:
+- build:
+- typecheck:
+- lint:
+- format:
+- imports:
+- ownership:
+- docs:
+- diff:
+
+### Git
+- commit SHA:
+- push:
+- local/remote SHA:
+- working tree:
+
+### Remaining Deferred
+Hanya dependency nyata.
+
+### Next Roadmap
+Tentukan task berikutnya berdasarkan dependency nyata repository.
+
+Jangan membuat fitur acak.
+Kerjakan langsung pada `/root/botspace`.
 
 ```
 # Prompt: Preserve aggregateRef on Jobs
