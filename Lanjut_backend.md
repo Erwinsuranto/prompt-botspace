@@ -225,7 +225,332 @@
 # 
 ```
 
+# Prompt: BotSpace — Concrete JobHandler + Job-Type Registry
 
+Lanjutkan project BotSpace dari kondisi repository TERAKHIR.
+
+KONDISI TERAKHIR
+
+- B-030 Workspace API/Contract SUDAH selesai.
+- B-070 Storage Adapter SUDAH selesai.
+- B-071 File/Share contract SUDAH selesai.
+- B-071 File/Share API SUDAH selesai.
+- Production wiring B-071 SUDAH selesai.
+- Redis OutboxPublisher SUDAH selesai.
+- Outbox consumer SUDAH selesai.
+- JobEnvelope SUDAH versioned.
+- Dispatcher SUDAH selesai.
+- Worker runtime SUDAH tersedia.
+- Job state machine SUDAH selesai.
+- Retry/backoff/DLQ SUDAH selesai.
+- Orphaned running-job recovery SUDAH selesai.
+- Recovery menggunakan at-least-once semantics.
+- Exact-once execution TIDAK diklaim.
+- Working tree terakhir CLEAN.
+- Branch: backend-dev-recovery.
+
+REMAINING DEFERRED
+
+- Real Telegram integration: membutuhkan API_ID/API_HASH/session nyata.
+- Heartbeat: deferred sampai ada workload yang legitimately berjalan lama.
+- Backoff jitter: deferred sampai policy diperlukan.
+- Optional correlationId: deferred.
+- Automated dead-letter operator replay: deferred.
+
+JANGAN mengulang infrastructure/job machinery yang sudah selesai.
+
+TUJUAN
+
+Implementasikan dependency berikutnya:
+
+CONCRETE PRODUCTION JOBHANDLER + JOB-TYPE REGISTRY
+
+Tujuannya adalah membuat satu boundary nyata yang menghubungkan:
+
+JobEnvelope
+→ job-type registry
+→ concrete JobHandler
+→ existing worker executor
+→ existing retry/backoff/DLQ
+→ existing job state machine.
+
+PENTING:
+
+Jangan membuat business logic Telegram nyata.
+
+Jangan membuat fake Telegram credentials.
+
+Jangan membuat handler yang berpura-pura melakukan pekerjaan nyata hanya agar test PASS.
+
+TAHAP 1 — AUDIT
+
+Audit terlebih dahulu:
+
+- JobEnvelope
+- dispatcher
+- worker executor
+- JobHandler interface/contract
+- existing job type definitions
+- job registry jika sudah ada
+- worker runtime
+- retry/backoff/DLQ
+- job state machine
+- BotInstallation/status
+- domain event definitions
+- existing connection/bot lifecycle events
+- existing service boundaries.
+
+Gunakan contract yang sudah ada.
+
+Jika JobHandler contract sudah ada:
+- gunakan contract tersebut.
+
+Jika registry abstraction sudah ada:
+- gunakan abstraction tersebut.
+
+Jangan membuat contract kedua yang duplikat.
+
+TAHAP 2 — JOB-TYPE REGISTRY
+
+Implementasikan registry modular untuk memetakan:
+
+job.type → JobHandler
+
+Requirements:
+
+- lookup deterministic,
+- unknown job type harus gagal secara aman,
+- tidak boleh menjalankan handler yang salah,
+- handler registration harus jelas,
+- dependency injection melalui composition root,
+- jangan menggunakan global mutable registry jika architecture tidak menggunakannya.
+
+Registry harus mudah ditambahkan untuk job type baru di masa depan.
+
+Jangan membuat satu giant switch yang mencampurkan seluruh business logic.
+
+TAHAP 3 — CONCRETE HANDLER
+
+Pilih SATU job type yang memang sudah memiliki domain contract/service boundary nyata di repository.
+
+Prioritaskan job type yang:
+
+- sudah mempunyai domain model/service,
+- dapat dieksekusi tanpa Telegram credential,
+- dapat diuji secara deterministic,
+- benar-benar mewakili production workload.
+
+Jangan menciptakan business logic baru hanya untuk mengisi handler.
+
+Jika repository BELUM memiliki job type yang layak dieksekusi:
+
+- jangan membuat fake production workload,
+- implementasikan registry/handler boundary yang memang sudah didukung,
+- dokumentasikan concrete handler sebagai deferred sampai ada real workload contract.
+
+TAHAP 4 — WORKER INTEGRATION
+
+Wire registry ke existing worker executor.
+
+Flow harus menjadi:
+
+1. consumer materializes JobEnvelope,
+2. worker claims job,
+3. registry resolve handler berdasarkan job.type,
+4. handler execute,
+5. success → existing completed transition,
+6. failure → existing retry/backoff/DLQ mechanism,
+7. orphan recovery tetap menggunakan mechanism yang SUDAH ADA.
+
+Jangan membuat retry mechanism kedua.
+
+Jangan membuat state machine kedua.
+
+Jangan bypass existing DLQ.
+
+TAHAP 5 — ERROR SEMANTICS
+
+Pastikan:
+
+- unknown job type menghasilkan failure yang deterministic,
+- handler error masuk ke existing failure/retry semantics,
+- exhausted attempts mengikuti existing DLQ/dead semantics,
+- handler tidak mengubah jobs.state secara langsung jika state machine sudah menjadi owner,
+- handler tidak melakukan retry sendiri,
+- handler tidak memanggil worker lifecycle secara langsung.
+
+Business handler bertanggung jawab atas pekerjaan.
+Worker/state machine bertanggung jawab atas lifecycle job.
+
+TAHAP 6 — IDEMPOTENCY
+
+Karena architecture menggunakan at-least-once:
+
+- jangan klaim exactly-once,
+- handler harus aman terhadap kemungkinan execution ulang sejauh contract memungkinkan,
+- jangan membuat idempotency layer baru jika belum ada contract,
+- jangan menyimpan duplicate state hanya untuk test.
+
+Jika handler membutuhkan idempotency tetapi repository belum memiliki boundary:
+- dokumentasikan dependency tersebut,
+- jangan mengarang storage/schema baru.
+
+TAHAP 7 — COMPOSITION ROOT
+
+Wire:
+
+- JobHandler,
+- JobRegistry,
+- existing worker executor,
+- existing runtime.
+
+Pastikan dependency injection eksplisit.
+
+Jangan membuat:
+
+- process/daemon baru,
+- Telegram polling,
+- Telegram webhook,
+- global singleton tersembunyi.
+
+TAHAP 8 — TEST
+
+Tambahkan test nyata untuk:
+
+- known job type → correct handler,
+- unknown job type → safe failure,
+- handler success → existing completed transition,
+- handler failure → existing retry mechanism,
+- exhausted attempts → existing DLQ/dead behavior,
+- registry dependency injection,
+- handler exception handling,
+- duplicate execution safety jika contract mendukungnya.
+
+Jangan membuat fake behavior hanya agar test PASS.
+
+TAHAP 9 — TELEGRAM
+
+Telegram tetap DEFERRED.
+
+Jangan:
+
+- meminta API_ID,
+- meminta API_HASH,
+- meminta session,
+- membuat fake credentials,
+- menjalankan real Telegram integration.
+
+TAHAP 10 — VALIDATION
+
+Jalankan:
+
+pnpm test
+pnpm build
+pnpm typecheck
+pnpm lint
+pnpm format:check
+node scripts/check-imports.mjs
+node scripts/check-ownership.mjs
+node scripts/check-doc-links.mjs
+git diff --check
+
+Jangan membuat atau menjalankan:
+
+node scripts/check-symlinks.mjs
+
+Jika tidak tersedia:
+
+SKIPPED — scripts/check-symlinks.mjs unavailable
+
+Jangan menjalankan atau menambahkan test Gorouter.app.
+
+NVIDIA dan TokenHarbor tidak perlu disentuh.
+
+TAHAP 11 — REVIEW
+
+Sebelum commit:
+
+git status
+git diff --stat
+git diff
+
+Pastikan tidak ada:
+
+- secret,
+- credential,
+- fake Telegram credential,
+- temporary files,
+- unrelated refactor,
+- duplicate retry mechanism,
+- duplicate state machine,
+- duplicate JobHandler contract,
+- perubahan B-071 yang tidak diperlukan,
+- perubahan Gorouter.
+
+TAHAP 12 — COMMIT + PUSH
+
+Jika ada perubahan valid:
+
+buat SATU commit dengan message yang sesuai, misalnya:
+
+feat: add job handler registry
+
+Kemudian:
+
+git push origin backend-dev-recovery
+
+Verifikasi:
+
+- local SHA,
+- remote SHA,
+- working tree clean.
+
+Jika tidak ada implementation valid:
+- jangan membuat empty commit.
+
+OUTPUT AKHIR
+
+### JobHandler
+- existing contract:
+- concrete handler:
+- job type:
+
+### Registry
+- mapping:
+- unknown type behavior:
+
+### Worker
+- dispatch:
+- success:
+- failure:
+- retry/DLQ:
+
+### Tests
+- test:
+- build:
+- typecheck:
+- lint:
+- format:
+- imports:
+- ownership:
+- docs:
+- diff:
+
+### Git
+- commit SHA:
+- push:
+- local/remote SHA:
+- working tree:
+
+### Remaining Deferred
+Hanya dependency nyata.
+
+### Next Roadmap
+Tentukan SATU dependency berikutnya berdasarkan repository, bukan fitur acak.
+
+Kerjakan langsung pada:
+
+/root/botspace
 
 ```
 # 
