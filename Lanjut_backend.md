@@ -183,7 +183,666 @@
 # 
 ```
 
+Lanjutkan project BotSpace dari kondisi repository TERAKHIR.
 
+KERJAKAN LANGSUNG DI:
+`/root/botspace`
+
+BRANCH:
+`backend-dev-recovery`
+
+JANGAN TANYA SOAL KREDIT/KIRO.
+JANGAN BERHENTI UNTUK MEMINTA KONFIRMASI.
+AUDIT → IMPLEMENTASI JIKA MEMANG ADA DEPENDENCY NYATA → TEST → COMMIT → PUSH.
+
+==================================================
+KONDISI TERAKHIR
+==================================================
+
+Dari pekerjaan sebelumnya:
+
+- B-030 Workspace API/Contract SUDAH selesai.
+- B-070 Storage Adapter SUDAH selesai.
+- B-071 File/Share contract SUDAH selesai.
+- B-071 File/Share API SUDAH selesai.
+- Production wiring B-071 SUDAH selesai.
+- Production SecretResolver boundary SUDAH diimplementasikan sejauh yang dapat dilakukan dari repository.
+- Outbox producer/consumer foundation SUDAH selesai.
+- Redis outbox adapter SUDAH selesai berdasarkan ADR yang sudah dipilih.
+- JobEnvelope / durable jobs machinery SUDAH tersedia.
+- Job state machine foundation SUDAH tersedia.
+- Worker executor foundation SUDAH tersedia.
+- Orphaned-running-job recovery foundation SUDAH tersedia.
+- System-actor policy SUDAH diputuskan dan validation terkait sudah selesai.
+- `aggregateRef` pada materialized jobs row SUDAH dipertahankan.
+- Retry/backoff/DLQ schema/semantics SUDAH tersedia sejauh contract yang ada.
+- Real Telegram integration tetap DEFERRED karena membutuhkan API_ID/API_HASH/session nyata.
+- Telegram-dependent workload tetap DEFERRED karena belum ada real workload contract.
+- `PERSISTENCE_TEST_DATABASE_URL` belum tersedia pada verification terakhir.
+- `scripts/check-symlinks.mjs` memang tidak tersedia dan JANGAN dibuat.
+- Repository terakhir clean.
+- Push terakhir berhasil.
+- Jangan mengulang B-030, B-070, atau B-071.
+- Jangan menyentuh Gorouter.app.
+- NVIDIA dan TokenHarbor jangan disentuh kecuali benar-benar terkena perubahan yang sedang dikerjakan.
+
+==================================================
+TUJUAN TASK
+==================================================
+
+Task berikutnya adalah:
+
+**PostgreSQL-backed verification untuk durable job state-machine executor + orphaned-running-job recovery.**
+
+Tujuan:
+
+Memastikan bahwa machinery job yang sudah dibangun benar-benar konsisten ketika persistence menggunakan PostgreSQL, terutama:
+
+1. pending → running
+2. running → completed
+3. running → failed
+4. failed → retry/pending jika retry policy memang tersedia
+5. exhausted retry → dead/DLQ jika contract memang tersedia
+6. orphaned running job → recovery/reclaim
+7. lease/claim semantics
+8. attempt counting
+9. retry timing / next-run semantics
+10. atomicity dan concurrency protection
+11. idempotency / duplicate execution protection jika contract sudah tersedia
+12. transaction behavior
+13. system actor / worker identity bila job state/audit memang membutuhkannya
+
+Jangan membuat business workload Telegram untuk menguji ini.
+
+Gunakan job/test handler yang SUDAH ADA atau test-only handler yang benar-benar generic dan tidak mengandung business logic palsu.
+
+==================================================
+BAGIAN 1 — AUDIT REPOSITORY
+==================================================
+
+Sebelum mengubah kode, audit:
+
+- jobs schema
+- migrations
+- JobEnvelope
+- jobs repository
+- job claim implementation
+- worker executor
+- state transition implementation
+- retry/backoff implementation
+- dead/DLQ behavior
+- attempt_count
+- next_attempt_at / retry timestamp jika tersedia
+- claimed_at
+- worker/lease identity
+- orphan recovery logic
+- transaction boundaries
+- existing PostgreSQL test infrastructure
+- existing job tests
+- existing worker tests
+- existing integration tests
+- `PERSISTENCE_TEST_DATABASE_URL`
+- migration runner
+- test fixtures/factories.
+
+Cari dependency NYATA berdasarkan kode.
+
+Jangan mengarang contract.
+
+Jika implementation sudah lengkap dan hanya integration test yang belum ada:
+
+→ fokus pada integration verification.
+
+Jika implementation memang memiliki bug yang hanya dapat terlihat dari PostgreSQL:
+
+→ perbaiki bug tersebut secara minimal.
+
+Jangan melakukan refactor besar.
+
+==================================================
+BAGIAN 2 — POSTGRESQL ENVIRONMENT
+==================================================
+
+Periksa apakah:
+
+`PERSISTENCE_TEST_DATABASE_URL`
+
+tersedia.
+
+Jika TERSEDIA:
+
+- gunakan database tersebut.
+- jalankan migration resmi repository.
+- jalankan PostgreSQL integration tests.
+- jangan gunakan SQLite.
+- jangan membuat fake PostgreSQL.
+- jangan membuat database production.
+- jangan mengubah production credentials.
+
+Jika TIDAK TERSEDIA:
+
+- jangan membuat credential palsu.
+- jangan membuat fake PostgreSQL.
+- jangan mengubah test agar PASS.
+- tetap implementasikan test yang memang valid jika test infrastructure belum ada.
+- jalankan semua unit/static validation yang bisa dilakukan.
+- tandai integration verification:
+
+`DEFERRED — PERSISTENCE_TEST_DATABASE_URL unavailable`
+
+Namun JANGAN berhenti jika masih ada pekerjaan code/test yang dapat dilakukan tanpa database.
+
+==================================================
+BAGIAN 3 — MIGRATION
+==================================================
+
+Jika PostgreSQL test environment tersedia:
+
+jalankan migration menggunakan migration mechanism resmi repository.
+
+Pastikan:
+
+- jobs table tersedia,
+- required indexes tersedia,
+- state columns tersedia,
+- retry columns tersedia jika contract menggunakannya,
+- claim/lease columns tersedia jika contract menggunakannya,
+- dead/DLQ state tersedia jika memang sudah ada.
+
+JANGAN:
+
+- membuat migration baru hanya untuk test,
+- menambahkan kolom speculative,
+- mengubah production schema hanya untuk mempermudah test,
+- DROP production database,
+- DROP schema yang bukan dedicated test database.
+
+Jika migration gagal:
+
+- cari root cause.
+- jika migration repository memang salah, perbaiki minimal.
+- jika environment yang salah, jangan mengubah code untuk menyembunyikannya.
+
+==================================================
+BAGIAN 4 — JOB STATE MACHINE
+==================================================
+
+Buat integration verification untuk state machine yang memang sudah ditentukan contract.
+
+Minimal test:
+
+### TEST A — pending → running
+
+1. Insert/materialize job dalam state pending.
+2. Worker melakukan claim.
+3. Pastikan hanya satu worker berhasil claim.
+4. State berubah menjadi running.
+5. Claim metadata tersimpan sesuai schema.
+
+Verifikasi:
+
+- tidak ada double claim,
+- worker lain tidak mendapatkan job yang sama,
+- attempt count sesuai contract.
+
+### TEST B — running → completed
+
+1. Claim job.
+2. Jalankan test handler sukses.
+3. Complete job.
+4. Read back dari PostgreSQL.
+5. Pastikan state `completed`.
+6. Pastikan completion metadata sesuai contract.
+
+### TEST C — running → failed
+
+1. Claim job.
+2. Handler menghasilkan controlled failure.
+3. Executor mencatat failure.
+4. Pastikan state sesuai retry policy.
+
+Jangan membuat failure random.
+
+Gunakan deterministic test error.
+
+==================================================
+BAGIAN 5 — RETRY / BACKOFF
+==================================================
+
+Audit retry contract yang SUDAH ada.
+
+Jika retry policy sudah ditentukan:
+
+test:
+
+1. job gagal,
+2. attempt count bertambah,
+3. next attempt timing dihitung sesuai policy,
+4. job kembali ke state yang benar,
+5. job dapat di-claim kembali setelah waktunya,
+6. attempt tidak hilang.
+
+Jika retry policy belum lengkap:
+
+JANGAN menciptakan policy baru.
+
+Jangan memilih:
+
+- max attempts,
+- backoff multiplier,
+- jitter,
+- timeout,
+
+secara arbitrary.
+
+Dalam kondisi tersebut:
+
+`DEFERRED — retry policy contract incomplete`
+
+Tetapi tetap test state transitions yang memang sudah didefinisikan.
+
+==================================================
+BAGIAN 6 — DEAD / DLQ
+==================================================
+
+Jika schema dan contract sudah menyediakan terminal `dead` state:
+
+verifikasi:
+
+- retry exhaustion menghasilkan `dead`,
+- job tidak diambil lagi oleh normal worker,
+- attempt count final benar,
+- failure information sesuai policy,
+- dead job tetap dapat ditemukan oleh repository,
+- tidak ada infinite retry.
+
+Jika DLQ belum memiliki actual consumer/publisher:
+
+JANGAN membuat consumer baru.
+
+Verifikasi hanya state/contract yang memang sudah ada.
+
+==================================================
+BAGIAN 7 — ORPHANED RUNNING JOB RECOVERY
+==================================================
+
+Ini adalah fokus utama task.
+
+Audit implementation recovery yang sudah ada.
+
+Cari mekanisme:
+
+- `claimed_at`
+- lease timestamp
+- heartbeat jika ada
+- worker identity
+- stale threshold
+- recovery/reclaim query
+- state transition.
+
+Integration test harus membuktikan:
+
+### TEST — orphan recovery
+
+1. Create job.
+2. Claim job sebagai worker A.
+3. Simulasikan worker A berhenti/tidak menyelesaikan job.
+4. Pastikan job tetap `running`.
+5. Ubah waktu/lease menggunakan mekanisme test yang tersedia.
+6. Jalankan orphan recovery.
+7. Pastikan job dapat direclaim sesuai contract.
+8. Worker B dapat mengambil job tersebut.
+9. Attempt count/recovery metadata benar.
+10. Tidak ada duplicate active claim.
+
+Jangan menggunakan `sleep()` panjang untuk membuat test pass.
+
+Gunakan controllable clock/time abstraction jika repository memang sudah memilikinya.
+
+Jika belum ada clock abstraction:
+
+- jangan membuat fake production time mechanism besar.
+- gunakan teknik test yang paling kecil dan deterministic sesuai architecture.
+
+==================================================
+BAGIAN 8 — CONCURRENCY
+==================================================
+
+Jika repository menggunakan PostgreSQL locking:
+
+verifikasi behavior tersebut.
+
+Contoh:
+
+- dua worker mencoba claim job yang sama.
+- hanya satu yang berhasil.
+- worker kedua tidak boleh menjalankan job yang sama secara bersamaan.
+
+Periksa:
+
+- transaction isolation,
+- row locking,
+- `FOR UPDATE`,
+- `SKIP LOCKED`,
+- atomic update,
+- compare-and-set,
+
+tetapi HANYA jika memang digunakan repository.
+
+Jangan mengubah SQL hanya agar test terlihat benar.
+
+Jika concurrency behavior memang belum ditentukan contract:
+
+- jangan menciptakan architecture baru.
+- dokumentasikan dependency nyata.
+
+==================================================
+BAGIAN 9 — IDEMPOTENCY
+==================================================
+
+Audit apakah job execution memiliki:
+
+- job ID,
+- execution ID,
+- attempt ID,
+- idempotency key,
+- unique constraint,
+
+atau mekanisme lain.
+
+Jika tersedia:
+
+verifikasi duplicate execution protection.
+
+Test:
+
+- job yang sama tidak boleh dianggap dua execution sukses jika contract melarangnya.
+- duplicate completion tidak boleh merusak state.
+- stale worker tidak boleh menghapus hasil worker yang valid.
+
+Jika belum ada idempotency contract:
+
+JANGAN menciptakan mekanisme baru secara speculative.
+
+==================================================
+BAGIAN 10 — TRANSACTION INTEGRITY
+==================================================
+
+Verifikasi transaction boundary.
+
+Test controlled failure:
+
+- claim transaction berhasil,
+- handler execution gagal,
+- persistence update gagal secara controlled jika test infrastructure memungkinkan,
+- tidak ada partial state yang corrupt.
+
+Pastikan:
+
+- state tidak melompat secara ilegal,
+- attempt count tidak ter-update dua kali,
+- job tidak hilang,
+- job tidak menjadi permanently stuck tanpa recovery path.
+
+Jangan membuat fake transaction.
+
+==================================================
+BAGIAN 11 — SYSTEM ACTOR / AUDIT
+==================================================
+
+Jika job transition menghasilkan audit event atau worker-generated audit event:
+
+verifikasi system-actor policy yang sudah diputuskan.
+
+Pastikan:
+
+- actor identity valid,
+- FK PostgreSQL valid,
+- tidak menggunakan NULL jika policy melarangnya,
+- tidak membuat fake human user hanya untuk test.
+
+Jika audit event belum diperlukan oleh job contract:
+
+JANGAN membuat audit system baru.
+
+==================================================
+BAGIAN 12 — TEST FIXTURES
+==================================================
+
+Gunakan fixture/test factory yang sudah ada.
+
+Jika perlu membuat test-only fixture:
+
+- letakkan di test infrastructure,
+- jangan masuk production code,
+- jangan menyimpan credential,
+- jangan membuat fake business workload.
+
+Test handler boleh berupa generic deterministic handler:
+
+- success,
+- fail,
+- controlled delay,
+
+hanya jika architecture memang membutuhkan.
+
+Jangan membuat Telegram handler.
+
+==================================================
+BAGIAN 13 — SECURITY / DATA SAFETY
+==================================================
+
+Pastikan test tidak mencetak:
+
+- PostgreSQL password,
+- connection string lengkap,
+- API key,
+- Telegram API_ID,
+- Telegram API_HASH,
+- session,
+- object storage secret,
+- Redis password.
+
+Gunakan sanitization jika error PostgreSQL mengandung connection information.
+
+Review:
+
+`git diff`
+
+untuk memastikan tidak ada secret.
+
+==================================================
+BAGIAN 14 — VALIDATION
+==================================================
+
+Jalankan:
+
+`pnpm test`
+
+`pnpm build`
+
+`pnpm typecheck`
+
+`pnpm lint`
+
+`pnpm format:check`
+
+`node scripts/check-imports.mjs`
+
+`node scripts/check-ownership.mjs`
+
+`node scripts/check-doc-links.mjs`
+
+`git diff --check`
+
+JANGAN menjalankan:
+
+`node scripts/check-symlinks.mjs`
+
+karena script tersebut memang tidak tersedia.
+
+Jika PostgreSQL tersedia:
+
+jalankan integration suite yang sesuai, misalnya:
+
+`node database/migrate.mjs`
+
+dan command test resmi worker/repository yang ditemukan dari package.json/config repository.
+
+JANGAN mengarang command jika tidak ada.
+
+Jika PostgreSQL tidak tersedia:
+
+laporkan:
+
+`SKIPPED — PERSISTENCE_TEST_DATABASE_URL unavailable`
+
+Jangan menyebutnya PASS.
+
+==================================================
+BAGIAN 15 — REVIEW DIFF
+==================================================
+
+Setelah pekerjaan:
+
+jalankan:
+
+`git status`
+
+`git diff --stat`
+
+`git diff`
+
+Review seluruh perubahan.
+
+Pastikan:
+
+- hanya job state-machine / PostgreSQL verification,
+- tidak ada B-030 changes,
+- tidak ada B-070 changes,
+- tidak ada B-071 changes,
+- tidak ada Telegram runtime,
+- tidak ada Gorouter,
+- tidak ada NVIDIA/TokenHarbor changes yang tidak diperlukan,
+- tidak ada secret,
+- tidak ada generated junk,
+- tidak ada temporary file.
+
+==================================================
+BAGIAN 16 — COMMIT
+==================================================
+
+Jika ada perubahan kode/test valid:
+
+buat SATU commit.
+
+Gunakan commit message sesuai perubahan aktual, misalnya:
+
+`test: verify postgres job state recovery`
+
+atau message yang lebih tepat jika scope akhirnya berbeda.
+
+Jangan membuat empty commit.
+
+==================================================
+BAGIAN 17 — PUSH
+==================================================
+
+Setelah commit:
+
+langsung:
+
+`git push origin backend-dev-recovery`
+
+Kemudian:
+
+`git rev-parse HEAD`
+
+dan verifikasi remote branch.
+
+Pastikan:
+
+- local SHA == remote SHA
+- working tree clean.
+
+Jika push gagal:
+
+- jangan reset commit,
+- jangan hapus commit,
+- jangan mengubah credential GitHub sembarangan,
+- tampilkan error,
+- commit harus tetap aman lokal.
+
+==================================================
+OUTPUT AKHIR
+==================================================
+
+Tampilkan:
+
+### Job State Machine
+- pending → running:
+- running → completed:
+- running → failed:
+- retry:
+- dead/DLQ:
+- status:
+
+### Orphan Recovery
+- stale running job:
+- reclaim:
+- duplicate claim protection:
+- status:
+
+### PostgreSQL
+- migration:
+- integration test:
+- status:
+
+### Concurrency
+- claim race:
+- transaction:
+- status:
+
+### Validation
+- pnpm test:
+- build:
+- typecheck:
+- lint:
+- format:
+- imports:
+- ownership:
+- docs:
+- diff:
+- symlink check:
+
+### Git
+- commit SHA:
+- push status:
+- local SHA:
+- remote SHA:
+- working tree:
+
+### Remaining Deferred
+Hanya tampilkan dependency yang benar-benar masih deferred, terutama:
+- PostgreSQL integration jika `PERSISTENCE_TEST_DATABASE_URL` belum tersedia,
+- real Telegram integration,
+- Telegram-dependent workload,
+- dependency lain jika benar-benar ditemukan.
+
+### Next Roadmap
+Tentukan task berikutnya berdasarkan dependency NYATA setelah job state-machine + orphan recovery verification selesai.
+
+PENTING:
+- Jangan membuat fake PostgreSQL.
+- Jangan membuat fake Telegram credentials.
+- Jangan membuat Telegram workload palsu.
+- Jangan mengubah contract secara speculative.
+- Jangan mengubah BotInstallation.status.
+- Jangan menyentuh Gorouter.app.
+- Jangan membuat fitur acak.
+- Kerjakan langsung.
+- Commit.
+- Push.
 
 ```
 # Prompt: BotSpace — PostgreSQL Connection Audit Integration + Audit Events
