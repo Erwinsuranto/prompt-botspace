@@ -186,10 +186,579 @@
 
 
 ```
-# 
+# Prompt: BotSpace — PostgreSQL Connection Audit Integration + Audit Events
 ```
 
+Lanjutkan project BotSpace dari kondisi repository saat ini.
 
+KERJAKAN LANGSUNG DI:
+`/root/botspace`
+
+BRANCH:
+`backend-dev-recovery`
+
+Jangan berhenti pada audit. Implementasikan pekerjaan yang memang dapat dilakukan berdasarkan dependency nyata repository, jalankan validation, commit, lalu langsung push.
+
+==================================================
+KONDISI TERAKHIR
+==================================================
+
+Dari pekerjaan sebelumnya:
+
+- B-030 Workspace API/Contract SUDAH selesai.
+- B-070 Storage Adapter SUDAH selesai.
+- B-071 File/Share contract SUDAH selesai.
+- B-071 File/Share API SUDAH selesai.
+- Production wiring B-071 SUDAH selesai.
+- SecretResolver application boundary SUDAH tersedia.
+- System-actor policy sudah diputuskan dan implementation/validation sebelumnya sudah selesai.
+- `aggregateRef` pada materialized jobs row sudah dipertahankan sesuai dependency nyata.
+- Durable job machinery sudah melewati tahapan producer/consumer/claim/recovery yang memang dapat dikerjakan tanpa speculative business logic.
+- Working tree terakhir CLEAN.
+- Local dan remote branch `origin/backend-dev-recovery` sudah sinkron.
+- `scripts/check-symlinks.mjs` memang tidak tersedia dan JANGAN dibuat.
+- Telegram integration tetap DEFERRED karena membutuhkan API_ID/API_HASH/session nyata.
+- Telegram-dependent workloads tetap DEFERRED.
+- Jangan mengubah BotInstallation.status.
+- Jangan mengerjakan Gorouter.app.
+- NVIDIA dan TokenHarbor tidak perlu disentuh kecuali benar-benar tersentuh oleh perubahan yang sedang dikerjakan.
+
+Dari roadmap terakhir, dependency berikutnya yang paling nyata adalah:
+
+1. PostgreSQL integration test untuk connection-audit handler.
+2. Verifikasi system-actor FK/identity behavior melalui PostgreSQL nyata.
+3. Verifikasi audit-event persistence/handling.
+4. Verifikasi unique-idempotency menggunakan ConflictError jika contract/repository memang sudah mendukungnya.
+5. Jangan membuat business workload Telegram hanya untuk menguji machinery.
+
+==================================================
+TUJUAN UTAMA
+==================================================
+
+Fokus task ini:
+
+**Implementasikan dan jalankan PostgreSQL-backed integration verification untuk connection-audit handler + audit events berdasarkan contract dan schema yang SUDAH ADA.**
+
+Tujuan akhirnya adalah memastikan bahwa behavior yang sebelumnya hanya tervalidasi melalui unit/in-memory abstraction benar-benar konsisten ketika menggunakan PostgreSQL.
+
+Jangan membuat fitur baru yang tidak menjadi dependency.
+
+==================================================
+BAGIAN 1 — AUDIT REPOSITORY TERLEBIH DAHULU
+==================================================
+
+Sebelum mengubah kode:
+
+Audit:
+
+- jobs schema
+- migrations
+- connection/audit event schema
+- `connection-audit` handler
+- `auditEventRepository` atau repository terkait jika sudah ada
+- `WorkerPersistenceResource`
+- system-actor policy
+- actor identity fields
+- FK constraints
+- unique constraints
+- ConflictError handling
+- transaction boundaries
+- existing PostgreSQL test infrastructure
+- test database configuration
+- existing integration tests
+- migration runner
+- test fixtures/factories.
+
+Cari dependency nyata berdasarkan kode yang sudah ada.
+
+Jangan mengarang contract.
+
+Jika implementation sudah lengkap dan yang kurang hanya integration test, jangan refactor production code tanpa alasan.
+
+==================================================
+BAGIAN 2 — PERSISTENCE_TEST_DATABASE_URL
+==================================================
+
+Periksa environment:
+
+`PERSISTENCE_TEST_DATABASE_URL`
+
+Jika tersedia:
+
+- gunakan database tersebut sebagai PostgreSQL integration database.
+- jangan gunakan production database.
+- jangan menggunakan SQLite sebagai pengganti.
+- jangan membuat fake PostgreSQL.
+- jangan membuat in-memory implementation yang diperlakukan sebagai integration test.
+
+Jika environment tidak tersedia:
+
+- jangan membuat credential/database palsu.
+- jangan mengubah test agar PASS.
+- tetap lakukan static/unit validation yang dapat dilakukan.
+- tandai PostgreSQL integration sebagai:
+
+`SKIPPED — PERSISTENCE_TEST_DATABASE_URL unavailable`
+
+Tetapi tetap audit dan implementasikan test infrastructure jika memang test tersebut memang belum ada dan contract sudah cukup untuk membuatnya secara benar.
+
+==================================================
+BAGIAN 3 — CONNECTION AUDIT HANDLER
+==================================================
+
+Audit connection-audit handler yang sudah ada.
+
+Tentukan event/handler contract sebenarnya berdasarkan repository.
+
+Jangan menciptakan event type baru hanya karena nama terlihat masuk akal.
+
+Jika handler sudah memiliki contract, pastikan integration test memverifikasi behavior tersebut terhadap PostgreSQL.
+
+Minimal verifikasi yang relevan:
+
+1. Connection audit event dapat diproses.
+2. Event dapat disimpan melalui repository/persistence layer yang benar.
+3. Workspace/connection identity tetap benar.
+4. System actor identity digunakan sesuai policy yang sudah diputuskan.
+5. `actor_id` behavior sesuai schema/FK.
+6. Event tidak dapat menyimpan identity invalid jika FK memang diwajibkan.
+7. Event duplicate ditangani sesuai unique/idempotency contract.
+8. Conflict yang memang merupakan duplicate/idempotency harus dipetakan ke `ConflictError` atau behavior yang memang sudah ditentukan repository.
+9. Tidak ada silent data corruption.
+10. Transaction rollback tetap benar ketika persistence gagal.
+
+Jangan mengarang expected behavior jika contract belum menetapkannya.
+
+==================================================
+BAGIAN 4 — SYSTEM-ACTOR POLICY
+==================================================
+
+System-actor policy SUDAH menjadi dependency yang telah diputuskan.
+
+Audit implementasinya.
+
+Pastikan integration test PostgreSQL memverifikasi policy tersebut, khususnya:
+
+- worker-generated audit event dapat memiliki system actor yang valid sesuai schema/policy.
+- FK tidak dilanggar.
+- actor identity tidak menggunakan NULL jika policy/schema memang mengharuskan system actor.
+- jangan membuat fake user actor hanya untuk melewati FK.
+- jangan membuat migration tambahan hanya untuk test.
+- jangan mengubah policy yang sudah disepakati.
+
+Jika migration seed/system actor memang sudah tersedia:
+
+- gunakan mekanisme resmi tersebut.
+
+Jika seed/system actor belum tersedia dan repository contract memang membutuhkan seed:
+
+- implementasikan hanya jika itu merupakan dependency nyata dari production schema/policy.
+- jangan membuat seed hanya untuk memaksa integration test PASS.
+
+==================================================
+BAGIAN 5 — AUDIT EVENT PERSISTENCE
+==================================================
+
+Verifikasi audit event persistence end-to-end pada PostgreSQL.
+
+Test harus memverifikasi jika memang didukung oleh repository:
+
+- event dibuat,
+- event memiliki actor identity yang benar,
+- connection/job/workspace reference benar,
+- event tersimpan,
+- event dapat dibaca kembali,
+- event tidak dapat melewati FK,
+- duplicate behavior sesuai contract,
+- transaction behavior benar.
+
+Jangan menguji field yang tidak ada di contract.
+
+Jangan menambahkan field baru hanya untuk test.
+
+Jangan menyimpan:
+
+- API key,
+- access token,
+- secret,
+- password,
+- raw credentials.
+
+Jika audit event memiliki payload, pastikan payload tidak membocorkan secret.
+
+==================================================
+BAGIAN 6 — IDEMPOTENCY / UNIQUE CONSTRAINT
+==================================================
+
+Audit apakah repository sudah memiliki unique constraint untuk event idempotency.
+
+Jika memang ada:
+
+- buat integration test untuk duplicate insertion.
+- pastikan PostgreSQL benar-benar menghasilkan unique violation.
+- pastikan repository/application layer memetakan violation tersebut ke `ConflictError` sesuai architecture.
+- pastikan duplicate event tidak menghasilkan dua record.
+
+Jika belum ada unique constraint/contract:
+
+- JANGAN membuat constraint baru secara spekulatif.
+- JANGAN membuat idempotency mechanism baru.
+- dokumentasikan bahwa behavior tersebut belum dapat diverifikasi karena contract/schema belum menyediakan boundary.
+
+Jangan memaksakan idempotency hanya untuk membuat roadmap terlihat selesai.
+
+==================================================
+BAGIAN 7 — TRANSACTION / ROLLBACK
+==================================================
+
+Audit transaction boundary yang sudah ada.
+
+Jika connection-audit operation berada di transaction:
+
+verifikasi:
+
+- successful operation commit.
+- failed operation rollback.
+- tidak ada partial audit record.
+- tidak ada orphaned related record.
+
+Jika repository tidak menggunakan transaction untuk operation tersebut:
+
+- jangan menambahkan transaction baru hanya untuk test.
+- ikuti architecture yang sudah ada.
+
+==================================================
+BAGIAN 8 — MIGRATION SAFETY
+==================================================
+
+Jalankan migration hanya terhadap integration test database.
+
+JANGAN:
+
+- migration destruktif terhadap production.
+- DROP database production.
+- DROP schema yang tidak ditujukan untuk test.
+- reset VPS database sembarangan.
+- mengubah production environment variable.
+- memasukkan credential database ke source code.
+
+Pastikan migration yang dipakai integration test adalah migration repository yang sebenarnya.
+
+Jika migration gagal:
+
+- diagnosis root cause.
+- perbaiki production migration hanya jika memang migration repository salah.
+- jangan memodifikasi test untuk menyembunyikan migration failure.
+
+==================================================
+BAGIAN 9 — TEST DESIGN
+==================================================
+
+Tambahkan integration test pada lokasi test yang memang digunakan repository.
+
+Gunakan pola test existing.
+
+Jangan membuat test framework baru.
+
+Test harus:
+
+- isolated,
+- deterministic,
+- cleanup setelah selesai,
+- tidak bergantung pada test order,
+- tidak bergantung pada production credential,
+- tidak mengubah production database.
+
+Test cases yang relevan:
+
+### A. Valid system actor audit
+- setup required actor/system identity.
+- create connection audit event.
+- persist.
+- read back.
+- assert identity and relevant references.
+
+### B. Invalid actor/FK
+- gunakan identity yang memang tidak valid.
+- pastikan PostgreSQL constraint behavior terjadi.
+- pastikan error mapping sesuai architecture.
+
+### C. Duplicate/idempotency
+Jika contract/schema mendukung:
+- insert event pertama.
+- insert duplicate.
+- assert expected `ConflictError`/idempotent behavior.
+- assert database tidak memiliki duplicate row.
+
+### D. Transaction failure
+Jika transaction boundary memang tersedia:
+- trigger controlled persistence failure.
+- verify rollback.
+- verify tidak ada partial state.
+
+### E. Workspace/ownership isolation
+Jika audit schema memiliki workspace scope:
+- event workspace A tidak boleh dianggap sebagai workspace B.
+- jangan menambahkan authorization logic baru jika audit repository bukan boundary authorization.
+
+### F. Read-back verification
+- query melalui repository resmi.
+- jangan hanya query raw SQL untuk menyatakan production repository berhasil.
+- raw SQL boleh digunakan untuk assertions tambahan bila test architecture memang membutuhkannya.
+
+==================================================
+BAGIAN 10 — TEST CLEANUP
+==================================================
+
+Setiap integration test harus membersihkan data test.
+
+Gunakan transaction rollback atau fixture cleanup sesuai pola repository.
+
+Jangan menghapus data di luar scope test.
+
+Jangan menggunakan `TRUNCATE` terhadap tabel yang mungkin berisi data production.
+
+Jika integration database memang dedicated test database, tetap gunakan cleanup yang mengikuti infrastructure repository.
+
+==================================================
+BAGIAN 11 — VALIDATION
+==================================================
+
+Setelah implementasi:
+
+jalankan:
+
+`pnpm test`
+
+`pnpm build`
+
+`pnpm typecheck`
+
+`pnpm lint`
+
+`pnpm format:check`
+
+`node scripts/check-imports.mjs`
+
+`node scripts/check-ownership.mjs`
+
+`node scripts/check-doc-links.mjs`
+
+`git diff --check`
+
+JANGAN menjalankan:
+
+`node scripts/check-symlinks.mjs`
+
+karena script tersebut memang tidak tersedia.
+
+Jika repository memiliki command khusus PostgreSQL integration test, gunakan command tersebut.
+
+Jika integration test memang termasuk `pnpm test`, jalankan melalui test suite resmi.
+
+Jika membutuhkan:
+
+`PERSISTENCE_TEST_DATABASE_URL`
+
+dan tersedia, jalankan.
+
+Jika tidak tersedia:
+
+`SKIPPED — PERSISTENCE_TEST_DATABASE_URL unavailable`
+
+Jangan menyebutnya PASS.
+
+==================================================
+BAGIAN 12 — SECURITY REVIEW
+==================================================
+
+Sebelum commit, audit diff dan test untuk:
+
+- database credential tidak masuk source.
+- connection string tidak masuk log.
+- API key tidak masuk audit event.
+- access token tidak masuk audit event.
+- secret tidak masuk test fixture.
+- system actor identity tidak membocorkan credential.
+- error PostgreSQL tidak mengembalikan sensitive connection details.
+- test output tidak mencetak database password.
+
+Jika menemukan secret:
+
+- jangan commit.
+- hapus dari working tree/diff.
+- pastikan git diff bersih dari credential.
+
+==================================================
+BAGIAN 13 — SCOPE CONTROL
+==================================================
+
+JANGAN mengerjakan:
+
+- Telegram API integration.
+- Telegram API_ID/API_HASH/session.
+- Telegram polling.
+- Telegram webhook.
+- Telegram runtime.
+- Telegram-dependent job workload.
+- business logic untuk job type yang belum memiliki real workload.
+- Gorouter.app.
+- perubahan provider NVIDIA.
+- perubahan TokenHarbor.
+- fitur UI.
+- fitur file sharing baru.
+- share expiry.
+- public share rate limiting speculative.
+- audit system baru di luar connection-audit contract.
+- schema baru yang tidak diperlukan integration verification.
+- refactor besar yang tidak berkaitan.
+
+Fokus hanya:
+
+**PostgreSQL integration verification untuk connection-audit + audit events dan dependency nyata yang diperlukan agar test tersebut valid.**
+
+==================================================
+BAGIAN 14 — GIT REVIEW
+==================================================
+
+Setelah semua pekerjaan:
+
+jalankan:
+
+`git status`
+
+`git diff --stat`
+
+`git diff`
+
+Review seluruh perubahan.
+
+Pastikan:
+
+- tidak ada temporary file.
+- tidak ada generated junk.
+- tidak ada credential.
+- tidak ada perubahan unrelated.
+- tidak ada perubahan Gorouter.
+- tidak ada perubahan NVIDIA/TokenHarbor.
+- tidak ada perubahan Telegram runtime.
+- tidak ada schema speculative.
+
+Jika test implementation benar-benar menghasilkan perubahan valid:
+
+buat SATU commit.
+
+Gunakan commit message yang sesuai, misalnya:
+
+`test: add postgres connection audit integration`
+
+Jika perubahan mencakup production fix yang memang diperlukan:
+
+gunakan commit message yang lebih tepat berdasarkan actual diff.
+
+Jangan membuat multiple commit.
+
+==================================================
+BAGIAN 15 — PUSH LANGSUNG
+==================================================
+
+Setelah commit:
+
+langsung jalankan:
+
+`git push origin backend-dev-recovery`
+
+Kemudian verifikasi:
+
+`git rev-parse HEAD`
+
+dan remote SHA branch.
+
+Pastikan:
+
+- local SHA == remote SHA
+- working tree clean.
+
+Jika push berhasil:
+laporkan berhasil.
+
+Jika push gagal:
+- jangan mengubah credential GitHub sembarangan.
+- jangan menghapus commit.
+- jangan reset.
+- tampilkan error push.
+- pastikan commit tetap aman lokal.
+
+Jika tidak ada perubahan kode valid:
+
+- jangan membuat empty commit.
+- jangan membuat commit palsu.
+- jangan push kosong.
+- tetap laporkan repository sinkron.
+
+==================================================
+OUTPUT AKHIR
+==================================================
+
+Setelah selesai berikan laporan:
+
+### PostgreSQL Connection Audit
+- test implementation:
+- system actor FK:
+- audit event persistence:
+- duplicate/idempotency:
+- transaction behavior:
+- status:
+
+### Database
+- migration:
+- test database:
+- cleanup:
+- status:
+
+### Validation
+- pnpm test:
+- build:
+- typecheck:
+- lint:
+- format:
+- imports:
+- ownership:
+- docs:
+- diff check:
+- symlink check:
+
+### Git
+- commit SHA:
+- push status:
+- local SHA:
+- remote SHA:
+- working tree:
+
+### Remaining Deferred
+Hanya tampilkan dependency yang benar-benar masih deferred, misalnya:
+- real Telegram integration membutuhkan API_ID/API_HASH/session,
+- Telegram-dependent workload belum memiliki real workload contract,
+- PostgreSQL integration jika environment tidak tersedia,
+- dependency lain hanya jika benar-benar ditemukan.
+
+### Next Roadmap
+Tentukan task berikutnya berdasarkan dependency nyata setelah integration verification ini.
+
+Jangan membuat roadmap fitur acak.
+
+PENTING:
+- Kerjakan langsung.
+- Jangan hanya memberikan analisis.
+- Jangan berhenti pada audit jika implementation/test memang bisa dibuat.
+- Setelah selesai langsung commit dan push.
+- Jangan membuat fake database.
+- Jangan membuat fake credential.
+- Jangan mengubah test agar PASS.
+- Jangan menyentuh Gorouter.app.
+- Jangan menyentuh Telegram integration.
+- Jangan mengubah BotInstallation.status.
+- Jangan membuat contract/schema speculative.
 
 ```
 # Prompt: BotSpace — Concrete JobHandler + Job-Type Registry
