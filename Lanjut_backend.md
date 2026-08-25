@@ -144,9 +144,793 @@
 
 
 ```
-# 
+# real infrastructure integration verification untuk PostgreSQL + Redis
 ```
+# Prompt: BotSpace — Real PostgreSQL + Redis Worker-Root Integration Verification
 
+Lanjutkan project BotSpace dari kondisi repository TERAKHIR.
+
+WORKDIR:
+`/root/botspace`
+
+BRANCH:
+`backend-dev-recovery`
+
+JANGAN TANYA SOAL KREDIT/KIRO.
+JANGAN BERHENTI UNTUK MEMINTA KONFIRMASI.
+KERJAKAN LANGSUNG → AUDIT → SIAPKAN TEST INFRASTRUCTURE → IMPLEMENTASI TEST JIKA DIPERLUKAN → TEST → REVIEW → COMMIT → PUSH.
+
+==================================================
+KONDISI TERAKHIR
+==================================================
+
+Worker-root lifecycle SUDAH diverifikasi dan dinyatakan benar.
+
+Yang SUDAH selesai dan JANGAN DIULANG:
+
+- worker-root composition,
+- `startWorkerRoot`,
+- dispatcher wiring,
+- outbox consumer wiring,
+- executor wiring,
+- reaper wiring,
+- startup lifecycle,
+- graceful shutdown,
+- double-stop behavior,
+- lifecycle ownership,
+- resource cleanup,
+- worker-root integration test dasar.
+
+Transactional outbox chain juga SUDAH selesai:
+
+producer
+→ PostgreSQL outbox
+→ dispatcher
+→ Redis
+→ consumer
+→ durable job
+→ executor
+→ recovery.
+
+Commit terakhir sudah berhasil di-push.
+
+Working tree terakhir CLEAN.
+
+==================================================
+REMAINING DEFERRED TERAKHIR
+==================================================
+
+Dari verification terakhir, item yang masih deferred:
+
+1. Real PostgreSQL/Redis integration environment belum tersedia/terverifikasi.
+2. Worker-root full-lifecycle test terhadap PostgreSQL + Redis nyata belum dilakukan.
+3. Real Telegram integration tetap deferred karena membutuhkan API_ID/API_HASH/session nyata.
+4. Managed secret-manager client/vendor belum dipilih dan tetap deployment-owned.
+5. Production module definitions/manifests + handlers untuk module runtime masih menjadi roadmap berikutnya.
+6. `scripts/check-symlinks.mjs` tidak tersedia dan JANGAN dibuat.
+
+==================================================
+TUJUAN UTAMA
+==================================================
+
+Sekarang fokus HANYA pada:
+
+**Real PostgreSQL + Redis integration verification**
+
+Target akhirnya adalah membuktikan bahwa worker-root dapat menjalankan lifecycle nyata menggunakan:
+
+PostgreSQL nyata
++
+Redis nyata
++
+outbox
++
+dispatcher
++
+consumer
++
+executor
++
+reaper/recovery
+
+dalam satu worker process lifecycle.
+
+Jangan mengulang implementasi production worker architecture.
+
+==================================================
+BAGIAN 1 — AUDIT TEST INFRASTRUCTURE
+==================================================
+
+Audit repository terlebih dahulu.
+
+Cari:
+
+- `PERSISTENCE_TEST_DATABASE_URL`
+- `QUEUE_TEST_URL`
+- PostgreSQL test setup
+- Redis test setup
+- existing integration tests
+- migration test setup
+- outbox integration test
+- job executor integration test
+- worker-root integration test
+- test environment loader
+- existing Docker/Compose infrastructure
+- test fixtures
+- test cleanup.
+
+Cari test yang sudah ada untuk:
+
+- connection audit,
+- job state/recovery,
+- transactional outbox,
+- Redis dispatch,
+- outbox materialization,
+- worker root.
+
+JANGAN membuat test duplicate jika test yang dibutuhkan sudah tersedia.
+
+Gunakan infrastructure/test seam yang SUDAH ADA.
+
+==================================================
+BAGIAN 2 — CHECK REAL ENVIRONMENT
+==================================================
+
+Periksa apakah environment menyediakan:
+
+`PERSISTENCE_TEST_DATABASE_URL`
+
+dan:
+
+`QUEUE_TEST_URL`
+
+Jangan menampilkan credential atau connection secret dalam output.
+
+Hanya laporkan:
+
+- PostgreSQL available/unavailable
+- Redis available/unavailable
+
+Jika environment tersedia:
+
+gunakan langsung untuk integration test.
+
+Jika environment tidak tersedia:
+
+JANGAN:
+
+- membuat fake PostgreSQL,
+- membuat fake Redis,
+- mengganti dengan SQLite,
+- membuat in-memory Redis untuk klaim integration PASS,
+- memasukkan credential palsu,
+- mengubah test supaya tidak membutuhkan infrastructure.
+
+Laporkan:
+
+`SKIPPED — PERSISTENCE_TEST_DATABASE_URL unavailable`
+
+dan/atau:
+
+`SKIPPED — QUEUE_TEST_URL unavailable`
+
+sesuai kondisi sebenarnya.
+
+==================================================
+BAGIAN 3 — TEST INFRASTRUCTURE SAFETY
+==================================================
+
+Jika environment tersedia, pastikan database/Redis tersebut memang cocok untuk test.
+
+Jangan:
+
+- menjalankan migration destruktif terhadap production database,
+- DROP database sembarangan,
+- menghapus key Redis yang bukan milik test,
+- membersihkan seluruh Redis instance.
+
+Gunakan namespace/test identifiers yang unik jika architecture test mendukungnya.
+
+Semua data yang dibuat test harus dibersihkan.
+
+==================================================
+BAGIAN 4 — POSTGRESQL MIGRATION VERIFICATION
+==================================================
+
+Jika:
+
+`PERSISTENCE_TEST_DATABASE_URL`
+
+tersedia:
+
+jalankan migration/test setup yang memang digunakan repository.
+
+Verifikasi:
+
+1. connection berhasil,
+2. migration berhasil,
+3. required tables tersedia,
+4. required indexes/constraints tersedia,
+5. transaction behavior bekerja.
+
+Jangan membuat migration baru kecuali test benar-benar menemukan implementation gap yang nyata.
+
+Jangan mengubah schema hanya untuk membuat integration test PASS.
+
+==================================================
+BAGIAN 5 — REDIS VERIFICATION
+==================================================
+
+Jika:
+
+`QUEUE_TEST_URL`
+
+tersedia:
+
+verifikasi Redis connection menggunakan client/adapter yang SUDAH ada.
+
+Pastikan:
+
+- connection berhasil,
+- publish/dispatch dapat dilakukan,
+- consumer dapat menerima message,
+- cleanup berjalan,
+- tidak meninggalkan subscription/connection.
+
+Jangan membuat Redis abstraction baru.
+
+Jangan membuat Redis mock untuk integration test nyata.
+
+==================================================
+BAGIAN 6 — TRANSACTIONAL OUTBOX REAL INFRA TEST
+==================================================
+
+Jika PostgreSQL + Redis tersedia:
+
+jalankan integration path nyata:
+
+1. create producer-side transaction,
+2. create domain/job state,
+3. write outbox event atomically,
+4. commit PostgreSQL,
+5. dispatcher membaca outbox,
+6. dispatch ke Redis,
+7. consumer menerima event,
+8. materialize/claim durable job,
+9. executor memproses job,
+10. state berubah sesuai contract,
+11. recovery/reaper tetap dapat melihat state yang benar.
+
+Gunakan primitive existing.
+
+Jangan membuat implementation kedua.
+
+==================================================
+BAGIAN 7 — OUTBOX RELAY BEHAVIOR
+==================================================
+
+Verifikasi behavior nyata:
+
+### CASE A — COMMITTED OUTBOX
+
+PostgreSQL transaction commit:
+
+outbox row harus dapat ditemukan dispatcher.
+
+Dispatcher harus dapat mem-publish event.
+
+Consumer harus dapat menerima event.
+
+### CASE B — IDEMPOTENCY
+
+Jika event diproses ulang:
+
+tidak boleh menghasilkan duplicate durable job jika contract existing memang menggunakan idempotency key/unique constraint.
+
+Gunakan constraint/logic yang SUDAH ada.
+
+Jangan membuat idempotency system baru.
+
+### CASE C — FAILURE BETWEEN DISPATCH STEPS
+
+Jika architecture existing menyediakan test seam:
+
+verifikasi behavior ketika dispatch gagal.
+
+Pastikan event tidak hilang secara diam-diam.
+
+Gunakan retry/deferred semantics yang SUDAH ada.
+
+Jangan membuat retry policy baru.
+
+==================================================
+BAGIAN 8 — WORKER-ROOT FULL LIFECYCLE TEST
+==================================================
+
+Jika PostgreSQL + Redis tersedia:
+
+tambahkan atau lengkapi SATU integration test utama untuk:
+
+`startWorkerRoot()`
+
+dengan infrastructure nyata.
+
+Target lifecycle:
+
+START
+→ RUNNING
+→ PROCESS REAL OUTBOX EVENT
+→ REDIS CONSUMPTION
+→ JOB EXECUTION
+→ RECOVERY/REAPER VISIBILITY
+→ GRACEFUL STOP
+→ RESOURCE CLEANUP.
+
+Test harus membuktikan seluruh dependency graph bekerja sebagai satu runtime.
+
+Jangan membuat worker process baru yang berbeda dari production composition root.
+
+Gunakan `startWorkerRoot()` yang sama dengan production composition.
+
+==================================================
+BAGIAN 9 — REAL JOB FLOW
+==================================================
+
+Gunakan job type/workload yang memang sudah tersedia di repository.
+
+JANGAN:
+
+- membuat Telegram workload palsu,
+- membuat provider workload,
+- membuat business workload baru hanya untuk test.
+
+Pilih job type non-Telegram yang memang sudah memiliki contract/runtime implementation.
+
+Test harus:
+
+1. membuat input/job,
+2. memasukkan job melalui jalur production,
+3. memastikan outbox event dibuat,
+4. memastikan dispatcher berjalan,
+5. memastikan Redis menerima event,
+6. memastikan consumer mematerialisasi job,
+7. memastikan executor menjalankan job,
+8. memastikan final state sesuai contract.
+
+Jika tidak ada real job type yang memenuhi semua dependency:
+
+jangan membuat fake production workload.
+
+Dokumentasikan blocker sebenarnya.
+
+==================================================
+BAGIAN 10 — RECOVERY / REAPER
+==================================================
+
+Jika infrastructure tersedia:
+
+verifikasi reaper/recovery terhadap PostgreSQL nyata.
+
+Gunakan job state yang memang didukung architecture.
+
+Pastikan:
+
+- stale/eligible job dapat ditemukan,
+- recovery behavior sesuai contract,
+- job tidak diproses duplicate secara salah,
+- state transition tetap konsisten.
+
+Jangan mengubah timeout/retry policy hanya agar test lebih cepat.
+
+Gunakan test clock/fake time hanya jika repository sudah memiliki seam tersebut.
+
+==================================================
+BAGIAN 11 — GRACEFUL SHUTDOWN REAL INFRA
+==================================================
+
+Setelah real job flow selesai:
+
+panggil shutdown worker root.
+
+Verifikasi:
+
+1. dispatcher berhenti,
+2. consumer berhenti,
+3. executor intake berhenti,
+4. reaper berhenti,
+5. timers berhenti,
+6. Redis connection/subscription ditutup,
+7. PostgreSQL pool/client ditutup,
+8. test dapat selesai tanpa hanging handle.
+
+Jangan menggunakan:
+
+`process.exit()`
+
+untuk memaksa test selesai.
+
+Jika test hanya selesai setelah process kill:
+
+anggap lifecycle cleanup masih bermasalah dan perbaiki root cause.
+
+==================================================
+BAGIAN 12 — STARTUP FAILURE TEST
+==================================================
+
+Jika test seams yang sudah tersedia memungkinkan:
+
+tambahkan/verifikasi startup failure untuk:
+
+- PostgreSQL unavailable,
+- Redis unavailable.
+
+Pastikan worker root:
+
+- gagal secara jelas,
+- membersihkan resource yang sudah berhasil dibuat,
+- tidak meninggalkan background loop,
+- tidak membocorkan credential.
+
+Jangan membuat fake production service.
+
+Gunakan dependency injection/test seam yang sudah ada.
+
+==================================================
+BAGIAN 13 — RESOURCE LEAK CHECK
+==================================================
+
+Audit test process setelah worker root shutdown.
+
+Pastikan tidak ada:
+
+- PostgreSQL connection,
+- Redis connection,
+- Redis subscription,
+- timer,
+- interval,
+- event listener,
+- background loop
+
+yang tertinggal.
+
+Jika repository sudah memiliki open-handle detection:
+
+gunakan mechanism tersebut.
+
+Jika tidak:
+
+gunakan lifecycle assertions yang sudah tersedia.
+
+Jangan menambah dependency baru hanya untuk test ini.
+
+==================================================
+BAGIAN 14 — TEST DETERMINISM
+==================================================
+
+Integration test tidak boleh:
+
+- sleep terlalu lama,
+- polling tanpa timeout,
+- infinite retry,
+- bergantung pada timing kebetulan,
+- membuat background worker tanpa shutdown.
+
+Gunakan:
+
+- bounded timeout,
+- deterministic polling helper yang sudah tersedia,
+- existing test utilities.
+
+Jangan meningkatkan concurrency.
+
+Jangan menjalankan worker berkali-kali secara paralel tanpa alasan.
+
+==================================================
+BAGIAN 15 — TELEGRAM
+==================================================
+
+JANGAN mengerjakan Telegram.
+
+Tetap:
+
+`DEFERRED — API_ID/API_HASH/session nyata diperlukan.`
+
+Jangan membuat:
+
+- Telegram fake workload,
+- fake credentials,
+- polling,
+- webhook,
+- Telegram integration test palsu.
+
+==================================================
+BAGIAN 16 — SECRET MANAGER
+==================================================
+
+JANGAN memilih vendor secret manager sekarang.
+
+Tetap deployment-owned.
+
+Jangan:
+
+- menambahkan vendor SDK,
+- membuat credential,
+- hardcode secret,
+- membuat managed secret service palsu.
+
+Jika worker test membutuhkan credential:
+
+gunakan environment/test resolver yang memang sudah tersedia.
+
+==================================================
+BAGIAN 17 — PROVIDER SCOPE
+==================================================
+
+Jangan menyentuh:
+
+- Gorouter.app,
+- NVIDIA,
+- TokenHarbor,
+
+kecuali compile/import langsung rusak karena perubahan yang benar-benar diperlukan.
+
+Jangan menjalankan test Gorouter.app.
+
+Jangan menambahkan provider integration test.
+
+==================================================
+BAGIAN 18 — VALIDATION
+==================================================
+
+Setelah pekerjaan selesai jalankan:
+
+`pnpm test`
+
+`pnpm build`
+
+`pnpm typecheck`
+
+`pnpm lint`
+
+`pnpm format:check`
+
+`node scripts/check-imports.mjs`
+
+`node scripts/check-ownership.mjs`
+
+`node scripts/check-doc-links.mjs`
+
+`git diff --check`
+
+Untuk:
+
+`node scripts/check-symlinks.mjs`
+
+JANGAN membuat script.
+
+Jika tidak tersedia:
+
+`SKIPPED — scripts/check-symlinks.mjs unavailable`
+
+Jika PostgreSQL environment tersedia:
+
+jalankan integration test PostgreSQL.
+
+Jika tidak:
+
+`SKIPPED — PERSISTENCE_TEST_DATABASE_URL unavailable`
+
+Jika Redis environment tersedia:
+
+jalankan Redis integration.
+
+Jika tidak:
+
+`SKIPPED — QUEUE_TEST_URL unavailable`
+
+Jika salah satu unavailable:
+
+jangan klaim full worker-root integration sebagai PASS.
+
+==================================================
+BAGIAN 19 — MEMORY / PROCESS SAFETY
+==================================================
+
+Karena test sebelumnya pernah berakhir:
+
+`Killed`
+
+audit dengan serius:
+
+- duplicate worker,
+- duplicate consumer,
+- duplicate dispatcher,
+- unbounded polling,
+- unbounded retry,
+- leaked timers,
+- leaked Redis subscriptions,
+- leaked PostgreSQL connections,
+- multiple `startWorkerRoot()` instances.
+
+Jangan menjalankan test berulang tanpa cleanup.
+
+Jika test suite terlalu berat:
+
+jangan menurunkan correctness.
+
+Cari root cause penggunaan resource.
+
+==================================================
+BAGIAN 20 — DIFF REVIEW
+==================================================
+
+Setelah selesai:
+
+`git status`
+
+`git diff --stat`
+
+`git diff`
+
+Pastikan perubahan hanya terkait:
+
+- integration test infrastructure,
+- worker-root real lifecycle test,
+- test setup/cleanup,
+- bug fix lifecycle jika benar-benar ditemukan.
+
+Jangan ada:
+
+- Telegram,
+- provider integration,
+- secret,
+- credential,
+- unrelated refactor,
+- production feature baru.
+
+Jika tidak ada implementation change yang diperlukan dan verification hanya menghasilkan PASS/SKIPPED:
+
+JANGAN membuat empty commit.
+
+==================================================
+BAGIAN 21 — COMMIT
+==================================================
+
+Jika ada perubahan valid:
+
+buat SATU commit.
+
+Gunakan message yang sesuai, misalnya:
+
+`test: verify worker root with real infrastructure`
+
+atau message yang lebih tepat berdasarkan perubahan aktual.
+
+JANGAN membuat empty commit.
+
+==================================================
+BAGIAN 22 — PUSH
+==================================================
+
+Setelah commit:
+
+`git push origin backend-dev-recovery`
+
+Kemudian verifikasi:
+
+`git rev-parse HEAD`
+
+dan remote SHA.
+
+Pastikan:
+
+local SHA == remote SHA
+
+dan:
+
+`git status`
+
+menunjukkan:
+
+`working tree clean`
+
+Jika push gagal:
+
+- jangan reset,
+- jangan menghapus commit,
+- jangan mengubah credential GitHub sembarangan,
+- tampilkan error,
+- commit harus tetap aman lokal.
+
+==================================================
+OUTPUT AKHIR
+==================================================
+
+Tampilkan:
+
+### Infrastructure
+- PostgreSQL:
+- Redis:
+- environment:
+- status:
+
+### Transactional Outbox
+- producer:
+- PostgreSQL outbox:
+- dispatcher:
+- Redis:
+- consumer:
+- durable job:
+- executor:
+- status:
+
+### Worker Root
+- start:
+- running:
+- real job flow:
+- recovery/reaper:
+- graceful shutdown:
+- resource cleanup:
+- status:
+
+### Failure Handling
+- PostgreSQL startup failure:
+- Redis startup failure:
+- runtime failure:
+- cleanup:
+- status:
+
+### Resource Safety
+- timers:
+- Redis connections:
+- PostgreSQL connections:
+- listeners:
+- duplicate workers:
+- status:
+
+### Validation
+- test:
+- build:
+- typecheck:
+- lint:
+- format:
+- imports:
+- ownership:
+- docs:
+- diff:
+- symlink:
+
+### Git
+- commit SHA:
+- push:
+- local/remote SHA:
+- working tree:
+
+### Remaining Deferred
+Hanya tampilkan dependency yang benar-benar belum dapat dikerjakan karena:
+- environment,
+- credential,
+- contract,
+- deployment dependency.
+
+### Next Roadmap
+Tentukan task berikutnya berdasarkan dependency nyata setelah real PostgreSQL + Redis worker-root verification selesai.
+
+PENTING:
+
+- Jangan mengulang worker-root lifecycle implementation.
+- Jangan mengulang transactional outbox implementation.
+- Jangan membuat architecture worker kedua.
+- Jangan membuat fake PostgreSQL/Redis untuk klaim integration PASS.
+- Jangan membuat Telegram workload palsu.
+- Jangan memilih vendor secret manager.
+- Jangan menyentuh Gorouter.app.
+- Jangan menambahkan provider test.
+- Jangan membuat fitur acak.
+- Langsung kerjakan.
+- Test.
+- Commit jika ada perubahan valid.
+- Push langsung.
 
 
 ```
