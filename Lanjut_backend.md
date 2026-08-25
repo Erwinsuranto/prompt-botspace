@@ -158,6 +158,739 @@
 ```
 # 
 ```
+# Prompt: BotSpace — Full Worker Root Composition + Lifecycle Verification
+
+Lanjutkan project BotSpace dari kondisi repository TERAKHIR.
+
+WORKDIR:
+`/root/botspace`
+
+BRANCH:
+`backend-dev-recovery`
+
+JANGAN TANYA SOAL KREDIT/KIRO.
+JANGAN BERHENTI UNTUK MEMINTA KONFIRMASI.
+KERJAKAN LANGSUNG → AUDIT → IMPLEMENTASI/PERBAIKAN → TEST → COMMIT → PUSH.
+
+==================================================
+KONDISI TERAKHIR
+==================================================
+
+Transactional outbox durability chain SUDAH terverifikasi end-to-end.
+
+Chain yang sudah terverifikasi:
+
+producer
+→ CAS + outbox atomic transaction
+→ PostgreSQL outbox
+→ dispatcher
+→ Redis
+→ consumer
+→ durable job
+→ executor
+→ recovery.
+
+Redis/PostgreSQL integration tetap gated oleh environment `*_TEST_URL`, dan Telegram tetap deferred.
+
+Commit terakhir sudah berhasil di-push dan working tree terlihat CLEAN.
+
+Screenshot terakhir menunjukkan:
+
+- `working tree: clean`
+- local/remote SHA sudah sinkron
+- proses build/test terakhir berakhir `Killed`
+- bukan indikasi otomatis bahwa repository rusak
+- task berikutnya yang nyata adalah verifikasi composition/lifecycle `worker-root`.
+
+==================================================
+TUJUAN TASK
+==================================================
+
+Sekarang fokus HANYA pada:
+
+**Full Worker Root Composition + Lifecycle Verification**
+
+Target architecture:
+
+`startWorkerRoot`
+
+harus menggabungkan primitive runtime yang SUDAH ADA:
+
+1. dispatcher runner,
+2. outbox consumer,
+3. durable job executor,
+4. job reaper/recovery,
+5. PostgreSQL resource,
+6. Redis resource,
+7. shutdown lifecycle.
+
+Tujuan:
+
+Memastikan seluruh worker runtime dapat hidup sebagai SATU process lifecycle yang konsisten.
+
+Jangan membuat worker architecture kedua.
+
+==================================================
+BAGIAN 1 — AUDIT EXISTING WORKER PRIMITIVES
+==================================================
+
+Audit repository terlebih dahulu.
+
+Cari implementation yang sudah ada untuk:
+
+- `startWorkerRoot`
+- worker root
+- dispatcher runner
+- outbox dispatcher
+- outbox consumer
+- Redis consumer
+- job executor
+- job reaper
+- job recovery
+- PostgreSQL client/pool
+- Redis client
+- shutdown hooks
+- AbortSignal
+- cleanup/close methods
+- worker lifecycle.
+
+Gunakan primitive yang SUDAH ADA.
+
+JANGAN membuat duplicate:
+
+- executor,
+- dispatcher,
+- consumer,
+- reaper,
+- repository,
+- Redis client,
+- PostgreSQL client.
+
+==================================================
+BAGIAN 2 — COMPOSITION ROOT
+==================================================
+
+Pastikan ada satu composition root yang bertanggung jawab membuat seluruh worker runtime.
+
+Target konseptual:
+
+`startWorkerRoot(config)`
+
+↓
+
+- create PostgreSQL resource
+- create Redis resource
+- create repositories
+- create outbox dispatcher
+- create outbox consumer
+- create job executor
+- create reaper
+- wire dependencies
+- start runtime loops
+- return lifecycle handle.
+
+Jangan memindahkan business logic ke composition root.
+
+Composition root hanya melakukan:
+
+- construction,
+- dependency injection,
+- lifecycle orchestration.
+
+==================================================
+BAGIAN 3 — STARTUP ORDER
+==================================================
+
+Audit startup order.
+
+Startup harus aman terhadap dependency ordering.
+
+Minimal:
+
+1. validate configuration,
+2. initialize PostgreSQL,
+3. initialize Redis,
+4. create repositories,
+5. create dispatcher,
+6. create consumer,
+7. create executor,
+8. create reaper,
+9. start runtime loops.
+
+Jangan memulai consumer/executor sebelum dependency wajib siap.
+
+Jika repository architecture memiliki startup sequence yang berbeda namun valid:
+
+pertahankan architecture tersebut.
+
+Jangan mengubah hanya demi mengikuti daftar di atas.
+
+==================================================
+BAGIAN 4 — SINGLE INSTANCE / DOUBLE START
+==================================================
+
+Verifikasi `startWorkerRoot` tidak dapat secara tidak sengaja membuat dua runtime aktif dari lifecycle yang sama.
+
+Periksa:
+
+- double start,
+- duplicate Redis consumer,
+- duplicate dispatcher loop,
+- duplicate executor loop,
+- duplicate reaper loop.
+
+Jika API contract mengharuskan `start()` hanya sekali:
+
+- second start harus ditolak atau idempotent sesuai semantics yang sudah ada.
+
+Jangan membuat global singleton.
+
+Jangan menggunakan global mutable state sebagai workaround.
+
+==================================================
+BAGIAN 5 — RESOURCE OWNERSHIP
+==================================================
+
+Pastikan worker root memiliki ownership jelas terhadap resource yang dibuatnya.
+
+Resource yang dibuat worker root harus dapat ditutup:
+
+- PostgreSQL pool/client,
+- Redis client,
+- consumer,
+- dispatcher,
+- executor,
+- reaper,
+- timers,
+- subscriptions,
+- listeners.
+
+Jangan ada resource yang dibuat worker root tetapi tidak memiliki shutdown path.
+
+==================================================
+BAGIAN 6 — GRACEFUL SHUTDOWN
+==================================================
+
+Implementasikan/verifikasi lifecycle:
+
+`start`
+→ `running`
+→ `stop`
+→ `draining`
+→ `closed`
+
+Gunakan mechanism yang memang sudah tersedia.
+
+Jika repository menggunakan:
+
+- AbortController,
+- AbortSignal,
+- explicit close(),
+- shutdown callback,
+
+gunakan mechanism tersebut.
+
+Jangan memperkenalkan lifecycle abstraction baru jika sudah ada.
+
+Shutdown harus:
+
+1. menghentikan penerimaan work baru,
+2. menghentikan polling/dispatch loop,
+3. menghentikan consumer,
+4. menghentikan executor intake,
+5. memberikan kesempatan active work selesai sesuai semantics repository,
+6. menutup reaper/timer,
+7. menutup Redis,
+8. menutup PostgreSQL,
+9. menyelesaikan lifecycle.
+
+Jangan force-kill active work jika architecture belum menetapkan behavior tersebut.
+
+==================================================
+BAGIAN 7 — SHUTDOWN ORDER
+==================================================
+
+Pastikan shutdown tidak menutup dependency terlalu awal.
+
+Jangan:
+
+- close Redis sebelum consumer berhenti,
+- close PostgreSQL sebelum executor/reaper berhenti,
+- close repository resource ketika active worker masih menggunakannya.
+
+Urutan shutdown harus mengikuti dependency graph.
+
+Target umum:
+
+stop intake
+→ stop consumer/dispatcher
+→ drain executor
+→ stop reaper
+→ close application resources
+→ close Redis/PostgreSQL.
+
+Jika repository memiliki semantics yang lebih tepat, ikuti implementation tersebut.
+
+==================================================
+BAGIAN 8 — ERROR DURING STARTUP
+==================================================
+
+Jika satu dependency gagal startup:
+
+contoh:
+
+- PostgreSQL gagal,
+- Redis gagal,
+- repository construction gagal,
+- consumer construction gagal,
+
+maka worker root harus:
+
+1. tidak meninggalkan resource setengah terbuka,
+2. menjalankan cleanup resource yang sudah dibuat,
+3. mengembalikan error yang jelas,
+4. tidak membocorkan credential.
+
+Test startup failure untuk minimal:
+
+- PostgreSQL unavailable,
+- Redis unavailable.
+
+Jika environment test tidak memungkinkan real failure:
+
+gunakan injected test seam yang memang sudah tersedia.
+
+Jangan membuat fake production behavior.
+
+==================================================
+BAGIAN 9 — ERROR DURING RUNTIME
+==================================================
+
+Audit behavior ketika runtime component mengalami error.
+
+Contoh:
+
+- dispatcher error,
+- consumer error,
+- executor loop error,
+- reaper error.
+
+Tentukan berdasarkan architecture yang sudah ada:
+
+Apakah:
+
+A. component melakukan retry/recovery sendiri,
+
+atau
+
+B. worker root harus shutdown/restart component.
+
+Jangan mengarang semantics baru.
+
+Yang penting:
+
+- error tidak menyebabkan process menggantung,
+- error tidak diam-diam hilang,
+- tidak terjadi duplicate loop,
+- resource tetap dapat ditutup.
+
+Jika repository sudah memiliki error event/reporting mechanism:
+
+gunakan itu.
+
+==================================================
+BAGIAN 10 — SIGNAL HANDLING
+==================================================
+
+Audit:
+
+- SIGTERM,
+- SIGINT,
+- AbortSignal.
+
+Jika application entrypoint sudah menangani signal:
+
+wire worker root ke lifecycle tersebut.
+
+Jangan mendaftarkan signal handler berkali-kali.
+
+Pastikan:
+
+SIGTERM
+→ graceful shutdown.
+
+SIGINT
+→ graceful shutdown.
+
+Jangan melakukan `process.exit()` sebelum cleanup selesai kecuali memang entrypoint architecture mengharuskannya.
+
+==================================================
+BAGIAN 11 — WORKER ROOT INTEGRATION TEST
+==================================================
+
+Buat/verifikasi integration test untuk composition root.
+
+Test harus memverifikasi:
+
+### TEST A — START
+
+`startWorkerRoot()`
+
+berhasil membuat runtime.
+
+### TEST B — RUNNING
+
+Semua component expected aktif:
+
+- dispatcher,
+- consumer,
+- executor,
+- reaper.
+
+Gunakan observable state/health seam yang SUDAH tersedia.
+
+Jangan menambah health system baru hanya untuk test.
+
+### TEST C — STOP
+
+Panggil shutdown.
+
+Verifikasi:
+
+- loop berhenti,
+- resource ditutup,
+- tidak ada hanging timer,
+- tidak ada unhandled rejection.
+
+### TEST D — DOUBLE STOP
+
+Panggil stop dua kali.
+
+Harus aman sesuai lifecycle semantics.
+
+### TEST E — STARTUP FAILURE
+
+Simulasikan dependency failure.
+
+Pastikan resource yang sudah dibuat dibersihkan.
+
+### TEST F — NO DOUBLE START
+
+Jika lifecycle contract mengharuskan single start:
+
+verifikasi second start behavior.
+
+==================================================
+BAGIAN 12 — REAL POSTGRES + REDIS
+==================================================
+
+Jika:
+
+`PERSISTENCE_TEST_DATABASE_URL`
+
+tersedia:
+
+gunakan PostgreSQL nyata.
+
+Jika:
+
+`QUEUE_TEST_URL`
+
+tersedia:
+
+gunakan Redis nyata.
+
+Jika keduanya tersedia:
+
+jalankan worker-root integration test terhadap environment nyata.
+
+Jangan menggunakan:
+
+- SQLite,
+- fake PostgreSQL untuk integration claim,
+- fake Redis untuk integration claim.
+
+Jika environment tidak tersedia:
+
+laporkan secara eksplisit:
+
+`SKIPPED — PERSISTENCE_TEST_DATABASE_URL unavailable`
+
+atau
+
+`SKIPPED — QUEUE_TEST_URL unavailable`
+
+Jangan menyamarkan skipped sebagai PASS.
+
+==================================================
+BAGIAN 13 — RESOURCE LEAK CHECK
+==================================================
+
+Pastikan test tidak meninggalkan:
+
+- timers,
+- sockets,
+- Redis subscriptions,
+- PostgreSQL connections,
+- event listeners.
+
+Jika repository sudah memiliki open-handle detection:
+
+gunakan mechanism tersebut.
+
+Jika tidak ada:
+
+gunakan test lifecycle yang memastikan close() selesai.
+
+Jangan menambahkan dependency baru hanya untuk mendeteksi leak.
+
+==================================================
+BAGIAN 14 — TELEGRAM
+==================================================
+
+JANGAN mengerjakan Telegram integration.
+
+Tetap deferred:
+
+`Real Telegram integration — API_ID/API_HASH/session nyata diperlukan.`
+
+Jangan membuat:
+
+- fake Telegram credentials,
+- fake Telegram workload,
+- Telegram polling,
+- Telegram webhook.
+
+==================================================
+BAGIAN 15 — PROVIDER SCOPE
+==================================================
+
+Jangan menyentuh:
+
+- Gorouter.app,
+- NVIDIA,
+- TokenHarbor,
+
+kecuali compile/import dependency secara langsung rusak karena perubahan worker-root.
+
+Jangan menambahkan provider integration test.
+
+==================================================
+BAGIAN 16 — VALIDATION
+==================================================
+
+Jalankan validation repository yang tersedia:
+
+`pnpm test`
+
+`pnpm build`
+
+`pnpm typecheck`
+
+`pnpm lint`
+
+`pnpm format:check`
+
+`node scripts/check-imports.mjs`
+
+`node scripts/check-ownership.mjs`
+
+`node scripts/check-doc-links.mjs`
+
+`git diff --check`
+
+Untuk:
+
+`node scripts/check-symlinks.mjs`
+
+JANGAN membuat script.
+
+Jika tidak tersedia:
+
+`SKIPPED — scripts/check-symlinks.mjs unavailable`
+
+==================================================
+BAGIAN 17 — MEMORY / RESOURCE SAFETY
+==================================================
+
+Karena test sebelumnya sempat berakhir:
+
+`Killed`
+
+audit apakah perubahan worker-root menyebabkan:
+
+- duplicate worker loops,
+- duplicate consumers,
+- unbounded retry,
+- unbounded polling,
+- timers yang tidak dihentikan,
+- memory leak,
+- process spawn berulang.
+
+Jangan meningkatkan concurrency secara sembarangan.
+
+Jangan menambah worker count hanya untuk mempercepat test.
+
+Pastikan test worker-root menggunakan deterministic timing dan tidak membuat infinite background process setelah test selesai.
+
+==================================================
+BAGIAN 18 — DIFF REVIEW
+==================================================
+
+Setelah selesai:
+
+`git status`
+
+`git diff --stat`
+
+`git diff`
+
+Pastikan hanya perubahan yang berhubungan dengan:
+
+- worker-root composition,
+- lifecycle,
+- shutdown,
+- integration tests,
+- resource ownership.
+
+Jangan ada:
+
+- credential,
+- secret,
+- temporary file,
+- generated junk,
+- unrelated refactor,
+- Telegram changes,
+- provider changes.
+
+==================================================
+BAGIAN 19 — COMMIT
+==================================================
+
+Jika ada perubahan valid:
+
+buat SATU commit.
+
+Gunakan message yang sesuai, misalnya:
+
+`feat: compose worker root lifecycle`
+
+atau message yang lebih tepat berdasarkan perubahan aktual.
+
+JANGAN membuat empty commit.
+
+==================================================
+BAGIAN 20 — PUSH
+==================================================
+
+Setelah commit:
+
+`git push origin backend-dev-recovery`
+
+Kemudian verifikasi:
+
+`git rev-parse HEAD`
+
+dan remote SHA.
+
+Pastikan:
+
+local SHA == remote SHA
+
+dan:
+
+`git status`
+
+menunjukkan clean.
+
+Jika push gagal:
+
+- jangan menghapus commit,
+- jangan reset,
+- jangan mengubah credential GitHub sembarangan,
+- tampilkan error,
+- commit tetap aman lokal.
+
+==================================================
+OUTPUT AKHIR
+==================================================
+
+Tampilkan:
+
+### Worker Root
+- composition:
+- dispatcher:
+- consumer:
+- executor:
+- reaper:
+- status:
+
+### Lifecycle
+- startup:
+- running:
+- shutdown:
+- double-stop:
+- double-start:
+- status:
+
+### Resources
+- PostgreSQL:
+- Redis:
+- timers:
+- listeners:
+- cleanup:
+- status:
+
+### Failure Handling
+- startup failure:
+- runtime failure:
+- shutdown failure:
+- status:
+
+### Integration
+- PostgreSQL:
+- Redis:
+- end-to-end worker-root:
+- status:
+
+### Validation
+- test:
+- build:
+- typecheck:
+- lint:
+- format:
+- imports:
+- ownership:
+- docs:
+- diff:
+- symlink:
+
+### Git
+- commit SHA:
+- push:
+- local/remote SHA:
+- working tree:
+
+### Remaining Deferred
+Hanya tampilkan dependency yang benar-benar belum dapat diselesaikan karena environment/credential/contract.
+
+### Next Roadmap
+Tentukan task berikutnya berdasarkan dependency nyata setelah worker-root lifecycle selesai.
+
+PENTING:
+
+- Jangan mengulang transactional outbox.
+- Jangan mengulang B-030/B-070/B-071.
+- Jangan membuat worker architecture kedua.
+- Jangan membuat global singleton.
+- Jangan membuat fake PostgreSQL/Redis untuk klaim integration PASS.
+- Jangan membuat Telegram workload palsu.
+- Jangan menyentuh Gorouter.app.
+- Jangan membuat fitur acak.
+- Langsung kerjakan.
+- Test.
+- Commit.
+- Push.
 
 
 
