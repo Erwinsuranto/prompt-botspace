@@ -192,10 +192,865 @@
 
 
 ```
-# 
+# Prompt: BotSpace — Concrete JobHandler + Job-Type Registry
 ```
 
+# Prompt: BotSpace — Concrete JobHandler + Job-Type Registry
 
+Lanjutkan project BotSpace dari kondisi repository saat ini.
+
+## KONDISI TERAKHIR
+
+Repository saat ini sudah melewati beberapa tahap infrastructure dan durable-job foundation.
+
+Yang SUDAH SELESAI dan JANGAN DIULANG:
+
+- B-030 Workspace API/Contract.
+- B-070 Storage Adapter.
+- B-071 File/Share contract.
+- B-071 File/Share API.
+- Production wiring B-071.
+- SecretResolver application/deployment boundary sejauh yang dapat dikerjakan tanpa infrastructure vendor nyata.
+- Durable outbox producer.
+- Redis outbox transport.
+- Redis outbox consumer.
+- Worker persistence.
+- JobEnvelope persistence.
+- Durable jobs table.
+- Job claim/state machine foundation.
+- Retry/backoff/DLQ schema/foundation.
+- Orphaned running-job recovery foundation.
+- System-actor policy untuk worker-generated audit events.
+- Aggregate reference preservation pada materialized jobs row.
+- JobHandler registry scaffold yang sudah tersedia.
+
+Repository terakhir sudah berhasil divalidasi dan dipush.
+
+Working tree harus tetap clean sebelum mulai.
+
+Branch:
+`backend-dev-recovery`
+
+Kerjakan langsung pada:
+
+`/root/botspace`
+
+---
+
+# TUJUAN UTAMA
+
+Sekarang lanjutkan roadmap berikutnya:
+
+**Concrete JobHandler + job-type registry**
+
+Tujuannya adalah mengubah durable job machinery yang saat ini sudah lengkap secara infrastructure menjadi sistem yang mampu:
+
+1. mengenali job type,
+2. memvalidasi envelope/job payload,
+3. memilih handler yang tepat,
+4. menjalankan handler melalui worker executor,
+5. menjaga semantics state transition yang sudah ada,
+6. menjaga retry/failure behavior,
+7. menjaga audit/system-actor policy,
+8. tetap memungkinkan penambahan job type baru tanpa mengubah core worker.
+
+JANGAN membuat business workload fiktif hanya agar terlihat "concrete".
+
+Handler pertama harus dipilih berdasarkan job type/event yang BENAR-BENAR sudah ada di repository.
+
+Jika belum ada job type yang memiliki business contract nyata dan aman untuk dieksekusi, jangan mengarang workload. Selesaikan registry/contract/dispatch foundation dan dokumentasikan handler concrete sebagai deferred karena belum ada workload contract yang sah.
+
+---
+
+# BAGIAN 1 — AUDIT SEBELUM IMPLEMENTASI
+
+Sebelum mengubah kode, audit terlebih dahulu:
+
+- `services/worker`
+- `JobHandler`
+- `job-handler-registry`
+- `JobEnvelope`
+- jobs table
+- worker persistence
+- worker executor
+- outbox consumer
+- outbox producer
+- retry/backoff/DLQ logic
+- claim/recovery logic
+- audit event repository
+- system-actor policy
+- aggregateRef
+- job type definitions
+- existing domain events
+- existing service boundaries
+- existing Telegram connection/event contracts
+- existing BotInstallation/connection domain model.
+
+Cari file yang saat ini menjadi:
+
+- worker entrypoint,
+- worker process,
+- job consumer,
+- job executor,
+- handler registry,
+- handler interface,
+- domain event mapping.
+
+Jangan mengasumsikan nama file selain yang benar-benar ada.
+
+Registry scaffold diketahui sudah pernah ditemukan di:
+
+`services/worker/src/job-handler-registry.ts`
+
+Audit file tersebut dan gunakan structure yang sudah ada.
+
+Jangan membuat registry kedua.
+
+---
+
+# BAGIAN 2 — TENTUKAN JOB TYPE CONTRACT
+
+Tentukan job type contract berdasarkan kode repository yang benar-benar ada.
+
+Untuk setiap supported job type, harus jelas:
+
+- job type name,
+- payload shape,
+- aggregateRef,
+- expected domain target,
+- handler yang menangani,
+- validation rule,
+- execution semantics.
+
+Jangan membuat job type hanya berdasarkan nama yang terdengar masuk akal.
+
+Gunakan existing event/domain contract jika tersedia.
+
+Contoh:
+
+Jika repository memang memiliki event:
+
+`telegram_connection:connected`
+
+dan event tersebut memang sudah menjadi bagian domain contract, audit bagaimana event tersebut seharusnya dipetakan menjadi job.
+
+Namun:
+
+JANGAN menganggap contoh tersebut otomatis harus menjadi production handler.
+
+Verifikasi dahulu apakah:
+
+- event tersebut memang sudah ada,
+- payload-nya sudah memiliki contract,
+- aggregateRef dapat ditentukan secara valid,
+- target domain/service memang tersedia,
+- handler dapat melakukan pekerjaan nyata tanpa membuat business logic baru yang spekulatif.
+
+Jika semua dependency tersedia, gunakan sebagai candidate handler pertama.
+
+Jika dependency belum tersedia, jangan membuat fake implementation.
+
+---
+
+# BAGIAN 3 — JOBHANDLER CONTRACT
+
+Audit `JobHandler` yang sudah ada.
+
+Jika interface sudah tersedia:
+
+- gunakan interface tersebut,
+- jangan membuat interface kedua,
+- jangan mengganti contract tanpa kebutuhan nyata.
+
+Pastikan handler contract dapat menyediakan minimal:
+
+- supported job type,
+- payload validation,
+- execution,
+- error propagation,
+- access terhadap JobEnvelope bila memang diperlukan,
+- aggregateRef bila memang dibutuhkan oleh business logic.
+
+Handler harus tetap tipis.
+
+Jangan memasukkan:
+
+- database infrastructure,
+- retry engine,
+- queue implementation,
+- Redis implementation,
+- HTTP transport,
+- Telegram polling,
+- scheduler,
+
+ke dalam `JobHandler`.
+
+Semua itu tetap menjadi tanggung jawab layer masing-masing.
+
+---
+
+# BAGIAN 4 — JOB-TYPE REGISTRY
+
+Implementasikan/selesaikan registry yang sudah tersedia.
+
+Registry harus:
+
+1. menerima job type,
+2. menemukan handler yang sesuai,
+3. menolak unknown job type secara deterministic,
+4. tidak melakukan fallback ke handler yang salah,
+5. tidak mengubah payload,
+6. tidak menjalankan handler saat registration,
+7. tidak menyimpan global mutable state yang tidak diperlukan.
+
+Pastikan penambahan handler baru nantinya cukup dengan:
+
+- membuat handler,
+- mendaftarkannya,
+- menambahkan test,
+
+tanpa mengubah core worker executor secara besar-besaran.
+
+Jangan membuat giant switch statement jika architecture repository sudah menggunakan registry abstraction.
+
+Jika registry sudah menggunakan map/registration pattern, pertahankan pattern tersebut.
+
+---
+
+# BAGIAN 5 — PAYLOAD VALIDATION
+
+Setiap concrete handler harus memvalidasi payload sesuai contract.
+
+Jangan melakukan:
+
+- blind cast,
+- `as SomeType` tanpa validation,
+- menerima payload arbitrary,
+- menganggap JSON selalu valid.
+
+Jika payload invalid:
+
+- handler harus gagal secara deterministic,
+- error harus aman,
+- jangan retry tanpa alasan jika error memang permanent/invalid input,
+- jangan bocorkan secret.
+
+Bedakan:
+
+### Invalid job
+Contoh:
+- unknown job type,
+- payload malformed,
+- required field missing,
+- aggregateRef invalid.
+
+Ini seharusnya diperlakukan sebagai permanent failure sesuai state machine yang sudah tersedia.
+
+### Transient execution failure
+Contoh:
+- dependency sementara unavailable,
+- database temporary failure,
+- network/service temporary failure.
+
+Ini harus tetap diteruskan ke retry mechanism yang SUDAH ADA.
+
+JANGAN membuat retry loop baru di dalam handler.
+
+---
+
+# BAGIAN 6 — AGGREGATE REF
+
+`aggregateRef` SUDAH menjadi bagian penting dari durable job contract.
+
+JANGAN menghapusnya.
+
+JANGAN mengganti dengan identifier baru tanpa alasan.
+
+Pastikan:
+
+1. producer tetap dapat mengisi aggregateRef,
+2. outbox materialization mempertahankannya,
+3. worker menerima nilai tersebut,
+4. registry/handler dapat mengaksesnya bila contract job type membutuhkan,
+5. aggregateRef tidak berubah secara diam-diam selama execution.
+
+Jika job type membutuhkan aggregateRef:
+
+- validasi formatnya,
+- pastikan target domain dapat ditemukan,
+- jangan menebak aggregate berdasarkan payload jika aggregateRef sudah disediakan.
+
+Jika job type tidak membutuhkan aggregateRef:
+
+- jangan memaksa artificial value hanya agar field terlihat terisi.
+
+---
+
+# BAGIAN 7 — SYSTEM ACTOR / AUDIT POLICY
+
+System-actor policy SUDAH diselesaikan.
+
+JANGAN mengulang desain actor policy.
+
+JANGAN mengganti kembali ke user actor.
+
+Worker-generated audit event harus tetap mengikuti policy yang sudah diputuskan repository.
+
+Audit ulang implementation hanya untuk memastikan concrete handler tidak melanggarnya.
+
+Pastikan handler:
+
+- tidak membuat actor ID random,
+- tidak menggunakan user ID palsu,
+- tidak menganggap worker memiliki user session,
+- tidak menghapus system actor identity,
+- tidak membuat audit event dengan actor semantics berbeda.
+
+Jika handler menghasilkan audit event:
+
+gunakan `AuditEventRepository` dan system-actor policy yang SUDAH ADA.
+
+Jangan membuat audit repository kedua.
+
+---
+
+# BAGIAN 8 — CONCRETE HANDLER PERTAMA
+
+Cari concrete job type pertama yang benar-benar dapat dikerjakan berdasarkan repository.
+
+Prioritas pemilihan:
+
+1. Job type sudah memiliki domain event/contract.
+2. Payload contract sudah jelas.
+3. AggregateRef sudah dapat ditentukan.
+4. Target service/repository sudah ada.
+5. Handler dapat melakukan pekerjaan nyata.
+6. Tidak membutuhkan Telegram credentials atau external production infrastructure hanya untuk membuktikan architecture.
+7. Tidak membutuhkan business logic baru yang belum disetujui.
+
+Jika terdapat job type yang memenuhi semua syarat tersebut:
+
+IMPLEMENTASIKAN handler tersebut.
+
+Handler harus:
+
+- validasi envelope,
+- validasi payload,
+- resolve aggregate bila diperlukan,
+- memanggil service/repository yang sudah ada,
+- menghasilkan side effect yang memang sudah menjadi contract,
+- mengembalikan success/failure dengan semantics yang sesuai.
+
+JANGAN:
+
+- membuat fake side effect,
+- menulis data dummy,
+- membuat fake Telegram response,
+- membuat fake external API,
+- membuat "TODO" yang berpura-pura selesai.
+
+---
+
+# BAGIAN 9 — TELEGRAM INTEGRATION
+
+Telegram integration tetap DEFERRED jika repository belum memiliki credential/runtime integration yang nyata.
+
+JANGAN:
+
+- membuat Telegram polling,
+- membuat webhook,
+- membuat fake Telegram client untuk production,
+- menambahkan API_ID palsu,
+- menambahkan API_HASH palsu,
+- menambahkan session palsu,
+- menjalankan Telegram connection nyata,
+- mengklaim Telegram integration selesai hanya karena handler berhasil compile.
+
+Jika concrete job type yang paling dekat dengan Telegram membutuhkan dependency tersebut:
+
+- jangan memalsukan dependency,
+- jangan memaksakan handler production,
+- selesaikan registry dan contract foundation,
+- dokumentasikan Telegram workload sebagai deferred.
+
+---
+
+# BAGIAN 10 — WORKER EXECUTOR INTEGRATION
+
+Integrasikan registry ke worker executor yang SUDAH ADA.
+
+Alur yang diharapkan:
+
+`jobs row`
+→ claim
+→ materialize JobEnvelope
+→ resolve handler berdasarkan job type
+→ validate payload
+→ execute handler
+→ success/failure
+→ state transition yang SUDAH ADA
+→ retry/backoff/DLQ bila diperlukan.
+
+JANGAN membuat worker loop kedua.
+
+JANGAN membuat queue consumer kedua.
+
+JANGAN membuat Redis consumer kedua.
+
+JANGAN membuat retry engine kedua.
+
+JANGAN membuat jobs table kedua.
+
+Gunakan machinery yang sudah ada.
+
+---
+
+# BAGIAN 11 — STATE TRANSITION
+
+State machine jobs SUDAH tersedia.
+
+Concrete handler harus menghormati state machine tersebut.
+
+JANGAN membuat handler mengubah database state secara langsung jika executor/persistence layer sudah bertanggung jawab terhadap state transition.
+
+Handler bertanggung jawab atas business execution.
+
+Worker executor/persistence bertanggung jawab atas:
+
+- pending,
+- running,
+- completed,
+- failed,
+- retry,
+- dead/DLQ,
+
+sesuai implementation yang sudah ada.
+
+Jika handler gagal:
+
+- error harus sampai ke executor,
+- executor menentukan transition,
+- retry policy yang sudah ada tetap menjadi sumber kebenaran.
+
+---
+
+# BAGIAN 12 — IDEMPOTENCY
+
+Durable jobs menggunakan at-least-once recovery semantics.
+
+JANGAN mengklaim exactly-once.
+
+Concrete handler harus aman terhadap kemungkinan execution ulang.
+
+Audit apakah existing repository/service sudah menyediakan idempotency boundary.
+
+Jika sudah tersedia:
+
+- gunakan boundary tersebut.
+
+Jika belum:
+
+- jangan membuat distributed locking speculative,
+- jangan membuat idempotency table baru tanpa contract,
+- jangan mengubah schema hanya untuk membuat handler terlihat aman.
+
+Jika side effect belum dapat dibuat idempotent secara nyata:
+
+- dokumentasikan dependency tersebut,
+- jangan mengklaim handler exactly-once.
+
+---
+
+# BAGIAN 13 — ERROR CLASSIFICATION
+
+Pastikan error dari handler dapat dibedakan berdasarkan semantics.
+
+Minimal kategorikan secara jelas:
+
+### Permanent
+- unknown job type,
+- invalid payload,
+- invalid aggregateRef,
+- unsupported job version,
+- missing required contract field.
+
+### Transient
+- database unavailable,
+- external dependency temporary unavailable,
+- timeout,
+- temporary network failure.
+
+Jangan menangkap semua error lalu mengubah semuanya menjadi satu generic error.
+
+Jangan membuat retry policy baru.
+
+Gunakan retry/DLQ machinery yang sudah tersedia.
+
+---
+
+# BAGIAN 14 — TESTING REGISTRY
+
+Tambahkan test untuk registry:
+
+1. register valid handler.
+2. resolve handler berdasarkan job type.
+3. resolve unknown job type harus gagal.
+4. duplicate registration harus deterministic.
+5. registry tidak boleh mengubah payload.
+6. handler yang dipilih benar.
+7. handler tidak dijalankan saat registration.
+
+Jika repository sudah memiliki dependency injection test pattern:
+
+gunakan pattern tersebut.
+
+---
+
+# BAGIAN 15 — TESTING CONCRETE HANDLER
+
+Tambahkan test untuk concrete handler:
+
+- valid payload,
+- invalid payload,
+- missing required field,
+- invalid aggregateRef,
+- valid aggregateRef,
+- target domain/service ditemukan,
+- target domain/service tidak ditemukan,
+- successful execution,
+- permanent error,
+- transient error,
+- audit event jika handler memang menghasilkan audit event,
+- system actor identity jika audit event dibuat,
+- repeated execution/idempotency behavior jika contract memang mendukungnya.
+
+Jangan membuat fake test yang hanya memeriksa:
+
+`expect(handler).toBeDefined()`
+
+Test harus membuktikan behavior nyata.
+
+---
+
+# BAGIAN 16 — WORKER END-TO-END TEST
+
+Jika repository sudah memiliki worker test harness:
+
+tambahkan test untuk alur:
+
+`JobEnvelope`
+→ registry
+→ handler
+→ executor
+→ successful job state.
+
+Tambahkan juga:
+
+`JobEnvelope`
+→ unknown job type
+→ failure
+→ state transition sesuai semantics.
+
+Dan jika retry machinery memang sudah dapat diuji:
+
+`transient handler failure`
+→ retry path yang SUDAH ADA.
+
+Jangan membuat test integration baru yang membutuhkan infrastructure eksternal jika harness repository belum mendukungnya.
+
+---
+
+# BAGIAN 17 — SECURITY REVIEW
+
+Sebelum selesai, audit:
+
+- payload tidak dipercaya secara blind,
+- aggregateRef divalidasi,
+- job type divalidasi,
+- secrets tidak masuk payload/log,
+- credentials tidak masuk error,
+- system actor tidak dapat dipalsukan dari user payload,
+- worker tidak menerima arbitrary handler name/path,
+- dynamic module import berdasarkan user-controlled string tidak digunakan,
+- unknown job type tidak fallback,
+- internal exception tidak dibocorkan ke API.
+
+Jangan memperkenalkan dynamic `eval`, runtime code loading, atau arbitrary module path.
+
+---
+
+# BAGIAN 18 — VALIDATION
+
+Jalankan validation yang tersedia di repository:
+
+- `pnpm test`
+- `pnpm build`
+- `pnpm typecheck`
+- `pnpm lint`
+- `pnpm format:check`
+- `node scripts/check-imports.mjs`
+- `node scripts/check-ownership.mjs`
+- `node scripts/check-doc-links.mjs`
+- `git diff --check`
+
+Untuk:
+
+`node scripts/check-symlinks.mjs`
+
+JANGAN membuat file tersebut.
+
+Jika memang tidak tersedia:
+
+`SKIPPED — scripts/check-symlinks.mjs unavailable`
+
+Jangan membuat dummy script.
+
+---
+
+# BAGIAN 19 — TEST ENVIRONMENT
+
+Jika test tertentu membutuhkan:
+
+- PostgreSQL,
+- Redis,
+- Telegram credentials,
+- external service,
+
+gunakan hanya environment/test infrastructure yang memang tersedia.
+
+JANGAN:
+
+- membuat credential palsu,
+- mengubah production `.env`,
+- memasukkan secret ke repository,
+- mengubah test agar PASS,
+- membuat fake external integration yang kemudian dilaporkan sebagai production verified.
+
+Jika environment tidak tersedia:
+
+jelaskan:
+
+`SKIPPED — <dependency> unavailable`
+
+Tetap jalankan validation lain yang tidak membutuhkan dependency tersebut.
+
+---
+
+# BAGIAN 20 — REVIEW DIFF
+
+Setelah implementasi:
+
+jalankan:
+
+`git status`
+
+`git diff --stat`
+
+`git diff`
+
+Review seluruh perubahan.
+
+Pastikan tidak ada:
+
+- unrelated refactor,
+- duplicate registry,
+- duplicate JobHandler interface,
+- duplicate queue,
+- duplicate worker executor,
+- duplicate retry system,
+- fake Telegram integration,
+- fake production credential,
+- generated junk,
+- temporary files,
+- secrets,
+- credential,
+- changes to B-030,
+- changes to B-070,
+- changes to B-071,
+- perubahan Gorouter.app.
+
+NVIDIA dan TokenHarbor tidak perlu disentuh.
+
+Jika ditemukan perubahan unrelated:
+
+hapus sebelum commit.
+
+---
+
+# BAGIAN 21 — DOCUMENTATION / ROADMAP
+
+Jika implementation menambahkan behavior penting, update dokumentasi yang memang sudah menjadi source of truth repository.
+
+Jangan membuat banyak README baru.
+
+Gunakan dokumentasi yang sudah ada.
+
+Dokumentasikan:
+
+- supported job type,
+- handler registry,
+- handler execution boundary,
+- retry semantics,
+- deferred job types,
+- dependency yang belum tersedia.
+
+Jangan menulis bahwa Telegram integration selesai jika sebenarnya masih deferred.
+
+---
+
+# BAGIAN 22 — COMMIT
+
+Jika implementation valid dan validation selesai:
+
+Buat SATU commit.
+
+Gunakan message yang sesuai dengan perubahan aktual, misalnya:
+
+`feat: add concrete job handler registry`
+
+atau jika scope lebih spesifik:
+
+`feat: implement worker job handler dispatch`
+
+Jangan membuat empty commit.
+
+---
+
+# BAGIAN 23 — PUSH
+
+Setelah commit berhasil:
+
+`git push origin backend-dev-recovery`
+
+Kemudian verifikasi:
+
+`git rev-parse HEAD`
+
+dan remote SHA.
+
+Pastikan:
+
+- local SHA = remote SHA,
+- working tree clean.
+
+Jika push gagal karena credential/network:
+
+- jangan mengubah credential GitHub sembarangan,
+- jangan menghapus commit,
+- jangan reset commit,
+- jangan force push,
+- tampilkan error,
+- pastikan commit tetap aman secara lokal.
+
+---
+
+# OUTPUT AKHIR
+
+Setelah selesai tampilkan laporan berikut.
+
+## JobHandler
+
+- JobHandler contract:
+- Registry:
+- Concrete handler:
+- Job type:
+- Payload contract:
+- AggregateRef:
+- Execution behavior:
+
+## Worker Integration
+
+- JobEnvelope:
+- Registry dispatch:
+- Handler execution:
+- State transition:
+- Retry behavior:
+- DLQ behavior:
+
+## Audit/System Actor
+
+- System actor policy:
+- Audit event:
+- Status:
+
+## Testing
+
+- Registry tests:
+- Handler tests:
+- Worker tests:
+- Idempotency tests:
+- Error classification tests:
+
+## Validation
+
+- pnpm test:
+- pnpm build:
+- pnpm typecheck:
+- pnpm lint:
+- pnpm format:check:
+- import check:
+- ownership check:
+- docs check:
+- diff check:
+- symlink check:
+
+## Git
+
+- commit SHA:
+- push status:
+- local SHA:
+- remote SHA:
+- working tree:
+
+## Remaining Deferred
+
+Hanya tampilkan dependency yang benar-benar belum dapat diselesaikan.
+
+Contoh:
+
+- Real Telegram integration — requires real API_ID/API_HASH/session.
+- Concrete production workload — jika belum ada domain job contract.
+- External infrastructure integration — jika environment belum tersedia.
+
+Jangan memasukkan item yang sebenarnya sudah selesai.
+
+## Next Roadmap
+
+Tentukan task berikutnya berdasarkan dependency nyata repository.
+
+Jangan membuat fitur acak.
+
+---
+
+# ATURAN KERAS
+
+1. Jangan mengulang B-030.
+2. Jangan mengulang B-070.
+3. Jangan mengulang B-071.
+4. Jangan mengulang actor policy.
+5. Jangan membuat JobHandler interface kedua.
+6. Jangan membuat registry kedua.
+7. Jangan membuat worker executor kedua.
+8. Jangan membuat queue consumer kedua.
+9. Jangan membuat retry engine kedua.
+10. Jangan membuat jobs table kedua.
+11. Jangan membuat business workload fiktif.
+12. Jangan membuat Telegram integration palsu.
+13. Jangan membuat credential palsu.
+14. Jangan mengubah production secret configuration untuk test.
+15. Jangan mengklaim exactly-once.
+16. Jangan mengarang retry policy baru.
+17. Jangan mengubah aggregateRef semantics.
+18. Jangan menghapus system-actor policy.
+19. Jangan membuat schema/migration baru kecuali dependency nyata dan memang sudah menjadi bagian scope task ini.
+20. Jangan menyentuh Gorouter.app.
+21. Jangan membuat test Gorouter.app.
+22. NVIDIA dan TokenHarbor tidak perlu disentuh.
+23. Jangan berhenti hanya pada audit jika concrete handler memang sudah memiliki dependency lengkap.
+24. Jika concrete handler belum mungkin karena business contract belum tersedia, selesaikan registry/dispatch foundation yang memang dapat diselesaikan dan jelaskan dependency sebenarnya.
+25. Kerjakan langsung pada `/root/botspace`.
+
+MULAI DENGAN AUDIT REPOSITORY TERLEBIH DAHULU, lalu implementasikan hanya berdasarkan dependency nyata yang ditemukan.
 
 ```
 # 
