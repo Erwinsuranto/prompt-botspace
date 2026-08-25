@@ -170,7 +170,814 @@
 ```
 # 
 ```
+# Prompt: BotSpace — PostgreSQL Transactional Outbox + Redis Relay End-to-End Verification
 
+Lanjutkan project BotSpace dari kondisi repository TERAKHIR.
+
+KERJAKAN LANGSUNG DI:
+
+`/root/botspace`
+
+BRANCH:
+
+`backend-dev-recovery`
+
+JANGAN TANYA SOAL KREDIT/KIRO.
+JANGAN BERHENTI UNTUK MEMINTA KONFIRMASI.
+AUDIT → IMPLEMENTASI/PERBAIKAN JIKA DEPENDENCY NYATA TERSEDIA → TEST → COMMIT → PUSH.
+
+==================================================
+KONDISI TERAKHIR
+==================================================
+
+Pekerjaan sebelumnya SUDAH selesai.
+
+Repository terakhir:
+
+- B-030 Workspace API/Contract SUDAH selesai.
+- B-070 Storage Adapter SUDAH selesai.
+- B-071 File/Share contract SUDAH selesai.
+- B-071 File/Share API SUDAH selesai.
+- Production wiring B-071 SUDAH selesai.
+- Production SecretResolver boundary SUDAH tersedia sejauh yang didukung repository.
+- Durable job machinery SUDAH tersedia.
+- Job state machine SUDAH tersedia.
+- Worker executor SUDAH tersedia.
+- Job-type registry SUDAH tersedia.
+- System-actor policy SUDAH selesai.
+- `aggregateRef` preservation SUDAH selesai.
+- Redis outbox producer/consumer foundation SUDAH tersedia.
+- Outbox idempotency/materialization foundation SUDAH tersedia.
+- Repository terakhir CLEAN.
+- Local SHA dan remote `origin/backend-dev-recovery` SUDAH sinkron.
+- Commit terakhir sudah berhasil di-push.
+
+Deferred yang masih valid:
+
+1. PostgreSQL + Redis integration suite belum dapat dijalankan karena environment:
+   - `PERSISTENCE_TEST_DATABASE_URL`
+   - `QUEUE_TEST_URL`
+   belum tersedia.
+2. Real Telegram integration masih membutuhkan:
+   - API_ID,
+   - API_HASH,
+   - session nyata.
+3. Telegram-dependent workload belum memiliki real workload contract.
+4. `scripts/check-symlinks.mjs` memang tidak tersedia dan JANGAN dibuat.
+
+Roadmap terakhir secara eksplisit menunjukkan dependency berikutnya:
+
+**Verifikasi PostgreSQL transactional outbox producer path + Redis relay.**
+
+==================================================
+TUJUAN UTAMA
+==================================================
+
+Sekarang fokus HANYA pada verifikasi dan, jika diperlukan, penyelesaian:
+
+`business transaction`
+→ `CAS/status update`
+→ `outbox_events INSERT`
+→ COMMIT PostgreSQL
+→ relay menemukan unpublished outbox event
+→ publish ke Redis
+→ mark outbox event published
+→ consumer menerima event
+→ job materialization
+→ durable job tersedia untuk executor.
+
+Tujuan utama adalah memastikan transactional outbox benar-benar bekerja sebagai durability boundary.
+
+JANGAN membuat architecture baru jika repository sudah mempunyai primitive yang dibutuhkan.
+
+JANGAN mengerjakan Telegram.
+
+JANGAN membuat workload Telegram palsu.
+
+JANGAN menyentuh Gorouter.app.
+
+NVIDIA dan TokenHarbor tidak perlu disentuh.
+
+==================================================
+BAGIAN 1 — AUDIT TRANSACTIONAL OUTBOX
+==================================================
+
+Audit terlebih dahulu seluruh implementation terkait:
+
+- `outbox_events`
+- OutboxEvent model
+- outbox repository
+- transaction helper
+- PostgreSQL transaction lifecycle
+- CAS/status update
+- `createOutboxDispatcher`
+- `listUnpublished`
+- `publish`
+- `markPublished`
+- Redis publisher
+- Redis consumer
+- job materializer
+- jobs repository
+- idempotency constraint
+- existing `postgres.test.ts`
+- existing queue/Redis tests
+- worker executor
+- job-type registry.
+
+Cari implementation yang SUDAH ADA.
+
+JANGAN membuat repository/abstraction kedua.
+
+JANGAN membuat transactional outbox system kedua.
+
+JANGAN mengganti PostgreSQL dengan in-memory store.
+
+==================================================
+BAGIAN 2 — TRANSACTIONAL PRODUCER PATH
+==================================================
+
+Verifikasi jalur producer yang seharusnya bersifat atomik.
+
+Target behavior:
+
+Satu PostgreSQL transaction harus dapat melakukan:
+
+1. update/CAS business state,
+2. insert `outbox_events`,
+3. COMMIT.
+
+Jika COMMIT berhasil:
+
+- status business berubah,
+- outbox event tersedia.
+
+Jika transaction ROLLBACK:
+
+- business status tidak berubah,
+- outbox event juga tidak ada.
+
+Ini harus diverifikasi dengan PostgreSQL nyata jika:
+
+`PERSISTENCE_TEST_DATABASE_URL`
+
+tersedia.
+
+JANGAN menggunakan fake database untuk membuktikan atomicity.
+
+==================================================
+BAGIAN 3 — CAS + OUTBOX ATOMICITY
+==================================================
+
+Audit primitive CAS yang sudah ada.
+
+Pastikan producer tidak melakukan:
+
+1. update status,
+2. commit,
+3. baru insert outbox.
+
+Yang dibutuhkan adalah transaction boundary yang benar.
+
+Target:
+
+`BEGIN`
+→ CAS/update state
+→ INSERT outbox_event
+→ `COMMIT`
+
+Jika salah satu gagal:
+
+`ROLLBACK`
+
+Pastikan tidak ada partial state.
+
+Test minimal:
+
+### TEST A — SUCCESS
+
+- create initial business row/state,
+- execute transactional operation,
+- commit,
+- verify business state changed,
+- verify exactly one outbox event exists.
+
+### TEST B — ROLLBACK
+
+- execute operation,
+- force failure sebelum commit,
+- rollback,
+- verify business state unchanged,
+- verify no outbox event was committed.
+
+### TEST C — CAS FAILURE
+
+- gunakan state/version yang salah,
+- CAS harus gagal,
+- transaction tidak menghasilkan outbox event.
+
+Jangan mengubah CAS semantics hanya demi test.
+
+==================================================
+BAGIAN 4 — OUTBOX EVENT CONTENT
+==================================================
+
+Verifikasi event yang ditulis ke PostgreSQL memiliki field yang memang diwajibkan contract.
+
+Periksa:
+
+- event ID,
+- event type,
+- workspace context jika tersedia,
+- aggregate reference jika tersedia,
+- payload,
+- idempotency key jika tersedia,
+- created timestamp,
+- published state,
+- publish metadata jika memang sudah ada.
+
+JANGAN menambahkan field speculative.
+
+Pastikan:
+
+- payload tidak corrupt,
+- aggregateRef tidak hilang,
+- workspace ID tidak berubah,
+- idempotency key tetap konsisten.
+
+==================================================
+BAGIAN 5 — UNIQUE / IDEMPOTENCY
+==================================================
+
+Audit uniqueness constraint yang sudah tersedia.
+
+Verifikasi duplicate producer attempt.
+
+Jika contract mengharuskan uniqueness:
+
+- duplicate transaction harus ditolak/dideteksi sesuai semantics repository,
+- tidak boleh menghasilkan duplicate durable outbox event.
+
+Jangan mengandalkan:
+
+- in-memory Set,
+- process-local cache,
+- JavaScript Map,
+- global singleton.
+
+Idempotency harus tetap benar setelah process restart.
+
+==================================================
+BAGIAN 6 — OUTBOX DISPATCHER
+==================================================
+
+Audit implementation:
+
+`createOutboxDispatcher`
+
+dan primitive:
+
+- `listUnpublished`
+- `publish`
+- `markPublished`.
+
+Pastikan urutannya benar:
+
+1. Ambil unpublished outbox event.
+2. Publish event ke Redis.
+3. Hanya setelah publish sukses, tandai event published.
+4. Jika publish gagal:
+   - event tetap unpublished,
+   - jangan menandai published secara palsu.
+5. Jika markPublished gagal setelah Redis publish sukses:
+   - duplicate publish pada retry harus aman,
+   - downstream idempotency harus mencegah duplicate job materialization.
+
+JANGAN mengklaim exactly-once jika architecture sebenarnya at-least-once.
+
+Semantics yang harus dipertahankan:
+
+**at-least-once delivery + idempotent materialization.**
+
+==================================================
+BAGIAN 7 — DISPATCH FAILURE TEST
+==================================================
+
+Jika Redis test environment tersedia, buat/verifikasi test:
+
+### TEST D — REDIS PUBLISH FAILURE
+
+- outbox event unpublished,
+- dispatcher mencoba publish,
+- Redis publish gagal,
+- event tetap unpublished.
+
+### TEST E — MARK PUBLISHED FAILURE
+
+Jika repository memiliki test seam untuk failure:
+
+- Redis publish sukses,
+- `markPublished` gagal,
+- event tetap unpublished,
+- retry publish tidak boleh membuat duplicate durable job.
+
+Jika belum ada test seam:
+
+buat perubahan minimal pada test infrastructure saja.
+
+Jangan mengubah production architecture besar hanya untuk simulasi failure.
+
+==================================================
+BAGIAN 8 — REDIS RELAY
+==================================================
+
+Jika:
+
+`QUEUE_TEST_URL`
+
+tersedia:
+
+gunakan Redis nyata.
+
+Verifikasi:
+
+PostgreSQL outbox
+→ dispatcher
+→ Redis
+→ consumer.
+
+Jangan menggunakan in-memory queue sebagai pengganti integration test.
+
+Audit Redis mechanism yang sebenarnya digunakan:
+
+- Streams,
+- consumer group,
+- List,
+- atau abstraction lain.
+
+Jangan mengganti mechanism.
+
+Jika Redis Streams:
+
+verifikasi semantics consumer group/ACK/pending sesuai implementation.
+
+Jika Lists:
+
+verifikasi delivery/retry semantics sesuai implementation.
+
+==================================================
+BAGIAN 9 — FULL END-TO-END
+==================================================
+
+Jika PostgreSQL dan Redis tersedia:
+
+jalankan full chain:
+
+1. Begin PostgreSQL transaction.
+2. CAS/update business state.
+3. Insert OutboxEvent.
+4. Commit.
+5. Dispatcher menemukan event.
+6. Dispatcher publish event ke Redis.
+7. Dispatcher mark event published.
+8. Redis consumer menerima event.
+9. Consumer materialize durable job.
+10. Verify `jobs` row.
+11. Worker executor claim job.
+12. Generic test handler menjalankan job.
+13. Job menjadi completed.
+
+Tidak boleh ada Telegram dependency.
+
+Gunakan generic deterministic test workload yang sudah tersedia.
+
+Jika generic test handler belum ada dan job registry architecture sudah mendukung:
+
+buat test-only generic handler minimal.
+
+Handler hanya boleh:
+
+- menerima payload,
+- menghasilkan deterministic success.
+
+Jangan:
+
+- memanggil Telegram,
+- memanggil NVIDIA,
+- memanggil TokenHarbor,
+- memanggil external API.
+
+==================================================
+BAGIAN 10 — DUPLICATE DELIVERY END-TO-END
+==================================================
+
+Verifikasi duplicate delivery.
+
+Simulasikan:
+
+Outbox event yang sama dipublish dua kali ke Redis.
+
+Consumer memproses kedua delivery.
+
+Hasil akhir:
+
+- hanya satu durable job jika contract/idempotency policy mengharuskannya,
+- job payload benar,
+- aggregateRef benar,
+- workspace context benar.
+
+Pastikan duplicate prevention berasal dari persistence/idempotency mechanism.
+
+Jangan menggunakan process-local deduplication sebagai satu-satunya protection.
+
+==================================================
+BAGIAN 11 — RESTART / RECOVERY
+==================================================
+
+Jika test infrastructure memungkinkan, verifikasi restart semantics.
+
+Kasus:
+
+1. Outbox event sudah committed.
+2. Dispatcher belum memproses.
+3. Process restart.
+4. Dispatcher berjalan kembali.
+5. Event tetap ditemukan.
+6. Event dipublish.
+7. Job materialized.
+
+Kasus kedua:
+
+1. Redis publish sukses.
+2. MarkPublished belum berhasil.
+3. Process restart.
+4. Event diproses ulang.
+5. Duplicate delivery tidak menghasilkan duplicate durable job.
+
+Jangan membuat fake process restart jika architecture test tidak mendukungnya.
+
+Jika tidak dapat diverifikasi secara nyata:
+
+catat sebagai deferred test infrastructure limitation.
+
+==================================================
+BAGIAN 12 — DATABASE CLEANUP
+==================================================
+
+Integration test PostgreSQL wajib:
+
+- menggunakan test data isolation,
+- membersihkan data setelah test,
+- tidak menghapus data di luar scope test,
+- tidak menjalankan destructive migration terhadap database production.
+
+Gunakan migration resmi repository.
+
+Jangan membuat schema test berbeda dari production schema.
+
+==================================================
+BAGIAN 13 — REDIS CLEANUP
+==================================================
+
+Redis integration test wajib:
+
+- menggunakan namespace/key prefix test jika mechanism mendukungnya,
+- tidak menghapus key di luar test scope,
+- membersihkan test messages,
+- tidak mengganggu queue production.
+
+Jangan flush seluruh Redis instance.
+
+Jangan menggunakan:
+
+`FLUSHALL`
+
+atau tindakan equivalent terhadap shared Redis.
+
+==================================================
+BAGIAN 14 — OBSERVABILITY / ERROR SAFETY
+==================================================
+
+Review logs/error handling.
+
+Pastikan tidak ada:
+
+- PostgreSQL password di log,
+- Redis password di log,
+- connection URL lengkap di error,
+- API key,
+- secret,
+- Telegram credential,
+- raw sensitive payload jika tidak diperlukan.
+
+Error boleh menjelaskan:
+
+- database unavailable,
+- Redis unavailable,
+- publish failed,
+- transaction failed,
+
+tetapi tidak boleh membocorkan credential.
+
+==================================================
+BAGIAN 15 — TELEGRAM
+==================================================
+
+JANGAN mengerjakan Telegram integration pada task ini.
+
+Tetap:
+
+`DEFERRED — API_ID/API_HASH/session nyata diperlukan`
+
+Telegram-dependent workload juga tetap:
+
+`DEFERRED — real workload contract belum tersedia`
+
+Jangan membuat fake Telegram credentials.
+
+Jangan membuat fake Telegram workload hanya untuk menutup deferred item.
+
+==================================================
+BAGIAN 16 — POSTGRES ENVIRONMENT
+==================================================
+
+Periksa:
+
+`PERSISTENCE_TEST_DATABASE_URL`
+
+Jika tersedia:
+
+- jalankan PostgreSQL transactional outbox tests,
+- jalankan migration,
+- jalankan repository tests,
+- jalankan relevant job state/recovery tests.
+
+Jika tidak tersedia:
+
+`SKIPPED — PERSISTENCE_TEST_DATABASE_URL unavailable`
+
+JANGAN membuat database palsu.
+
+JANGAN menggunakan SQLite.
+
+JANGAN mengubah test supaya PASS.
+
+==================================================
+BAGIAN 17 — REDIS ENVIRONMENT
+==================================================
+
+Periksa:
+
+`QUEUE_TEST_URL`
+
+Jika tersedia:
+
+- jalankan Redis outbox/relay integration tests,
+- jalankan producer → dispatcher → consumer chain.
+
+Jika tidak tersedia:
+
+`SKIPPED — QUEUE_TEST_URL unavailable`
+
+JANGAN membuat fake Redis.
+
+JANGAN menggunakan in-memory queue untuk mengklaim Redis integration PASS.
+
+==================================================
+BAGIAN 18 — VALIDATION
+==================================================
+
+Jalankan validation repository yang tersedia:
+
+`pnpm test`
+
+`pnpm build`
+
+`pnpm typecheck`
+
+`pnpm lint`
+
+`pnpm format:check`
+
+`node scripts/check-imports.mjs`
+
+`node scripts/check-ownership.mjs`
+
+`node scripts/check-doc-links.mjs`
+
+`git diff --check`
+
+Untuk:
+
+`node scripts/check-symlinks.mjs`
+
+JANGAN membuat script.
+
+Jika tidak tersedia:
+
+`SKIPPED — scripts/check-symlinks.mjs unavailable`
+
+Jangan menyamarkan skipped sebagai PASS.
+
+==================================================
+BAGIAN 19 — TARGETED TEST SELECTION
+==================================================
+
+Selain full suite, jalankan test yang relevan dengan:
+
+- PostgreSQL outbox,
+- transactional producer,
+- CAS + outbox,
+- Redis dispatcher,
+- Redis consumer,
+- job materialization,
+- job executor,
+- idempotency,
+- recovery.
+
+Gunakan test command/filter yang memang sesuai package/repository.
+
+Jangan menjalankan test Gorouter.app.
+
+Jika test suite otomatis memuat Gorouter.app:
+
+SKIP/EXCLUDE test tersebut sesuai aturan project.
+
+NVIDIA dan TokenHarbor tidak perlu diuji pada task ini kecuali perubahan langsung memengaruhi keduanya.
+
+==================================================
+BAGIAN 20 — DIFF REVIEW
+==================================================
+
+Setelah semua selesai:
+
+`git status`
+
+`git diff --stat`
+
+`git diff`
+
+Review seluruh perubahan.
+
+Pastikan tidak ada:
+
+- credential,
+- secret,
+- temporary files,
+- generated junk,
+- unrelated refactor,
+- Telegram integration,
+- Gorouter.app changes,
+- NVIDIA provider changes yang tidak diperlukan,
+- TokenHarbor changes yang tidak diperlukan.
+
+Jika implementation ternyata sudah benar dan hanya test verification yang berubah:
+
+jangan mengubah production code tanpa alasan.
+
+Jika tidak ada perubahan valid:
+
+jangan membuat empty commit.
+
+==================================================
+BAGIAN 21 — COMMIT
+==================================================
+
+Jika ada perubahan kode/test valid:
+
+buat SATU commit.
+
+Gunakan message yang sesuai, misalnya:
+
+`test: verify transactional outbox relay`
+
+atau message yang lebih tepat berdasarkan perubahan aktual.
+
+JANGAN membuat empty commit.
+
+==================================================
+BAGIAN 22 — PUSH
+==================================================
+
+Setelah commit:
+
+`git push origin backend-dev-recovery`
+
+Kemudian:
+
+`git rev-parse HEAD`
+
+Verifikasi remote branch.
+
+Pastikan:
+
+- local SHA == remote SHA
+- working tree clean.
+
+Jika push gagal:
+
+- jangan reset commit,
+- jangan hapus commit,
+- jangan mengubah credential GitHub sembarangan,
+- tampilkan error,
+- commit tetap aman lokal.
+
+==================================================
+OUTPUT AKHIR
+==================================================
+
+Tampilkan laporan:
+
+### Transactional Producer
+- CAS + outbox atomicity:
+- commit behavior:
+- rollback behavior:
+- duplicate/idempotency:
+- status:
+
+### PostgreSQL
+- `PERSISTENCE_TEST_DATABASE_URL`:
+- migration:
+- transactional outbox test:
+- repository test:
+- status:
+
+### Redis Dispatcher
+- `QUEUE_TEST_URL`:
+- publish:
+- markPublished:
+- publish failure:
+- retry:
+- status:
+
+### Redis Consumer
+- delivery:
+- ACK:
+- duplicate delivery:
+- materialization:
+- status:
+
+### End-to-End
+- PostgreSQL transaction:
+- OutboxEvent:
+- Redis relay:
+- durable Job:
+- executor:
+- completion:
+- status:
+
+### Recovery
+- unpublished event recovery:
+- publish/markPublished failure:
+- duplicate protection:
+- restart behavior:
+- status:
+
+### Validation
+- test:
+- build:
+- typecheck:
+- lint:
+- format:
+- imports:
+- ownership:
+- docs:
+- diff:
+- symlink:
+
+### Git
+- commit SHA:
+- push:
+- local SHA:
+- remote SHA:
+- working tree:
+
+### Remaining Deferred
+Hanya tampilkan dependency yang benar-benar belum dapat diselesaikan karena:
+- environment,
+- credentials,
+- infrastructure,
+- atau real workload contract.
+
+### Next Roadmap
+Tentukan task berikutnya berdasarkan dependency nyata setelah transactional outbox PostgreSQL + Redis relay selesai.
+
+PENTING:
+
+- Jangan membuat fake Redis.
+- Jangan membuat fake PostgreSQL.
+- Jangan menggunakan SQLite.
+- Jangan membuat exactly-once claim yang tidak didukung architecture.
+- Pertahankan at-least-once + idempotent materialization jika itu semantics repository.
+- Jangan mengulang B-030.
+- Jangan mengulang B-070.
+- Jangan mengulang B-071.
+- Jangan mengerjakan Telegram.
+- Jangan menyentuh Gorouter.app.
+- Jangan membuat fitur acak.
+- Kerjakan langsung.
+- Test.
+- Commit.
+- Push.
 
 
 ```
