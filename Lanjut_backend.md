@@ -177,7 +177,758 @@
 # 
 ```
 
+# Prompt: BotSpace — Redis Outbox to Durable Job Materialization End-to-End Verification
 
+Lanjutkan project BotSpace dari kondisi repository TERAKHIR.
+
+KERJAKAN LANGSUNG DI:
+
+`/root/botspace`
+
+BRANCH:
+
+`backend-dev-recovery`
+
+JANGAN TANYA SOAL KREDIT/KIRO.
+JANGAN BERHENTI UNTUK MEMINTA KONFIRMASI.
+AUDIT → IMPLEMENTASI JIKA DEPENDENCY NYATA TERSEDIA → TEST → COMMIT → PUSH.
+
+==================================================
+KONDISI TERAKHIR
+==================================================
+
+Pekerjaan sebelumnya SUDAH selesai dan berhasil di-push.
+
+Status repository terakhir:
+
+- B-030 Workspace API/Contract SUDAH selesai.
+- B-070 Storage Adapter SUDAH selesai.
+- B-071 File/Share contract SUDAH selesai.
+- B-071 File/Share API SUDAH selesai.
+- Production wiring B-071 SUDAH selesai.
+- SecretResolver application boundary SUDAH tersedia.
+- Durable job machinery SUDAH tersedia.
+- Job state-machine foundation SUDAH tersedia.
+- Worker executor foundation SUDAH tersedia.
+- Orphaned-running-job recovery foundation SUDAH tersedia.
+- System-actor policy SUDAH selesai.
+- `aggregateRef` preservation SUDAH selesai.
+- Redis outbox producer/consumer foundation SUDAH tersedia.
+- Outbox uniqueness/idempotency foundation SUDAH tersedia.
+- Repository terakhir CLEAN.
+- Local SHA dan remote `origin/backend-dev-recovery` SUDAH sinkron.
+- PostgreSQL live integration masih DEFERRED karena:
+  `PERSISTENCE_TEST_DATABASE_URL`
+  belum tersedia.
+- Real Telegram integration tetap DEFERRED karena membutuhkan:
+  API_ID/API_HASH/session nyata.
+- Telegram-dependent workload tetap DEFERRED karena belum ada real workload contract.
+- `scripts/check-symlinks.mjs` memang tidak tersedia dan JANGAN dibuat.
+
+JANGAN mengulang B-030.
+JANGAN mengulang B-070.
+JANGAN mengulang B-071.
+JANGAN mengulang durable job state-machine yang sudah selesai kecuali ditemukan bug nyata saat dependency berikutnya diverifikasi.
+
+==================================================
+TUJUAN TASK
+==================================================
+
+Task sekarang:
+
+**VERIFIKASI END-TO-END REDIS OUTBOX → JOB MATERIALIZATION → DURABLE JOB EXECUTOR**
+
+Roadmap terakhir menunjukkan dependency nyata berikutnya:
+
+Redis outbox producer-consumer yang mematerialisasi event menjadi durable job.
+
+Yang harus dibuktikan:
+
+`OutboxEvent`
+→ Redis outbox producer
+→ Redis queue/stream/consumer mechanism
+→ idempotent materialization
+→ durable `jobs` row
+→ executor/worker claim
+→ job execution
+→ state transition.
+
+Jangan menggunakan Telegram sebagai workload.
+
+Gunakan test-only generic job type/handler yang memang sesuai dengan architecture repository.
+
+==================================================
+BAGIAN 1 — AUDIT OUTBOX ARCHITECTURE
+==================================================
+
+Audit terlebih dahulu:
+
+- OutboxEvent model
+- outbox repository
+- outbox producer
+- Redis adapter
+- Redis consumer
+- Redis stream/list/queue implementation
+- consumer acknowledgment
+- retry behavior
+- materialization logic
+- job repository
+- JobEnvelope
+- job-type registry
+- worker executor
+- idempotency constraints
+- transaction boundaries
+- existing tests
+- existing integration-test infrastructure.
+
+Cari implementation yang SUDAH ADA.
+
+JANGAN membuat abstraction kedua.
+
+JANGAN membuat queue system baru jika Redis outbox abstraction sudah ada.
+
+JANGAN mengganti Redis dengan database polling.
+
+JANGAN mengubah contract hanya agar test mudah.
+
+==================================================
+BAGIAN 2 — OUTBOX PRODUCER
+==================================================
+
+Verifikasi producer.
+
+Buat integration/unit verification untuk:
+
+1. Create deterministic OutboxEvent.
+2. Event memiliki:
+   - event ID,
+   - workspace ID jika memang contract memilikinya,
+   - event type,
+   - payload,
+   - idempotency information,
+   - timestamp.
+3. Producer mem-publish event ke Redis.
+4. Event dapat ditemukan/diambil oleh consumer.
+5. Producer tidak kehilangan event.
+6. Producer tidak menghasilkan duplicate event jika contract melarangnya.
+
+Jangan membuat business event Telegram.
+
+Gunakan generic test event.
+
+==================================================
+BAGIAN 3 — REDIS CONSUMER
+==================================================
+
+Audit mekanisme consumer yang sudah ada.
+
+Verifikasi:
+
+1. Consumer dapat mengambil event.
+2. Event diparse menggunakan schema yang benar.
+3. Event invalid ditangani secara aman.
+4. Event valid diteruskan ke materialization.
+5. Setelah materialization sukses, event di-acknowledge sesuai contract.
+6. Jika materialization gagal, event tidak dianggap sukses secara palsu.
+7. Retry behavior mengikuti mechanism yang SUDAH tersedia.
+
+JANGAN menciptakan retry policy baru.
+
+JANGAN menentukan DLQ semantics baru jika belum ada contract.
+
+Jika failure recovery belum lengkap:
+
+catat dependency nyata dan jangan membuat speculative architecture.
+
+==================================================
+BAGIAN 4 — JOB MATERIALIZATION
+==================================================
+
+Ini bagian utama.
+
+Verifikasi bahwa OutboxEvent benar-benar dapat dimaterialisasi menjadi durable job.
+
+Flow yang harus dibuktikan:
+
+`OutboxEvent`
+→ consumer
+→ job materializer
+→ `jobs` row.
+
+Pastikan job memiliki field yang memang diwajibkan contract, misalnya jika tersedia:
+
+- job ID,
+- job type,
+- workspace ID,
+- aggregateRef,
+- payload,
+- state,
+- attempt information,
+- created timestamp,
+- scheduling information.
+
+JANGAN menambahkan field speculative.
+
+Setelah materialization:
+
+- job harus persistent,
+- state awal harus sesuai contract,
+- payload tidak boleh corrupt,
+- aggregateRef tidak boleh hilang,
+- workspace ownership tidak boleh hilang.
+
+==================================================
+BAGIAN 5 — IDEMPOTENCY
+==================================================
+
+Audit uniqueness constraint yang sudah ada.
+
+Screenshot/roadmap sebelumnya menunjukkan materialization harus memperhatikan:
+
+`UNIQUE(workspace_id, type, idempotency_key)`
+
+atau constraint equivalent yang benar-benar digunakan repository.
+
+Verifikasi:
+
+### TEST A
+
+Publish satu event.
+
+Consumer memproses event.
+
+Job berhasil dibuat.
+
+### TEST B
+
+Publish event yang sama dua kali.
+
+Consumer memproses keduanya.
+
+Pastikan tidak terbentuk dua durable jobs jika contract melarang duplicate.
+
+### TEST C
+
+Consumer restart setelah materialization tetapi sebelum acknowledgement.
+
+Simulasikan kondisi:
+
+- job sudah materialized,
+- acknowledgement belum selesai,
+- event diproses kembali.
+
+Pastikan duplicate delivery tidak menghasilkan duplicate job.
+
+JANGAN mengandalkan hanya in-memory Set/map untuk idempotency.
+
+Gunakan persistence/constraint yang memang sudah menjadi architecture repository.
+
+==================================================
+BAGIAN 6 — FAILURE BETWEEN MATERIALIZATION AND ACK
+==================================================
+
+Verifikasi failure window:
+
+1. Consumer menerima event.
+2. Job berhasil dibuat.
+3. ACK sengaja gagal / tidak dilakukan.
+4. Event dikirim ulang.
+5. Materializer menjalankan lagi.
+6. Idempotency protection harus mencegah duplicate job.
+7. Event akhirnya dapat di-acknowledge.
+
+Jangan membuat fake production failure mechanism.
+
+Gunakan test seam/injected dependency jika repository memang sudah memilikinya.
+
+Jika belum ada test seam:
+
+buat perubahan minimal hanya pada test infrastructure, bukan production architecture besar.
+
+==================================================
+BAGIAN 7 — JOB EXECUTOR HANDOFF
+==================================================
+
+Setelah job berhasil dimaterialisasi:
+
+verifikasi job dapat ditemukan oleh executor.
+
+Flow:
+
+1. Materialize job.
+2. Repository membaca job.
+3. Worker claim job.
+4. Job berubah ke running.
+5. Generic registered handler dijalankan.
+6. Handler berhasil.
+7. Job menjadi completed.
+
+Pastikan:
+
+- job type registry mengenali type tersebut,
+- handler menerima payload yang benar,
+- aggregateRef tetap tersedia,
+- workspace context tidak hilang,
+- executor tidak membutuhkan Telegram credentials.
+
+Jangan membuat Telegram handler.
+
+==================================================
+BAGIAN 8 — GENERIC TEST JOB HANDLER
+==================================================
+
+Jika repository sudah mempunyai test handler/job type:
+
+gunakan yang sudah ada.
+
+Jika belum ada tetapi architecture job-type registry memang sudah siap:
+
+buat test-only generic handler yang sangat kecil.
+
+Handler hanya boleh melakukan deterministic behavior:
+
+- menerima payload,
+- menghasilkan success,
+- atau controlled failure jika dibutuhkan.
+
+JANGAN:
+
+- memanggil Telegram,
+- memanggil NVIDIA,
+- memanggil TokenHarbor,
+- mengakses production credential,
+- mengakses external API.
+
+Pastikan test handler berada di test infrastructure atau lokasi yang memang sesuai architecture.
+
+Jangan mengotori production business logic.
+
+==================================================
+BAGIAN 9 — WORKSPACE / AGGREGATE CONTEXT
+==================================================
+
+Verifikasi bahwa metadata dari OutboxEvent tidak hilang saat menjadi JobEnvelope.
+
+Minimal periksa:
+
+- workspace ID,
+- event type,
+- job type,
+- aggregateRef jika ada,
+- idempotency key,
+- payload.
+
+Jika event berasal dari workspace A:
+
+job tidak boleh berubah menjadi workspace B.
+
+Jika aggregateRef ada:
+
+aggregateRef harus tetap tersedia pada materialized jobs row.
+
+Jangan membuat aggregateRef baru secara random.
+
+==================================================
+BAGIAN 10 — REDIS DELIVERY SEMANTICS
+==================================================
+
+Audit apakah Redis implementation menggunakan:
+
+- Redis Streams,
+- consumer groups,
+- lists,
+- blocking pop,
+- pub/sub,
+- atau mechanism lain.
+
+Jangan mengubah mechanism.
+
+Verifikasi behavior sesuai implementation yang sudah ada.
+
+Jika Redis Streams:
+
+periksa:
+
+- consumer group,
+- message ID,
+- pending messages,
+- ACK,
+- reclaim/claim behavior.
+
+Jika Lists:
+
+periksa:
+
+- pop semantics,
+- failure recovery,
+- duplicate delivery behavior.
+
+Jika abstraction menyembunyikan detail tersebut:
+
+test abstraction behavior, bukan membuat implementation baru.
+
+==================================================
+BAGIAN 11 — REDIS ENVIRONMENT
+==================================================
+
+Periksa environment.
+
+Cari configuration seperti:
+
+- REDIS_URL
+- REDIS_HOST
+- REDIS_PORT
+- REDIS_PASSWORD
+- REDIS_TLS
+- configuration key lain yang memang digunakan repository.
+
+Jika Redis test environment tersedia:
+
+jalankan integration test nyata.
+
+Jika Redis tidak tersedia:
+
+JANGAN:
+
+- membuat Redis palsu,
+- menggunakan in-memory queue untuk menggantikan Redis integration,
+- mengubah test supaya PASS,
+- menginstall Redis permanen hanya untuk membuat test PASS.
+
+Tetap lakukan:
+
+- unit tests,
+- static validation,
+- contract verification.
+
+Laporan:
+
+`SKIPPED — Redis integration environment unavailable`
+
+Jika environment tersedia tetapi connection gagal:
+
+diagnosis root cause.
+
+Jangan menyamarkan sebagai PASS.
+
+==================================================
+BAGIAN 12 — POSTGRESQL DEPENDENCY
+==================================================
+
+Materialization mungkin membutuhkan PostgreSQL.
+
+Periksa:
+
+`PERSISTENCE_TEST_DATABASE_URL`
+
+Jika tersedia:
+
+- jalankan PostgreSQL-backed materialization test,
+- jalankan migration resmi,
+- verifikasi unique constraint,
+- verifikasi jobs row,
+- verifikasi executor handoff.
+
+Jika tidak tersedia:
+
+`SKIPPED — PERSISTENCE_TEST_DATABASE_URL unavailable`
+
+JANGAN membuat fake PostgreSQL.
+
+JANGAN menggunakan SQLite sebagai pengganti.
+
+==================================================
+BAGIAN 13 — TRANSACTION / ATOMICITY
+==================================================
+
+Audit apakah outbox consumption dan job materialization menggunakan transaction boundary.
+
+Cari apakah:
+
+- event state,
+- jobs insert,
+- idempotency constraint,
+- ACK,
+
+memiliki ordering yang benar.
+
+Tujuan:
+
+Tidak boleh terjadi:
+
+- event ACK tetapi job tidak pernah dibuat,
+- duplicate job karena retry,
+- event hilang,
+- job materialized tanpa required metadata.
+
+Jika atomicity penuh tidak dapat dicapai karena Redis/PostgreSQL berada di sistem berbeda:
+
+JANGAN berpura-pura menjadi exactly-once.
+
+Gunakan semantics yang memang sudah dipilih architecture, misalnya at-least-once + idempotent materialization.
+
+Dokumentasikan behavior aktual.
+
+==================================================
+BAGIAN 14 — ERROR HANDLING
+==================================================
+
+Test controlled failures:
+
+- invalid event payload,
+- unknown event type,
+- duplicate event,
+- database materialization failure,
+- ACK failure,
+- handler failure.
+
+Pastikan:
+
+- error tidak membocorkan credential,
+- event tidak dianggap processed jika belum aman,
+- job tidak masuk state ilegal,
+- duplicate event tidak menghasilkan duplicate durable job.
+
+Jangan menambahkan error state baru tanpa contract.
+
+==================================================
+BAGIAN 15 — SECURITY
+==================================================
+
+Pastikan:
+
+- Redis credentials tidak masuk logs,
+- PostgreSQL credentials tidak masuk logs,
+- event payload sensitif tidak dicetak,
+- API keys tidak masuk fixture,
+- Telegram credentials tidak digunakan,
+- object storage credentials tidak digunakan.
+
+Review:
+
+`git diff`
+
+dan test output.
+
+Jika error output menampilkan connection string:
+
+sanitasi output test/log.
+
+==================================================
+BAGIAN 16 — VALIDATION
+==================================================
+
+Jalankan validation repository yang tersedia:
+
+`pnpm test`
+
+`pnpm build`
+
+`pnpm typecheck`
+
+`pnpm lint`
+
+`pnpm format:check`
+
+`node scripts/check-imports.mjs`
+
+`node scripts/check-ownership.mjs`
+
+`node scripts/check-doc-links.mjs`
+
+`git diff --check`
+
+Untuk:
+
+`node scripts/check-symlinks.mjs`
+
+JANGAN membuat script.
+
+Jika tidak tersedia:
+
+`SKIPPED — scripts/check-symlinks.mjs unavailable`
+
+Jika Redis integration tersedia:
+
+jalankan integration test Redis.
+
+Jika PostgreSQL tersedia:
+
+jalankan PostgreSQL integration test.
+
+Jika salah satu environment tidak tersedia:
+
+laporkan SKIPPED secara jujur.
+
+Jangan menyamarkan skipped menjadi passed.
+
+==================================================
+BAGIAN 17 — REVIEW DIFF
+==================================================
+
+Setelah semua selesai:
+
+jalankan:
+
+`git status`
+
+`git diff --stat`
+
+`git diff`
+
+Review seluruh perubahan.
+
+Pastikan perubahan hanya terkait:
+
+- Redis outbox verification,
+- job materialization,
+- integration test,
+- test-only handler jika benar-benar diperlukan,
+- bug fix yang ditemukan dari verification.
+
+JANGAN ada:
+
+- B-030 rewrite,
+- B-070 rewrite,
+- B-071 rewrite,
+- Telegram integration,
+- NVIDIA integration,
+- TokenHarbor integration,
+- Gorouter.app integration,
+- unrelated refactor,
+- secret,
+- generated junk,
+- temporary files.
+
+==================================================
+BAGIAN 18 — COMMIT
+==================================================
+
+Jika ada perubahan kode/test valid:
+
+buat SATU commit.
+
+Gunakan commit message yang sesuai, misalnya:
+
+`test: verify redis outbox job materialization`
+
+atau gunakan message yang lebih tepat berdasarkan perubahan aktual.
+
+JANGAN membuat empty commit.
+
+==================================================
+BAGIAN 19 — PUSH
+==================================================
+
+Setelah commit:
+
+langsung:
+
+`git push origin backend-dev-recovery`
+
+Kemudian:
+
+`git rev-parse HEAD`
+
+dan verifikasi remote branch.
+
+Pastikan:
+
+- local SHA == remote SHA
+- working tree clean.
+
+Jika push gagal:
+
+- jangan reset commit,
+- jangan hapus commit,
+- jangan mengubah credential GitHub sembarangan,
+- tampilkan error,
+- commit tetap aman lokal.
+
+==================================================
+OUTPUT AKHIR
+==================================================
+
+Tampilkan:
+
+### Redis Outbox
+- producer:
+- consumer:
+- delivery:
+- ACK:
+- retry:
+- status:
+
+### Job Materialization
+- OutboxEvent → jobs:
+- idempotency:
+- duplicate delivery:
+- aggregateRef:
+- workspace context:
+- status:
+
+### Executor Handoff
+- job registry:
+- claim:
+- handler:
+- completion:
+- status:
+
+### PostgreSQL
+- migration:
+- integration:
+- status:
+
+### Redis Environment
+- connection:
+- integration:
+- status:
+
+### Validation
+- test:
+- build:
+- typecheck:
+- lint:
+- format:
+- imports:
+- ownership:
+- docs:
+- diff:
+- symlink:
+
+### Git
+- commit SHA:
+- push:
+- local SHA:
+- remote SHA:
+- working tree:
+
+### Remaining Deferred
+Hanya tampilkan dependency yang benar-benar masih membutuhkan:
+- environment,
+- credentials,
+- infrastructure,
+- approved contract,
+- atau real workload.
+
+### Next Roadmap
+Tentukan task berikutnya berdasarkan dependency NYATA setelah Redis outbox → job materialization selesai.
+
+PENTING:
+
+- Jangan membuat fake Redis.
+- Jangan membuat fake PostgreSQL.
+- Jangan membuat fake Telegram credentials.
+- Jangan membuat Telegram workload palsu.
+- Jangan membuat exactly-once claim yang tidak didukung architecture.
+- Jangan mengubah contract secara speculative.
+- Jangan mengulang B-030/B-070/B-071.
+- Jangan menyentuh Gorouter.app.
+- Jangan menyentuh NVIDIA/TokenHarbor kecuali benar-benar terkena dependency.
+- Jangan membuat fitur acak.
+- Kerjakan langsung.
+- Commit.
+- Push.
 
 ```
 # 
