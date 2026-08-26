@@ -138,10 +138,745 @@
 
 
 ```
-# 
+# Production Module Definitions (manifest + command handler
 ```
 
+Lanjutkan project BotSpace dari kondisi repository TERAKHIR.
 
+WORKDIR:
+`/root/botspace`
+
+BRANCH:
+`backend-dev-recovery`
+
+JANGAN TANYA SOAL KREDIT/KIRO.
+JANGAN BERHENTI UNTUK MEMINTA KONFIRMASI.
+KERJAKAN LANGSUNG → AUDIT → IMPLEMENTASI → TEST → REVIEW → COMMIT → PUSH.
+
+==================================================
+KONDISI TERAKHIR
+==================================================
+
+Tahapan berikut SUDAH SELESAI dan JANGAN DIULANG:
+
+- B-030 Workspace API/Contract.
+- B-070 Storage Adapter.
+- B-071 File/Share contract.
+- B-071 File/Share API.
+- Production wiring B-071.
+- SecretResolver application boundary.
+- Transactional outbox.
+- Dispatcher.
+- Redis consumer.
+- Durable job.
+- Executor.
+- Recovery/reaper.
+- Worker-root lifecycle.
+- Worker-root full lifecycle verification.
+- PostgreSQL + Redis real infrastructure verification.
+
+Verification terakhir menyatakan:
+
+- real PG + Redis worker-root verification COMPLETE,
+- commit sudah berhasil,
+- push ke `origin/backend-dev-recovery` SUKSES,
+- local SHA == remote SHA,
+- working tree CLEAN.
+
+Jangan mengulang integration infrastructure yang sudah selesai.
+
+==================================================
+REMAINING DEFERRED TERAKHIR
+==================================================
+
+Yang masih deferred:
+
+1. Real Telegram integration:
+   membutuhkan API_ID/API_HASH/session nyata.
+
+2. Managed secret-manager vendor:
+   deployment-owned dan vendor belum dipilih.
+
+3. Production module definitions:
+   manifest + command handler + module runtime dispatch.
+
+4. CI provisioning:
+   `PERSISTENCE_TEST_DATABASE_URL` dan `QUEUE_TEST_URL` harus tersedia di CI jika ingin menjalankan integration suite di CI.
+
+Telegram tetap DEFERRED.
+
+Secret-manager vendor tetap deployment-owned.
+
+==================================================
+TUJUAN TAHAP INI
+==================================================
+
+Sekarang fokus pada:
+
+**Production Module Definitions**
+
+Tujuan:
+
+Membuat sistem module runtime yang benar-benar memiliki definisi module production, bukan hanya infrastructure/runtime primitive.
+
+Module harus dapat:
+
+1. didefinisikan melalui manifest,
+2. memiliki identity/type yang jelas,
+3. memiliki metadata/configuration yang tervalidasi,
+4. memiliki command handler,
+5. didaftarkan ke module registry,
+6. didispatch melalui runtime yang SUDAH ADA,
+7. menggunakan lifecycle/ownership yang SUDAH ADA,
+8. tetap modular sehingga module berikutnya dapat ditambahkan tanpa mengubah core runtime.
+
+JANGAN membuat ulang worker-root.
+
+==================================================
+BAGIAN 1 — AUDIT MODULE RUNTIME
+==================================================
+
+Audit repository terlebih dahulu.
+
+Cari seluruh implementation terkait:
+
+- module runtime,
+- module registry,
+- module manifest,
+- module definition,
+- command handler,
+- job type registry,
+- worker runtime,
+- dispatcher,
+- executor,
+- module lifecycle,
+- configuration,
+- existing module interfaces,
+- existing handler interfaces.
+
+Gunakan kode yang SUDAH ADA sebagai source of truth.
+
+Jangan membuat abstraction kedua jika abstraction yang diperlukan sudah tersedia.
+
+Cari khusus:
+
+- `module`
+- `manifest`
+- `handler`
+- `registry`
+- `command`
+- `job-type`
+- `runtime`
+- `worker`
+
+==================================================
+BAGIAN 2 — TENTUKAN CONTRACT NYATA
+==================================================
+
+Sebelum implementasi:
+
+tentukan dari repository:
+
+1. Apa identity sebuah module?
+2. Bagaimana module diregistrasikan?
+3. Bagaimana module mendapatkan configuration?
+4. Bagaimana command diterjemahkan menjadi job?
+5. Bagaimana job type dihubungkan ke handler?
+6. Bagaimana handler menerima execution context?
+7. Bagaimana lifecycle module dikelola?
+8. Bagaimana module error dilaporkan?
+9. Bagaimana module dinonaktifkan?
+10. Bagaimana module version/manifest compatibility ditangani jika memang sudah tersedia?
+
+Jangan mengarang behavior yang tidak diperlukan.
+
+Jika contract sudah ada:
+
+gunakan contract tersebut.
+
+Jika contract belum lengkap:
+
+buat hanya minimal contract yang benar-benar dibutuhkan oleh production module definition.
+
+Jangan membuat architecture speculative.
+
+==================================================
+BAGIAN 3 — PRODUCTION MODULE MANIFEST
+==================================================
+
+Implementasikan manifest production module sesuai contract yang ditemukan.
+
+Manifest harus memiliki identity yang deterministic.
+
+Jika repository memang membutuhkan field seperti:
+
+- module id,
+- module type,
+- version,
+- capabilities,
+- commands,
+- configuration schema,
+- job types,
+
+gunakan hanya field yang benar-benar diperlukan oleh architecture.
+
+Jangan menambahkan field hanya untuk terlihat lengkap.
+
+Manifest harus tervalidasi sebelum module masuk registry.
+
+Invalid manifest harus ditolak dengan error yang jelas.
+
+Jangan membocorkan secret configuration dalam validation error.
+
+==================================================
+BAGIAN 4 — COMMAND HANDLER
+==================================================
+
+Implementasikan command handler production pertama yang sesuai dengan module contract yang tersedia.
+
+PENTING:
+
+Jangan membuat Telegram handler.
+
+Jangan membuat Telegram API call.
+
+Jangan membuat Telegram polling.
+
+Jangan membuat Telegram webhook.
+
+Gunakan command/job workload non-Telegram yang benar-benar sudah memiliki business/runtime contract di repository.
+
+Handler harus:
+
+1. menerima command/context sesuai contract,
+2. melakukan validation,
+3. menghasilkan action/job sesuai architecture,
+4. menggunakan job-type registry yang SUDAH ADA,
+5. tidak membuat worker runtime baru,
+6. tidak membuat queue baru,
+7. tidak membuat Redis client baru,
+8. tidak membuat PostgreSQL client baru,
+9. tidak memiliki lifecycle process sendiri jika runtime sudah menyediakan lifecycle.
+
+==================================================
+BAGIAN 5 — JOB-TYPE REGISTRY
+==================================================
+
+Audit registry job type yang sudah tersedia.
+
+Jika registry sudah ada:
+
+gunakan registry tersebut.
+
+Pastikan:
+
+`command`
+→ `module`
+→ `command handler`
+→ `job type`
+→ `executor`
+
+dapat terhubung secara deterministic.
+
+Jangan membuat registry kedua.
+
+Jika handler belum memiliki job type yang cocok:
+
+tentukan apakah memang ada dependency nyata yang belum tersedia.
+
+Jika tidak ada workload production yang sah:
+
+JANGAN membuat fake workload hanya untuk membuat test PASS.
+
+Dokumentasikan dependency tersebut.
+
+==================================================
+BAGIAN 6 — MODULE REGISTRY
+==================================================
+
+Pastikan production module dapat:
+
+- register,
+- validate,
+- resolve,
+- dispatch,
+- disable/unregister jika contract memang mendukungnya.
+
+Registry harus mencegah:
+
+- duplicate module ID,
+- duplicate command,
+- duplicate job type,
+- invalid manifest,
+- handler yang tidak tersedia.
+
+Gunakan error yang deterministic.
+
+Jangan menggunakan global mutable registry jika architecture repository sudah memiliki dependency injection.
+
+==================================================
+BAGIAN 7 — CONFIGURATION
+==================================================
+
+Audit configuration module.
+
+Module configuration harus:
+
+- tervalidasi,
+- memiliki default hanya jika memang aman,
+- tidak mengandung hardcoded credential,
+- tidak mencetak secret,
+- tidak memasukkan credential ke manifest,
+- dapat digunakan test dengan injected configuration.
+
+Secret tetap melalui:
+
+`SecretResolver`
+
+jika module memang membutuhkan secret.
+
+Jangan memilih vendor secret manager.
+
+Jangan membuat secret manager baru.
+
+==================================================
+BAGIAN 8 — MODULE LIFECYCLE
+==================================================
+
+Gunakan lifecycle worker/runtime yang SUDAH ADA.
+
+Jangan membuat lifecycle baru.
+
+Pastikan module:
+
+- tidak membuat process background sendiri tanpa ownership,
+- tidak membuat timer yang tidak dikelola,
+- tidak membuat Redis connection sendiri,
+- tidak membuat PostgreSQL connection sendiri,
+- tidak membuat queue consumer sendiri.
+
+Semua resource harus dimiliki runtime/composition root sesuai architecture existing.
+
+Jika module membutuhkan startup/shutdown hooks:
+
+gunakan lifecycle abstraction yang SUDAH ADA.
+
+==================================================
+BAGIAN 9 — ERROR HANDLING
+==================================================
+
+Pastikan error dari module:
+
+- deterministic,
+- tidak membocorkan credential,
+- tidak membocorkan secret,
+- tidak membocorkan internal storage key,
+- tidak membocorkan database connection string,
+- tidak mematikan seluruh worker runtime jika hanya satu command gagal, kecuali contract memang mengharuskan fatal error.
+
+Bedakan:
+
+- configuration error,
+- manifest error,
+- command validation error,
+- job creation error,
+- execution error,
+- infrastructure error.
+
+Gunakan error abstraction yang sudah tersedia jika ada.
+
+==================================================
+BAGIAN 10 — TEST
+==================================================
+
+Tambahkan test yang benar-benar relevan.
+
+Minimal:
+
+### Manifest
+- valid manifest diterima,
+- invalid manifest ditolak,
+- duplicate module ditolak,
+- duplicate command ditolak.
+
+### Registry
+- module register,
+- module resolve,
+- handler resolve,
+- unknown module ditolak,
+- unknown command ditolak.
+
+### Command Handler
+- valid command diproses,
+- invalid command ditolak,
+- command menghasilkan job/action sesuai contract,
+- job type ter-resolve dengan benar.
+
+### Runtime
+- module terhubung ke existing runtime,
+- handler menggunakan existing job registry,
+- tidak membuat worker/consumer kedua.
+
+### Error
+- handler error tidak crash seluruh runtime secara tidak semestinya,
+- secret tidak bocor,
+- configuration error aman.
+
+Jika architecture memiliki test untuk lifecycle:
+
+tambahkan assertion bahwa module tidak meninggalkan:
+
+- timer,
+- Redis connection,
+- PostgreSQL connection,
+- listener,
+- background task.
+
+==================================================
+BAGIAN 11 — INTEGRATION TEST
+==================================================
+
+Jika repository sudah memiliki integration test untuk module runtime:
+
+gunakan infrastructure/test seam yang sudah ada.
+
+Target flow:
+
+module manifest
+→ module registry
+→ command handler
+→ job-type registry
+→ existing worker runtime
+→ executor
+
+Jangan membuat worker runtime kedua.
+
+Jika test membutuhkan PostgreSQL/Redis:
+
+gunakan:
+
+`PERSISTENCE_TEST_DATABASE_URL`
+
+dan:
+
+`QUEUE_TEST_URL`
+
+Jika environment tersedia:
+
+jalankan integration test.
+
+Jika tidak:
+
+jangan membuat fake infrastructure.
+
+Laporkan:
+
+`SKIPPED — integration infrastructure unavailable`
+
+Jangan mengubah test agar PASS.
+
+==================================================
+BAGIAN 12 — TELEGRAM
+==================================================
+
+JANGAN mengerjakan Telegram.
+
+Tetap:
+
+`DEFERRED — requires real API_ID/API_HASH/session`
+
+Jangan:
+
+- membuat Telegram mock sebagai production module,
+- membuat Telegram polling,
+- membuat webhook,
+- membuat fake API credentials,
+- membuat Telegram job workload speculative.
+
+Telegram akan dikerjakan hanya setelah dependency credential/runtime nyata tersedia.
+
+==================================================
+BAGIAN 13 — PROVIDER SCOPE
+==================================================
+
+Jangan mengerjakan:
+
+- Gorouter.app,
+- NVIDIA provider integration,
+- TokenHarbor provider integration.
+
+Jangan menjalankan test Gorouter.app.
+
+NVIDIA dan TokenHarbor tidak disentuh kecuali compile/import langsung terdampak oleh perubahan module runtime.
+
+==================================================
+BAGIAN 14 — SECRET MANAGER
+==================================================
+
+Jangan memilih vendor secret manager.
+
+Gunakan:
+
+`SecretResolver`
+
+yang SUDAH ADA.
+
+Jika module membutuhkan secret:
+
+dependency-inject resolver.
+
+Jangan hardcode secret.
+
+Jangan membuat fake production secret manager.
+
+==================================================
+BAGIAN 15 — PRODUCTION MODULE DISCOVERY
+==================================================
+
+Jika repository memiliki mechanism discovery/registration:
+
+gunakan mechanism tersebut.
+
+Jika tidak:
+
+buat registration eksplisit melalui composition root yang sudah ada.
+
+Jangan membuat dynamic plugin loader kompleks tanpa kebutuhan nyata.
+
+Tujuan tahap ini adalah:
+
+**production module definition yang sederhana, deterministic, modular, dan mudah diperluas.**
+
+==================================================
+BAGIAN 16 — ARCHITECTURE RULE
+==================================================
+
+Pastikan module production tidak menjadi monolith.
+
+Pisahkan secara jelas:
+
+- manifest,
+- module definition,
+- configuration,
+- command handler,
+- job mapping,
+- registry,
+- runtime integration.
+
+Jangan membuat satu file besar yang berisi seluruh module.
+
+Module baru di masa depan harus dapat ditambahkan dengan perubahan minimal.
+
+==================================================
+BAGIAN 17 — VALIDATION
+==================================================
+
+Setelah implementasi:
+
+jalankan:
+
+`pnpm test`
+
+`pnpm build`
+
+`pnpm typecheck`
+
+`pnpm lint`
+
+`pnpm format:check`
+
+`node scripts/check-imports.mjs`
+
+`node scripts/check-ownership.mjs`
+
+`node scripts/check-doc-links.mjs`
+
+`git diff --check`
+
+Untuk:
+
+`node scripts/check-symlinks.mjs`
+
+JANGAN membuat file tersebut.
+
+Jika unavailable:
+
+`SKIPPED — scripts/check-symlinks.mjs unavailable`
+
+Jika integration environment tersedia:
+
+jalankan integration test yang relevan.
+
+Jika tidak tersedia:
+
+laporkan skipped.
+
+==================================================
+BAGIAN 18 — RESOURCE / MEMORY SAFETY
+==================================================
+
+Karena repository sebelumnya pernah mengalami process:
+
+`Killed`
+
+lakukan audit khusus terhadap module implementation.
+
+Pastikan tidak ada:
+
+- recursive dispatch,
+- infinite loop,
+- unbounded queue,
+- duplicate worker,
+- duplicate consumer,
+- duplicate timer,
+- background process tanpa owner,
+- promise yang tidak pernah settle.
+
+Module handler harus finite/deterministic kecuali contract memang mendefinisikan background lifecycle.
+
+==================================================
+BAGIAN 19 — DIFF REVIEW
+==================================================
+
+Setelah semua selesai:
+
+jalankan:
+
+`git status`
+
+`git diff --stat`
+
+`git diff`
+
+Review seluruh perubahan.
+
+Pastikan hanya ada:
+
+- module manifest,
+- module definition,
+- command handler,
+- registry integration,
+- tests,
+- dokumentasi yang memang diperlukan.
+
+Jangan ada:
+
+- Telegram,
+- provider integration,
+- secret,
+- credential,
+- unrelated refactor,
+- worker-root rewrite,
+- PostgreSQL/Redis architecture rewrite.
+
+==================================================
+BAGIAN 20 — COMMIT
+==================================================
+
+Jika ada perubahan valid:
+
+buat SATU commit.
+
+Gunakan message yang sesuai, misalnya:
+
+`feat: add production module definitions`
+
+atau gunakan message yang lebih tepat berdasarkan perubahan aktual.
+
+Jangan membuat empty commit.
+
+==================================================
+BAGIAN 21 — PUSH
+==================================================
+
+Setelah commit:
+
+`git push origin backend-dev-recovery`
+
+Kemudian verifikasi:
+
+`git rev-parse HEAD`
+
+remote SHA
+
+dan:
+
+`git status`
+
+Target:
+
+local SHA == remote SHA
+
+working tree clean.
+
+Jika push gagal:
+
+- jangan reset,
+- jangan menghapus commit,
+- jangan mengubah credential GitHub sembarangan,
+- tampilkan error,
+- commit tetap aman lokal.
+
+==================================================
+OUTPUT AKHIR
+==================================================
+
+Tampilkan:
+
+### Module Definition
+- manifest:
+- module identity:
+- command handler:
+- job type:
+- registry:
+- runtime wiring:
+- status:
+
+### Tests
+- manifest:
+- registry:
+- handler:
+- runtime:
+- error handling:
+- integration:
+
+### Validation
+- test:
+- build:
+- typecheck:
+- lint:
+- format:
+- imports:
+- ownership:
+- docs:
+- diff:
+- symlink:
+
+### Git
+- commit SHA:
+- push:
+- local/remote SHA:
+- working tree:
+
+### Remaining Deferred
+Hanya tampilkan dependency yang benar-benar belum dapat dikerjakan.
+
+### Next Roadmap
+Tentukan task berikutnya berdasarkan dependency nyata setelah production module definition selesai.
+
+PENTING:
+
+- Jangan mengulang worker-root.
+- Jangan mengulang PostgreSQL/Redis integration.
+- Jangan mengulang B-030/B-070/B-071.
+- Jangan membuat worker runtime kedua.
+- Jangan membuat registry kedua jika sudah ada.
+- Jangan membuat fake production workload.
+- Jangan mengerjakan Telegram.
+- Jangan memilih secret-manager vendor.
+- Jangan menyentuh Gorouter.app.
+- Jangan membuat fitur acak.
+- Langsung implementasikan, test, commit, dan push.
 
 ```
 # real infrastructure integration verification untuk PostgreSQL + Redis
