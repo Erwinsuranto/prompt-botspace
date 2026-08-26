@@ -132,10 +132,732 @@
 
 
 ```
-# 
+# F-060 Module Enable/Disable
 ```
 
+Lanjutkan project BotSpace dari kondisi repository TERAKHIR.
 
+WORKDIR:
+`/root/botspace`
+
+BRANCH:
+`backend-dev-recovery`
+
+KERJAKAN LANGSUNG:
+AUDIT → IMPLEMENTASI → TEST → REVIEW → COMMIT → PUSH.
+
+JANGAN TANYA SOAL KREDIT/KIRO.
+JANGAN BERHENTI UNTUK MEMINTA KONFIRMASI.
+
+==================================================
+KONDISI TERAKHIR
+==================================================
+
+Production module framework SUDAH SELESAI.
+
+Hasil tahap terakhir:
+
+- production module framework sudah tersedia,
+- module manifest/definition framework sudah siap,
+- module runtime sudah siap,
+- module registration/registry sudah tersedia,
+- command handler/runtime foundation sudah tersedia,
+- worker-root lifecycle SUDAH selesai,
+- PostgreSQL + Redis worker-root verification SUDAH selesai,
+- seluruh durable job chain SUDAH terverifikasi,
+- commit terakhir SUDAH dibuat,
+- push ke `origin/backend-dev-recovery` SUKSES,
+- local SHA == remote SHA,
+- working tree CLEAN.
+
+JANGAN mengulang:
+
+- worker-root,
+- PostgreSQL integration,
+- Redis integration,
+- transactional outbox,
+- dispatcher,
+- executor,
+- recovery/reaper,
+- module runtime foundation,
+- module manifest foundation.
+
+==================================================
+ROADMAP TERAKHIR
+==================================================
+
+Hasil roadmap terakhir menyatakan:
+
+1. Module command-path definitions:
+   hanya dikerjakan jika terdapat workload command non-Telegram yang memiliki business contract nyata.
+
+2. F-060 Module enable/disable:
+   contract katalog module sudah tersedia dan dapat dikerjakan tanpa backend workload baru.
+
+3. Telegram:
+   tetap deferred karena membutuhkan API_ID/API_HASH/session nyata.
+
+Karena belum ada workload command non-Telegram dengan business contract nyata:
+
+JANGAN membuat fake workload hanya untuk menguji command-path.
+
+Fokus sekarang:
+
+**F-060 MODULE ENABLE/DISABLE**
+
+==================================================
+TUJUAN F-060
+==================================================
+
+Implementasikan kemampuan enable/disable module production secara modular dan deterministic.
+
+Tujuan utama:
+
+- module dapat diketahui status enabled/disabled-nya,
+- module disabled tidak dapat menerima/menjalankan command atau job melalui runtime,
+- module enabled dapat digunakan kembali tanpa restart process jika architecture memang mendukung dynamic state,
+- state module tidak bercampur dengan process lifecycle,
+- state tidak mengubah worker-root lifecycle,
+- module registry tetap menjadi source of truth untuk module identity,
+- module enable/disable tidak membuat worker/consumer baru.
+
+==================================================
+BAGIAN 1 — AUDIT
+==================================================
+
+Audit terlebih dahulu seluruh repository terkait:
+
+- module registry,
+- module definition,
+- module manifest,
+- module runtime,
+- module lifecycle,
+- module configuration,
+- module state,
+- enable/disable contract,
+- command dispatch,
+- job dispatch,
+- composition root,
+- persistence abstraction,
+- existing admin/configuration APIs,
+- F-060 reference jika sudah tersedia.
+
+Cari seluruh:
+
+- `module`
+- `enabled`
+- `disabled`
+- `enable`
+- `disable`
+- `ModuleRegistry`
+- `ModuleDefinition`
+- `ModuleManifest`
+- `ModuleRuntime`
+
+Jangan membuat abstraction kedua jika repository sudah memiliki abstraction yang sesuai.
+
+==================================================
+BAGIAN 2 — TENTUKAN SOURCE OF TRUTH
+==================================================
+
+Tentukan dari kode yang SUDAH ADA:
+
+1. Siapa yang memiliki module identity?
+2. Di mana module registered?
+3. Di mana module runtime state disimpan?
+4. Apakah state harus persistent atau process-local?
+5. Apakah enable/disable berlaku global atau per workspace?
+6. Apakah module configuration memiliki state?
+7. Bagaimana runtime mengetahui module disabled?
+8. Bagaimana command dispatch menangani module disabled?
+9. Bagaimana job dispatch menangani module disabled?
+10. Apakah perubahan state membutuhkan restart atau dapat berlaku langsung?
+
+Jangan menebak.
+
+Gunakan architecture dan contract yang benar-benar sudah tersedia.
+
+==================================================
+BAGIAN 3 — ENABLE/DISABLE CONTRACT
+==================================================
+
+Jika F-060 contract sudah tersedia:
+
+gunakan contract tersebut sebagai source of truth.
+
+Jika contract belum lengkap:
+
+buat hanya minimum contract yang diperlukan untuk:
+
+- enable module,
+- disable module,
+- membaca status module,
+- validasi module identity,
+- menolak module yang tidak terdaftar.
+
+Jangan membuat contract yang menduplikasi ModuleRegistry.
+
+State minimal harus dapat membedakan:
+
+`ENABLED`
+
+dan
+
+`DISABLED`
+
+Jika repository sudah memiliki enum/state yang berbeda:
+
+gunakan enum/state tersebut.
+
+Jangan membuat enum kedua.
+
+==================================================
+BAGIAN 4 — MODULE STATE OWNERSHIP
+==================================================
+
+Pisahkan dengan tegas:
+
+### Module state
+
+Contoh:
+
+- enabled,
+- disabled.
+
+dengan:
+
+### Process lifecycle
+
+Contoh:
+
+- starting,
+- running,
+- stopping,
+- stopped.
+
+JANGAN menggunakan:
+
+`BotInstallation.status`
+
+sebagai process state.
+
+JANGAN mengubah lifecycle worker-root.
+
+JANGAN membuat module enable/disable menyebabkan:
+
+- worker restart,
+- process restart,
+- Redis consumer restart,
+- PostgreSQL reconnect,
+- queue recreation.
+
+Enable/disable hanya mengubah module availability.
+
+==================================================
+BAGIAN 5 — MODULE REGISTRY
+==================================================
+
+Integrasikan enable/disable dengan registry yang SUDAH ADA.
+
+Registry harus dapat:
+
+- resolve module,
+- mengetahui status module,
+- enable module,
+- disable module.
+
+Pastikan:
+
+- unknown module → error,
+- duplicate module → error,
+- invalid module identity → error.
+
+Jangan membuat registry kedua.
+
+==================================================
+BAGIAN 6 — DISPATCH GUARD
+==================================================
+
+Tambahkan guard pada runtime/dispatch boundary yang PALING TEPAT berdasarkan architecture existing.
+
+Behavior:
+
+### ENABLED
+
+module boleh diproses.
+
+### DISABLED
+
+module tidak boleh menerima execution.
+
+Jika command masuk ke module disabled:
+
+- jangan menjalankan handler,
+- jangan membuat job baru jika job tersebut memang belum dibuat,
+- jangan memanggil executor.
+
+Jika job sudah berada di queue sebelum module dinonaktifkan:
+
+audit contract existing untuk menentukan behavior.
+
+Jangan membuat speculative queue semantics.
+
+Jika architecture memungkinkan guard pada execution boundary:
+
+gunakan boundary tersebut.
+
+Jangan menambahkan guard di banyak tempat secara redundant.
+
+==================================================
+BAGIAN 7 — IDEMPOTENCY
+==================================================
+
+Enable/disable harus deterministic.
+
+Contoh:
+
+`enable(module yang sudah enabled)`
+
+harus mengikuti contract yang tersedia.
+
+Jika contract tidak mendefinisikan error:
+
+gunakan idempotent behavior yang paling sederhana.
+
+Demikian juga:
+
+`disable(module yang sudah disabled)`.
+
+Jangan menghasilkan state tidak konsisten.
+
+==================================================
+BAGIAN 8 — PERSISTENCE
+==================================================
+
+Audit apakah module enabled/disabled state memang harus persistent.
+
+Jika repository SUDAH memiliki persistence mechanism untuk module state:
+
+gunakan mechanism tersebut.
+
+Jika belum ada persistence contract:
+
+JANGAN langsung membuat database schema speculative.
+
+Tentukan dari F-060 contract apakah state memang harus persistent.
+
+Jika F-060 memang mensyaratkan persistence dan schema belum tersedia:
+
+buat hanya schema minimal yang benar-benar menjadi bagian F-060.
+
+Jangan mengubah schema B-071.
+
+Jangan mengubah:
+
+- workspace schema,
+- file metadata,
+- share schema,
+- BotInstallation schema,
+
+kecuali contract F-060 secara eksplisit membutuhkan hubungan tersebut.
+
+==================================================
+BAGIAN 9 — SCOPE
+==================================================
+
+Audit apakah enable/disable:
+
+- global module,
+- per account,
+- per workspace,
+- per installation.
+
+Jangan memilih sendiri.
+
+Gunakan contract/catalog yang sudah ada.
+
+Jika module registry global tetapi configuration per workspace:
+
+pisahkan kedua concern tersebut.
+
+Jangan mencampur:
+
+module availability
+
+dengan:
+
+workspace authorization.
+
+==================================================
+BAGIAN 10 — SECURITY
+==================================================
+
+Pastikan disabled module benar-benar tidak dapat dieksekusi melalui jalur alternatif.
+
+Audit:
+
+- direct command path,
+- job dispatch,
+- executor,
+- internal invocation,
+- HTTP route jika ada,
+- admin/configuration path.
+
+Jangan hanya menonaktifkan tombol/UI jika runtime masih bisa menjalankan module.
+
+Authorization tetap harus mengikuti boundary existing.
+
+Jangan membuat admin authentication baru jika repository sudah memiliki auth boundary.
+
+==================================================
+BAGIAN 11 — TEST
+==================================================
+
+Tambahkan test yang benar-benar relevan.
+
+Minimal:
+
+### Registry
+
+- register module,
+- resolve module,
+- unknown module,
+- enable module,
+- disable module,
+- duplicate registration.
+
+### State
+
+- default state sesuai contract,
+- enabled state,
+- disabled state,
+- repeated enable,
+- repeated disable.
+
+### Dispatch
+
+- enabled module dapat diproses,
+- disabled module ditolak,
+- disabled module tidak memanggil handler,
+- disabled module tidak membuat execution baru jika guard berada sebelum job creation.
+
+### Security
+
+- module tidak dapat dieksekusi melalui jalur internal yang melewati guard,
+- authorization tetap berlaku.
+
+### Lifecycle
+
+Pastikan enable/disable:
+
+- tidak membuat worker baru,
+- tidak membuat consumer baru,
+- tidak membuat Redis connection baru,
+- tidak membuat PostgreSQL connection baru,
+- tidak mengubah process lifecycle.
+
+Jika persistence memang bagian F-060:
+
+tambahkan test persistence.
+
+Jika PostgreSQL integration membutuhkan:
+
+`PERSISTENCE_TEST_DATABASE_URL`
+
+dan environment tidak tersedia:
+
+`SKIPPED — PERSISTENCE_TEST_DATABASE_URL unavailable`
+
+Jangan membuat fake PostgreSQL.
+
+==================================================
+BAGIAN 12 — TELEGRAM
+==================================================
+
+JANGAN mengerjakan Telegram.
+
+Tetap:
+
+`DEFERRED — requires real API_ID/API_HASH/session`
+
+Jangan membuat:
+
+- Telegram module fake,
+- polling,
+- webhook,
+- fake Telegram credentials,
+- Telegram command workload.
+
+==================================================
+BAGIAN 13 — PROVIDER SCOPE
+==================================================
+
+Jangan mengerjakan:
+
+- Gorouter.app,
+- NVIDIA integration,
+- TokenHarbor integration.
+
+Jangan menjalankan test Gorouter.app.
+
+NVIDIA dan TokenHarbor tidak disentuh kecuali compile/import benar-benar terdampak.
+
+==================================================
+BAGIAN 14 — SECRET
+==================================================
+
+F-060 tidak boleh memperkenalkan secret baru.
+
+Jangan:
+
+- hardcode credential,
+- menyimpan token,
+- menambahkan API key,
+- mencetak secret.
+
+Jika module state membutuhkan configuration:
+
+gunakan configuration boundary yang SUDAH ADA.
+
+==================================================
+BAGIAN 15 — ARCHITECTURE
+==================================================
+
+Pastikan implementation tetap modular.
+
+Pisahkan sesuai architecture existing:
+
+- module state,
+- module registry integration,
+- enable/disable service,
+- dispatch guard,
+- tests.
+
+Jangan membuat satu file besar.
+
+Jangan membuat:
+
+`ModuleManager2`
+
+atau registry kedua.
+
+Gunakan abstraction yang SUDAH ADA.
+
+==================================================
+BAGIAN 16 — NO SPECULATIVE WORKLOAD
+==================================================
+
+Sangat penting:
+
+JANGAN membuat command/job workload baru hanya untuk menunjukkan F-060 bekerja.
+
+Belum ada business contract non-Telegram yang nyata untuk command-path.
+
+F-060 harus diuji menggunakan:
+
+- existing module abstraction,
+- existing test module,
+- existing registry fixture,
+- atau minimal synthetic unit fixture yang tidak menjadi production workload.
+
+Synthetic fixture hanya untuk unit test.
+
+Jangan mendaftarkannya sebagai production module.
+
+==================================================
+BAGIAN 17 — VALIDATION
+==================================================
+
+Setelah implementasi:
+
+jalankan:
+
+`pnpm test`
+
+`pnpm build`
+
+`pnpm typecheck`
+
+`pnpm lint`
+
+`pnpm format:check`
+
+`node scripts/check-imports.mjs`
+
+`node scripts/check-ownership.mjs`
+
+`node scripts/check-doc-links.mjs`
+
+`git diff --check`
+
+Untuk:
+
+`node scripts/check-symlinks.mjs`
+
+JANGAN membuat file tersebut.
+
+Jika tidak tersedia:
+
+`SKIPPED — scripts/check-symlinks.mjs unavailable`
+
+Jangan membuat dummy script.
+
+Jika ada integration test yang membutuhkan PostgreSQL:
+
+gunakan environment nyata bila tersedia.
+
+Jangan fake.
+
+==================================================
+BAGIAN 18 — RESOURCE SAFETY
+==================================================
+
+Pastikan enable/disable tidak menyebabkan:
+
+- duplicate listener,
+- duplicate worker,
+- duplicate consumer,
+- memory leak,
+- timer leak,
+- recursive dispatch,
+- queue duplication.
+
+State change harus lightweight.
+
+Jangan membuat background process hanya untuk memonitor module state.
+
+==================================================
+BAGIAN 19 — DIFF REVIEW
+==================================================
+
+Sebelum commit:
+
+jalankan:
+
+`git status`
+
+`git diff --stat`
+
+`git diff`
+
+Review seluruh perubahan.
+
+Pastikan tidak ada:
+
+- Telegram,
+- provider integration,
+- secret,
+- credential,
+- B-071 schema changes,
+- worker-root rewrite,
+- PostgreSQL/Redis architecture rewrite,
+- unrelated refactor,
+- fake production workload.
+
+==================================================
+BAGIAN 20 — COMMIT
+==================================================
+
+Jika implementation valid:
+
+buat SATU commit.
+
+Gunakan message:
+
+`feat: add module enable disable`
+
+atau message yang lebih tepat berdasarkan perubahan aktual.
+
+Jangan membuat empty commit.
+
+==================================================
+BAGIAN 21 — PUSH
+==================================================
+
+Setelah commit:
+
+`git push origin backend-dev-recovery`
+
+Kemudian verifikasi:
+
+- local SHA,
+- remote SHA,
+- working tree.
+
+Target:
+
+local SHA == remote SHA
+
+working tree CLEAN.
+
+Jika push gagal:
+
+- jangan reset,
+- jangan menghapus commit,
+- jangan mengubah credential GitHub sembarangan,
+- tampilkan error,
+- commit tetap aman lokal.
+
+==================================================
+OUTPUT AKHIR
+==================================================
+
+Tampilkan:
+
+### F-060 Module Enable/Disable
+- contract:
+- module state:
+- registry integration:
+- dispatch guard:
+- persistence:
+- authorization:
+- status:
+
+### Tests
+- registry:
+- enable:
+- disable:
+- dispatch:
+- security:
+- lifecycle:
+- persistence:
+
+### Validation
+- test:
+- build:
+- typecheck:
+- lint:
+- format:
+- imports:
+- ownership:
+- docs:
+- diff:
+- symlink:
+
+### Git
+- commit SHA:
+- push:
+- local/remote SHA:
+- working tree:
+
+### Remaining Deferred
+Hanya dependency yang benar-benar belum tersedia.
+
+### Next Roadmap
+Tentukan task berikutnya berdasarkan dependency nyata.
+
+PENTING:
+
+- Jangan mengulang production module framework.
+- Jangan membuat workload palsu.
+- Jangan mengerjakan Telegram.
+- Jangan mengubah BotInstallation.status.
+- Jangan membuat worker/consumer baru.
+- Jangan membuat registry kedua.
+- Jangan mengubah B-071.
+- Jangan menyentuh Gorouter.app.
+- Jangan membuat secret/credential baru.
+- Langsung implementasikan, test, commit, dan push.
 
 ```
 # Production Module Definitions (manifest + command handler
